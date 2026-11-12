@@ -110,7 +110,11 @@ Oben 15 breite Balken (große Fläche), darunter groß der Ton, darunter Saite u
 - **Ereignisse:** Jeder erkannte Akkord wird mit Zeitstempel (Sekunden seit Aufnahmebeginn), Grundton, Art und Griff gespeichert (`CH.ev`). Nach Mikro-Stopp und Neustart geht der Verlauf mit 0,8 s Abstand weiter. Reset leert alles. Das ist die Grundlage für Bearbeiten, Lernen, Läufe und Takte.
 - **Bearbeiten:** Einen Akkord im Tab antippen (oder den großen Akkordnamen für den letzten) öffnet ein Feld von unten. Der gewählte Akkord ist im Tab hinterlegt. Inhalt: Name und Zeitpunkt · **Ähnlich klingend** (5 Vorschläge aus dem gespeicherten Klangbild des Ereignisses, z. B. Esus4 → Asus2) · **Grundton** (12 Tasten, B/H-Schalter gilt) · **Art** (Dur, m, 7, maj7, m7, sus2, sus4, 5) · **Griff** (antippen blättert, wird für diesen Akkord gemerkt) · **Entfernen** · **Fertig**. Änderungen gelten sofort. Ist es der aktuelle Akkord, übernimmt auch die große Anzeige die Korrektur.
 - **Klangbild je Ereignis:** Bei jedem erkannten Akkord werden Tonklassen (Chroma) und Tonhöhenbild mitgespeichert, als Grundlage für die Schnellwahl und das spätere Lernen.
-- **Noch nicht:** Lernen (eine Korrektur wird beim nächsten gleichen Klang noch nicht automatisch übernommen), Läufe als Bundzahlen.
+- **Ähnlich klingend:** Akkorde mit genau denselben Tönen stehen immer vorn (Esus4 ↔ Asus2), danach die nächstbesten nach Klang.
+- **Lernen:** Jede Korrektur speichert das Klangbild als Beispiel (lokal, Schlüssel `gitarre-lernen`, max. 150): „erkannt als X, richtig ist Y“. Liest die App später wieder X und ähnelt der Klang dem Beispiel (Ähnlichkeit ≥ 0,86 aus 30 % Tonklassen und 70 % tiefer Lage MIDI 40–60), zeigt sie Y mit dem Hinweis „Aus deiner Korrektur gelernt“. Wird ein Akkord zurück auf das Erkannte gestellt, wird das Beispiel gelöscht. Im Bearbeiten-Feld steht „Korrektur wird gemerkt · erkannt war X“. In den Einstellungen: Anzahl und „Alle gelernten Korrekturen vergessen“ (zweimal tippen).
+- **Test Lernen:** Eine Korrektur Esus4 → Asus2 (Strophe 0:22) reicht: zweiter Durchgang der Strophe wird Asus2, in der Akkordtest-Aufnahme verschwindet das Hin und Her Asus2/Esus4 ganz. Ein echtes Esus4 mit tiefem E (022200) bleibt Esus4 (Ähnlichkeit höchstens 0,84).
+- **Kleinigkeiten:** Während ein Bedienfeld offen ist, läuft die 30-s-Stille-Abschaltung nicht. Hat man im Tab zurückgewischt, springt der Streifen bei laufender Aufnahme nach 4 s ohne Berührung wieder ans Ende; beim Mikro-Start sofort.
+- **Noch nicht:** Läufe als Bundzahlen. Aufnahmen bleiben nicht erhalten, wenn man die Akkorderkennung schließt.
 
 ### Metronom (in der Akkorderkennung)
 - **Knopf oben rechts** (zwischen Reset und Mikro): öffnet das Bedienfeld. Leuchtet in der Akzentfarbe, wenn das Metronom bei der Aufnahme mitläuft, und blinkt im Takt (Eins stärker).
@@ -129,7 +133,7 @@ Oben 15 breite Balken (große Fläche), darunter groß der Ton, darunter Saite u
 
 ## 8. Roadmap
 
-1. **Als Nächstes (Akkorde):** Lernen (Korrekturen als Klangbeispiele lokal speichern und beim nächsten ähnlichen Klang übernehmen). Dann Läufe als Bundzahlen im Tab (Testgrundlage: Manus Strophen-Aufnahme). Dann **mitlaufendes Metronom**: Manu gibt ein ungefähres Tempo vor, das Metronom passt sich seinem Spiel an (sein Tempo im Song schwankt). Vorher gemeinsam besprechen.
+1. **Als Nächstes:** **Aufnahmen-Bereich** auf dem Startbildschirm (Sessions mit Name, Datum, Tempo, Taktart speichern, wieder öffnen, weiter aufnehmen oder neu starten) – vorher besprechen. Dann Läufe als Bundzahlen im Tab (Testgrundlage: Manus Strophen-Aufnahme). Dann **mitlaufendes Metronom**: Manu gibt ein ungefähres Tempo vor, das Metronom passt sich seinem Spiel an (sein Tempo im Song schwankt). Vorher gemeinsam besprechen.
 2. **Bald: Aufnahme und Wiedergabe (Record/Playback):** Gespieltes aufnehmen und abspielen, um sich Melodien zu den Akkordwechseln auszudenken, die dann mitgeschrieben werden. Offen: ohne Kopfhörer würde die Wiedergabe mit erkannt. Ideen: Wiedergabe gezielt aus der Analyse herausrechnen (die App kennt das Signal) oder die Echo-Unterdrückung des Browsers testen.
 3. Automatische BPM- und Takterkennung für freies Spielen ohne Metronom.
 4. Transkription: Einzeltöne (z. B. Basic Pitch), Tabs und gut lesbare Takte – als Grundlage für den Bassisten. Mit Bearbeitungsansicht zum Korrigieren.

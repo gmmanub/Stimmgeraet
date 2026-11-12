@@ -131,6 +131,8 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 #esheet .sheet{gap:18px}
 .ehead h2 #eName{font-size:26px;margin:0}
 .ehead h2 span{font-size:13px;font-weight:400;color:var(--muted);margin-left:8px}
+.elrn{font-size:12px;color:var(--acc);margin-top:-8px;min-height:0}
+.elrn:empty{display:none}
 .echips{display:flex;flex-wrap:wrap;gap:8px}
 .echips button{height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line);font-size:15px}
 .echips button:active{background:color-mix(in oklab,var(--acc) 25%,var(--panel))}
@@ -308,6 +310,11 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
       <h3>Rückmeldung</h3>
       <button class="row" id="hap"><span>Kurz vibrieren, wenn der Ton sitzt</span><span class="toggle" aria-hidden="true"></span></button>
     </div>
+    <div class="group">
+      <h3>Akkorde · Gelerntes</h3>
+      <p id="lrnInfo"></p>
+      <button class="row" id="lrnClear"><span>Alle gelernten Korrekturen vergessen</span><span aria-hidden="true">↺</span></button>
+    </div>
   </div>
 </div>
 
@@ -346,7 +353,8 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
       <h2><span id="eName">–</span><span id="eWhen"></span></h2>
       <button class="iconbtn" id="eclose" aria-label="Bearbeiten schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
-    <div class="group"><h3>Ähnlich klingend</h3><div class="echips" id="eSim"></div></div>
+    <p class="elrn" id="eLrn"></p>
+    <div class="group"><h3>Ähnlich klingend · ein Tipp genügt</h3><div class="echips" id="eSim"></div></div>
     <div class="group"><h3>Grundton</h3><div class="egrid" id="eRoot"></div></div>
     <div class="group"><h3>Art</h3><div class="egrid q" id="eQual"></div></div>
     <div class="group"><h3>Griff</h3><div class="ediag"><div id="eDiag" role="button" aria-label="Nächster Griff"></div><p id="eVoi"></p></div></div>
@@ -868,6 +876,14 @@ function voicings(r,qi){
   return VOI_CACHE[key]=list;
 }
 
+// Ähnlichkeit zu einem gelernten Beispiel: Tonklassen + tiefe Lage (MIDI 40–60, dort unterscheiden sich z. B. Asus2 ohne A-Saite und echtes Esus4)
+const LEARN_T=0.86;
+function learnSim(cn,pf,x){
+  let d=0,na=0,nb=0; for(let k=0;k<12;k++){d+=cn[k]*x.cn[k];na+=cn[k]*cn[k];nb+=x.cn[k]*x.cn[k];}
+  const c1=d/Math.sqrt(na*nb||1); d=0;na=0;nb=0;
+  for(let j=0;j<=20;j++){d+=pf[j]*x.pf[j];na+=pf[j]*pf[j];nb+=x.pf[j]*x.pf[j];}
+  return 0.3*c1+0.7*(d/Math.sqrt(na*nb||1));
+}
 function makeChordEngine(sr){
   const N=16384, binHz=sr/N, LOG=Math.ceil(Math.log2(N));
   const win=new Float64Array(N); for(let i=0;i<N;i++) win[i]=0.42-0.5*Math.cos(2*Math.PI*i/(N-1))+0.08*Math.cos(4*Math.PI*i/(N-1));
@@ -884,7 +900,7 @@ function makeChordEngine(sr){
   }
   const E={sr,N,chroma:new Float32Array(12),prof:new Float32Array(PN),pf:new Float32Array(PN),pacc:new Float32Array(PN),
     slowDb:-90,lastOn:-1e9,lastSound:-1e9,cur:null,cand:null,candT:0,
-    vIdx:0,vLock:false,pref:{},onCommit:null};
+    vIdx:0,vLock:false,pref:{},onCommit:null,learn:[]};
 
   function baseScore(cn,r,qi,bassBonus){
     const t=TPL[r*QUAL.length+qi]; let d=0; for(let k=0;k<12;k++) d+=cn[k]*t.v[k];
@@ -965,6 +981,12 @@ function makeChordEngine(sr){
       const q=QUAL[bq].id, third=Math.max(cn[(br+3)%12],cn[(br+4)%12])/cmx;
       if((q===''||q==='m')&&third<0.15) lab={type:'power',r:br,sc:bs+(third<0.08?0.05:0)};
       else lab={type:'chord',r:br,qi:bq,sc:bs};
+    }
+    // Gelernt: Klingt es wie ein korrigiertes Beispiel, das die App genauso falsch gelesen hatte, gilt die Korrektur
+    if(lab.type!=='note'&&E.learn.length){
+      const k0=lab.type+'|'+lab.r+'|'+(lab.qi??''); let bx=null,bsim=0;
+      for(const x of E.learn){ if(x.from!==k0) continue; const s=learnSim(cn,E.pf,x); if(s>bsim){bsim=s;bx=x;} }
+      if(bx&&bsim>=LEARN_T) lab={type:bx.to.type,r:bx.to.r,qi:bx.to.qi,sc:lab.sc,learned:true,raw:k0};
     }
     lab.key=lab.type+'|'+lab.r+'|'+(lab.qi??'');
     const cur=E.cur;
@@ -1049,13 +1071,14 @@ function renderStrip(){
   const key=(ED.ev?CH.ev.indexOf(ED.ev):-1)+'#'+CH.ev.map(e=>e.key+'@'+e.t.toFixed(2)+(e.f?e.f.join(','):'')).join(';')+'|'+S.notation+'|'+CH.mic+'|'+Math.floor(CH.tNow*6)+'|'+CH.grids.map(g=>g.t.toFixed(2)+(g.end==null?'':'/'+g.end.toFixed(2))).join(',');
   if(key===CH.stripKey) return; CH.stripKey=key;
   const el=$('#cstrip'); el.innerHTML=stripSVG();
-  if(CH.follow) el.scrollLeft=el.scrollWidth;
+  if(!CH.follow&&CH.mic&&!ED.ev&&performance.now()-(CH.scrollT||0)>4000) CH.follow=true;
+  if(CH.follow&&el.scrollLeft<el.scrollWidth-el.clientWidth-2){CH.progScroll=true; el.scrollLeft=el.scrollWidth;}
   $('#cstripnote').textContent=CH.ev.length?'':'Hier erscheint dein Verlauf als Tabelle, Akkorde oben drüber.';
 }
 function renderChord(now){
   const E=CH.eng, nameEl=$('#cname'), quiet=!E||CH.tNow-E.lastSound>1.5;
   const l=E&&E.cur, vo=E&&E.voicing();
-  const key=(l?l.key:'none')+'|'+CH.mic+'|'+(CH.counting?'c'+CH.count:'')+'|'+(vo?vo.v.id+'/'+vo.n+(E.vLock?'L':''):'')+'|'+S.notation+'|'+(CH.ev.length?CH.ev[CH.ev.length-1].key+(CH.ev[CH.ev.length-1].f||[]).join(''):'');
+  const key=(l?l.key:'none')+'|'+(l&&l.learned?'L':'')+'|'+CH.mic+'|'+(CH.counting?'c'+CH.count:'')+'|'+(vo?vo.v.id+'/'+vo.n+(E.vLock?'L':''):'')+'|'+S.notation+'|'+(CH.ev.length?CH.ev[CH.ev.length-1].key+(CH.ev[CH.ev.length-1].f||[]).join(''):'');
   const le=CH.ev[CH.ev.length-1];
   if(le&&l&&le.key===l.key&&vo&&!le.edited) le.f=vo.v.f;
   renderStrip();
@@ -1072,7 +1095,7 @@ function renderChord(now){
     const lev=CH.ev[CH.ev.length-1], ed=lev&&lev.edited&&lev.key===l.key&&lev.f;
     $('#cdiag').innerHTML=ed?diagramSVG({f:lev.f,b:(evVoicings(lev).find(v=>v.f.join()===lev.f.join())||{b:0}).b}):(vo?diagramSVG(vo.v):(l.type==='power'?diagramSVG({f:POWER(l.r),b:0}):''));
     $('#cvoi').textContent=vo&&vo.n>1?`Griff ${vo.i+1} von ${vo.n} · tippen zum Wechseln`:'';
-    $('#chint').textContent=!CH.mic&&CH.micMsg?CH.micMsg:(l.type==='note'?'Einzelton':(l.type==='power'?'Powerchord':''));
+    $('#chint').textContent=!CH.mic&&CH.micMsg?CH.micMsg:(l.type==='note'?'Einzelton':(l.learned?'Aus deiner Korrektur gelernt':(l.type==='power'?'Powerchord':'')));
   }
   if(CH.mic&&CH.counting) $('#chint').textContent=CH.count?'Einzählen · '+CH.count:'Einzählen …';
 }
@@ -1095,7 +1118,8 @@ function chordFrame(now){
     if(go){
       CH.an.getFloatTimeDomainData(CH.T);
       CH.eng.process(CH.T,dt,CH.tNow,S.a4);
-      if(CH.tNow-Math.max(CH.eng.lastSound,CH.tBase)>30) chordMicOff('Mikro nach 30 s Stille aus · oben rechts neu starten');
+      if($('#esheet').classList.contains('on')||$('#msheet').classList.contains('on')||$('#sheet').classList.contains('on')) CH.idleRef=CH.tNow;
+      if(CH.tNow-Math.max(CH.eng.lastSound,CH.tBase,CH.idleRef||0)>30) chordMicOff('Mikro nach 30 s Stille aus · oben rechts neu starten');
     }
   }
   renderChord(now);
@@ -1109,7 +1133,7 @@ function onChordCommit(c){
   if(last) t=Math.max(t,last.t+0.35);
   let cn=null;
   if(E){ let n=0; for(const x of E.chroma) n+=x*x; n=Math.sqrt(n)||1; cn=Array.from(E.chroma,x=>x/n); }
-  const ev={t,r:c.r,qi:c.type==='chord'?c.qi:null,type:c.type,key:c.key,f:null,cn,pf:E?Array.from(E.pf):null};
+  const ev={t,r:c.r,qi:c.type==='chord'?c.qi:null,type:c.type,key:c.key,orig:c.raw||c.key,learned:!!c.learned,f:null,cn,pf:E?Array.from(E.pf):null};
   if(c.type==='power') ev.f=POWER(c.r);
   CH.ev.push(ev);
   if(CH.ev.length>400) CH.ev.shift();
@@ -1221,22 +1245,46 @@ function metUI(){
 function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) metPreview(true); }
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
+// =================== Lernen ===================
+const LKEY='gitarre-lernen';
+let LEARN=[]; try{LEARN=JSON.parse(localStorage.getItem(LKEY)||'[]');}catch(e){LEARN=[];}
+function saveLearn(){ if(LEARN.length>150) LEARN.splice(0,LEARN.length-150); try{localStorage.setItem(LKEY,JSON.stringify(LEARN));}catch(e){} if(CH.eng) CH.eng.learn=LEARN; lrnUI(); }
+function lrnUI(){ const n=LEARN.length; const el=$('#lrnInfo'); if(el) el.textContent=n?`${n} gemerkte Korrektur${n===1?'':'en'}. Klingt etwas wie ein korrigierter Akkord, den die App genauso falsch gelesen hatte, übernimmt sie deine Korrektur.`:'Noch nichts gelernt. Korrigierst du einen Akkord im Tab, merkt sich die App den Klang.'; }
+// Korrektur eines Ereignisses als Klangbeispiel merken (oder vergessen, wenn wieder wie erkannt)
+function learnFrom(e){
+  if(!e.orig||!e.cn||!e.pf) return;
+  const i=LEARN.findIndex(x=>x.id===e.lid);
+  if(e.key===e.orig){ if(i>=0){LEARN.splice(i,1); saveLearn();} return; }
+  const x={id:e.lid||(e.lid='l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),from:e.orig,to:{type:e.type,r:e.r,qi:e.qi},
+    cn:e.cn.map(v=>+v.toFixed(4)),pf:e.pf.map(v=>+v.toFixed(4)),d:Date.now()};
+  if(i>=0) LEARN[i]=x; else LEARN.push(x);
+  saveLearn();
+}
+$('#lrnClear').addEventListener('click',()=>{ if(!LEARN.length) return; if(confirmLearnClear()){LEARN=[]; saveLearn();} });
+let lrnArm=0; function confirmLearnClear(){ const b=$('#lrnClear span'); if(Date.now()-lrnArm<3000){b.textContent='Alle gelernten Korrekturen vergessen'; return true;} lrnArm=Date.now(); b.textContent='Nochmal tippen zum Bestätigen'; setTimeout(()=>{b.textContent='Alle gelernten Korrekturen vergessen';},3000); return false; }
+lrnUI();
+
 // =================== Bearbeiten ===================
 const ED={ev:null};
 const POWER=r=>{const rf=(r-4+12)%12; return rf<=7?[rf,rf+2,rf+2,-1,-1,-1]:[-1,(r-9+12)%12,(r-9+12)%12+2,(r-9+12)%12+2,-1,-1];};
 function evFrets(e){ return e.type==='power'?POWER(e.r):voicings(e.r,e.qi)[0].f; }
 function evVoicings(e){ return e.type==='power'?[{f:POWER(e.r),b:0,id:'p'}]:voicings(e.r,e.qi); }
+function keyParts(k){const [t,r,q]=k.split('|');return {type:t,r:+r,qi:q===''?null:+q};}
 function evName(e){const p=labelParts(e);return p.root+p.suf;}
 // Ähnlich klingende Akkorde aus dem gespeicherten Klangbild
 function similar(e){
   const cn=e.cn; if(!cn) return [];
   const L=[]; for(const t of TPL){let d=0; for(let k=0;k<12;k++) d+=cn[k]*t.v[k]; L.push({r:t.r,qi:t.qi,sc:d*QUAL[t.qi].p});}
+  // Akkorde mit genau denselben Tönen (z. B. Esus4 = Asus2) zuerst
+  const pcs=(r,qi)=>QUAL[qi].iv.map(i=>(r+i)%12).sort((a,b)=>a-b).join();
+  const mine=e.type==='chord'?pcs(e.r,e.qi):null;
+  L.forEach(x=>{ if(mine&&pcs(x.r,x.qi)===mine) x.sc+=1; });
   L.sort((a,b)=>b.sc-a.sc);
   return L.filter(x=>!(e.type==='chord'&&x.r===e.r&&x.qi===e.qi)).slice(0,5);
 }
 function setEv(e,r,qi,type){
   e.type=type; e.r=r; e.qi=type==='chord'?qi:null; e.key=type+'|'+r+'|'+(type==='chord'?qi:'');
-  e.f=evFrets(e); e.vi=0; e.edited=true;
+  e.f=evFrets(e); e.vi=0; e.edited=true; learnFrom(e);
   const E=CH.eng; if(E&&CH.ev[CH.ev.length-1]===e){ E.cur={type,r,qi:e.qi,key:e.key,sc:1}; E.cand=null; E.vIdx=0; E.vLock=true; }
 }
 function openEdit(e){ if(!e) return; ED.ev=e; renderEdit(); $('#esheet').classList.add('on'); CH.stripKey=''; }
@@ -1244,6 +1292,7 @@ function closeEdit(){ ED.ev=null; $('#esheet').classList.remove('on'); CH.stripK
 function renderEdit(){
   const e=ED.ev; if(!e) return;
   $('#eName').textContent=evName(e);
+  $('#eLrn').textContent=e.orig&&e.key!==e.orig?'Korrektur wird gemerkt · erkannt war '+evName(Object.assign({},e,keyParts(e.orig))):'';
   const m=Math.floor(e.t/60), sec=Math.floor(e.t%60);
   $('#eWhen').textContent=`bei ${m}:${String(sec).padStart(2,'0')}`;
   const sim=similar(e);
@@ -1291,7 +1340,7 @@ async function chordMicOn(){
   if(!CH.eng||CH.eng.sr!==ctx.sampleRate){ // letzten Akkord stehen lassen, wenn möglich
     const old=CH.eng; CH.eng=makeChordEngine(ctx.sampleRate); if(old){CH.eng.cur=old.cur; CH.eng.vIdx=old.vIdx;}
   }
-  CH.eng.pref=S.voi||(S.voi={}); CH.eng.onCommit=onChordCommit;
+  CH.eng.pref=S.voi||(S.voi={}); CH.eng.onCommit=onChordCommit; CH.eng.learn=LEARN; CH.follow=true; CH.idleRef=0;
   CH.lastProc=0; CH.tBase=CH.tNow+(CH.ev.length?0.8:0); CH.tNow=CH.tBase; CH.ctxT0=ctx.currentTime;
   CH.met=null; CH.counting=false; CH.count=0;
   const mc=metCfg();
@@ -1317,7 +1366,7 @@ function chordMicOff(msg){
   CH.stream=null; CH.ctx=null; CH.an=null; CH.wake=null;
   setMicUI();
 }
-$('#cstrip').addEventListener('scroll',e=>{const el=e.target; CH.follow=el.scrollLeft+el.clientWidth>=el.scrollWidth-40;});
+$('#cstrip').addEventListener('scroll',e=>{const el=e.target; if(CH.progScroll){CH.progScroll=false;return;} CH.follow=el.scrollLeft+el.clientWidth>=el.scrollWidth-40; CH.scrollT=performance.now();});
 $('#cmic').addEventListener('click',()=>{CH.mic?chordMicOff():chordMicOn();});
 // Bearbeiten
 $('#cstrip').addEventListener('click',e=>{const h=e.target.closest('[data-i]'); if(h) openEdit(CH.ev[+h.dataset.i]);});
@@ -1359,7 +1408,7 @@ $('#launchChords').addEventListener('click',startChords);
 $('#cclose').addEventListener('click',stopChords);
 $('#cchip').addEventListener('click',()=>openSheet());
 // Reset: Verlauf und angezeigten Akkord leeren (gemerkte Griffe bleiben)
-$('#creset').addEventListener('click',()=>{closeEdit();const d=CH.tNow; CH.tBase-=d; CH.tNow=0; CH.ev=[]; CH.grids=CH.met?[{t:CH.tBase,bar:CH.met.beat*CH.met.beats,end:null}]:[]; CH.stripKey=''; CH.follow=true; CH.key=''; if(CH.eng){const sr=CH.eng.sr,pref=CH.eng.pref; CH.eng=makeChordEngine(sr); CH.eng.pref=pref; CH.eng.onCommit=onChordCommit;}});
+$('#creset').addEventListener('click',()=>{closeEdit();const d=CH.tNow; CH.tBase-=d; CH.tNow=0; CH.ev=[]; CH.grids=CH.met?[{t:CH.tBase,bar:CH.met.beat*CH.met.beats,end:null}]:[]; CH.stripKey=''; CH.follow=true; CH.key=''; if(CH.eng){const sr=CH.eng.sr,pref=CH.eng.pref; CH.eng=makeChordEngine(sr); CH.eng.pref=pref; CH.eng.onCommit=onChordCommit; CH.eng.learn=LEARN;}});
 // Griffbild antippen: nächster Griff, wird für diesen Akkord gemerkt
 $('#cdiag').addEventListener('click',()=>{
   if(!CH.eng) return; const r=CH.eng.nextVoicing(); if(!r) return;
