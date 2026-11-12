@@ -1363,7 +1363,7 @@ function onNoteDetected(n){
   // Kontext für das Ton-Lernen
   let prevO=null; for(let i=CH.ev.length-1;i>=0;i--){const e=CH.ev[i]; if(e.type==='note'){ if(n.t-e.t<1.5) prevO=e.origM??e.m; break; }}
   const E=CH.eng, chordKey=E&&E.cur?E.cur.key:null, pf=E?Array.from(E.pf,v=>+v.toFixed(3)):null, origM=n.m;
-  const les=pf?noteLesson(n.m,chordKey,prevO,pf):null;
+  const les=pf?noteLesson(n.m,chordKey,prevO,pf,'old'):null;
   if(les&&les.kind==='drop'){ logEv({t:n.t,type:'note',m:n.m,s:p.s,f:p.f,art:n.art},'ton-gelernt-weggelassen'); return; }
   if(les&&les.kind==='map'){ n.m=les.to; const q=placeNote(n.m); if(q) p=q; }
   const ev={t:Math.max(n.t-0.06,CH.tBase),type:'note',m:n.m,s:p.s,f:p.f,key:'note|'+n.m,art:n.art||'pick',origM,prevM:prevO,chordKey,pf,learned:!!les};
@@ -1479,7 +1479,7 @@ function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) me
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
 // =================== Version ===================
-const APP_VERSION='2026-11-12.1945';
+const APP_VERSION='2026-11-12.2015';
 async function checkVersion(manual){
   const info=$('#verInfo'); if(info) info.textContent='Diese App: '+APP_VERSION;
   try{
@@ -1520,13 +1520,18 @@ function learnNote(e,kind){
   const i=NLEARN.findIndex(x=>x.id===e.lid);
   if(kind==='map'&&e.m===e.origM){ if(i>=0){NLEARN.splice(i,1); saveNLearn();} return; }
   const x={id:e.lid||(e.lid='n'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),kind,from:e.origM,to:kind==='map'?e.m:null,
-    chord:e.chordKey||null,int:e.prevM!=null?e.origM-e.prevM:null,pf:e.pf.map(v=>+v.toFixed(3)),d:Date.now()};
+    chord:e.chordKey||null,int:e.prevM!=null?e.origM-e.prevM:null,pf:e.pf.map(v=>+v.toFixed(3)),d:Date.now(),
+    eng:e.bp?'bp':undefined,s:e.s,f:e.f,art:e.art||'pick'};
   if(i>=0) NLEARN[i]=x; else NLEARN.push(x); saveNLearn();
 }
+// Saite, Bund und Spieltechnik einer schon gemerkten Korrektur nachziehen (z. B. erst Ton, dann Slide gewählt)
+function lessonSync(e){ if(!e||!e.lid) return; const L=NLEARN.find(y=>y.id===e.lid); if(!L) return; L.s=e.s; L.f=e.f; L.art=e.art||'pick'; saveNLearn(); }
+// Neue Ton-Erkennung: Saite je Ton (und Akkord) merken, wenn Manu einen Ton auf eine andere Saite legt
+function learnString(e){ if(!e||!e.bp) return; S.strPref=Object.assign({},S.strPref||{},{[e.m+'|'+(e.chordKey||'')]:e.s,[e.m+'|*']:e.s}); save(); }
 // Passendes Beispiel für einen frisch erkannten Ton
-function noteLesson(m,chordKey,prevM,pf){
-  let best=null,bs=0;
-  for(const x of NLEARN){ if(x.from!==m||x.chord!==chordKey) continue;
+function noteLesson(m,chordKey,prevM,pf,eng){
+  let best=null,bs=0; eng=eng||'old';
+  for(const x of NLEARN){ if(x.from!==m||x.chord!==chordKey||(x.eng||'old')!==eng) continue;
     const sim=cosv(pf,x.pf), intOk=x.int!=null&&prevM!=null&&x.int===m-prevM;
     const sc=sim+(intOk?0.1:0); if((intOk&&sim>=0.8)||sim>=0.92){ if(sc>bs){bs=sc;best=x;} } }
   return best;
@@ -1702,29 +1707,44 @@ function bpToTab(raw,job){
       if(x.t-lastStrum<0.25){ const c=bpChordAt(x.t+0.3); if(c&&c.type==='chord'&&QUAL[c.qi].iv.map(k=>(c.r+k)%12).includes(x.m%12)) return; }
       keep.push(Object.assign(x,{grp})); });
     i=j; }
-  if(!keep.length) return 0;
+  // Doppelt erkannte Töne (gleiche Tonhöhe innerhalb 0,12 s) zusammenfassen
+  for(let i=keep.length-1;i>0;i--){ for(let k=i-1;k>=0&&keep[i].t-keep[k].t<0.12;k--) if(keep[k].m===keep[i].m){ keep.splice(i,1); break; } }
+  // Slide: kurzer Ton, direkt danach (ohne Lücke) 1–2 Halbtöne daneben = ein gerutschter Ton
+  for(let i=0;i<keep.length;i++){ const A=keep[i]; if(A.used||A.d>0.3) continue;
+    for(let k=i+1;k<keep.length&&keep[k].t-A.t<=0.32;k++){ const B=keep[k], dm=Math.abs(B.m-A.m);
+      if(B.used||B.t-A.t<0.08||dm<1||dm>2||A.t+A.d<B.t-0.06||B.grp.length>2) continue;
+      A.slideTo=B.m; A.slideT=B.t; B.used=true; break; } }
+  if(!keep.some(x=>!x.used)) return 0;
   snap();
   let prev=null, cnt=0;
-  for(const x of keep){
-    let m=x.m;
+  const add=ev=>{ let k=CH.ev.length; while(k>0&&CH.ev[k-1].t>ev.t) k--; CH.ev.splice(k,0,ev); prev=ev; cnt++; logEv(ev,ev.learned?'ton-bp-gelernt':'ton-bp'); };
+  const place=(m,x,chordKey,skipPref)=>{
+    const used=x.grp.filter(y=>y.ev&&y!==x).map(y=>y.ev.s), pv=prev&&x.t-prev.t<3?prev:null, opts=fretOptions(m).filter(q=>!used.includes(q.s));
+    if(!skipPref){ const sp=S.strPref||{}, ps=sp[m+'|'+(chordKey||'')]??sp[m+'|*']; const q=opts.find(o=>o.s===ps); if(q) return q; }
+    let best=null,bs=1e9;
+    for(const q of opts){ let sc=q.f+(q.f>5?(q.f-5)*1.5:0);
+      if(pv){ if(q.s===pv.s&&Math.abs(q.f-pv.f)<=5) sc-=4; sc+=Math.abs(q.f-pv.f)*0.3; if(q.f===0&&q.s!==pv.s) sc+=2; } else if(q.f===0) sc+=0.5;
+      if(sc<bs){bs=sc;best=q;} }
+    return best; };
+  for(const x of keep){ if(x.used) continue;
     const pr=prev&&x.t-prev.t<1.5?prev:null, prevO=pr?(pr.origM??pr.m):null;
     const c=bpChordAt(x.t), chordKey=c&&c.type!=='note'?c.key:null;
     let pf=null,bd=1e9; for(const p of job.pf){ const dd=Math.abs(p.t-x.t); if(dd<bd){bd=dd;pf=p.pf;} if(p.t>x.t) break; }
-    const les=pf?noteLesson(m,chordKey,prevO,pf):null;
-    if(les&&les.kind==='drop'){ logEv({t:x.t,type:'note',m,s:0,f:0,art:'pick'},'ton-bp-gelernt-weggelassen'); continue; }
-    if(les&&les.kind==='map') m=les.to;
-    // Saite: spielbar, nah am vorigen Ton; gleichzeitige Töne auf verschiedenen Saiten
-    const used=x.grp.filter(y=>y.ev&&y!==x).map(y=>y.ev.s);
-    const pv=prev&&x.t-prev.t<3?prev:null;
-    let best=null,bs=1e9;
-    for(const q of fretOptions(m)){ if(used.includes(q.s)) continue; let sc=q.f+(q.f>5?(q.f-5)*1.5:0);
-      if(pv){ if(q.s===pv.s&&Math.abs(q.f-pv.f)<=5) sc-=4; sc+=Math.abs(q.f-pv.f)*0.3; if(q.f===0&&q.s!==pv.s) sc+=2; } else if(q.f===0) sc+=0.5;
-      if(sc<bs){bs=sc;best=q;} }
-    if(!best) continue;
-    const ev={t:x.t,type:'note',m,s:best.s,f:best.f,key:'note|'+m,art:'pick',origM:x.m,prevM:prevO,chordKey,pf,learned:!!les,bp:true};
-    x.ev=ev; prev=ev;
-    let k=CH.ev.length; while(k>0&&CH.ev[k-1].t>ev.t) k--; CH.ev.splice(k,0,ev);
-    logEv(ev,les?'ton-bp-gelernt':'ton-bp'); cnt++;
+    const heard=x.slideTo??x.m;
+    const les=pf?noteLesson(heard,chordKey,prevO,pf,'bp'):null;
+    if(les&&les.kind==='drop'){ logEv({t:x.t,type:'note',m:heard,s:0,f:0,art:'pick'},'ton-bp-gelernt-weggelassen'); continue; }
+    const base={type:'note',origM:heard,prevM:prevO,chordKey,pf,bp:true};
+    if(les&&les.kind==='map'){ // gelernt: Ton, und wenn gemerkt auch Saite/Bund/Spieltechnik
+      const m=les.to; let p=(les.s!=null&&OPEN_M[les.s]+les.f===m)?{s:les.s,f:les.f}:place(m,x,chordKey); if(!p) continue;
+      const ev=Object.assign({t:x.t,m,s:p.s,f:p.f,key:'note|'+m,art:les.s!=null?(les.art||'pick'):'pick',learned:true},base); x.ev=ev; add(ev); continue; }
+    if(x.slideTo!=null){ // Slide: Ausgangston + Zielton auf derselben Saite
+      const p=place(x.m,x,chordKey,true); if(!p) continue; const f2=x.slideTo-OPEN_M[p.s];
+      if(f2<0||f2>17){ x.slideTo=null; } else {
+        let ls=null; for(let k=CH.ev.length-1;k>=0;k--){ const q=CH.ev[k]; if(q.type==='note'&&q.bp&&q.s===p.s&&q.t<x.t){ ls=q; break; } } const same=ls&&ls.m===x.m&&x.t-ls.t<1.2; // Ausgangston steht schon da (eben angeschlagen) → nur der Slide
+        if(!same){ const e1=Object.assign({t:x.t,m:x.m,s:p.s,f:p.f,key:'note|'+x.m,art:'pick',learned:false},base,{origM:x.m}); add(e1); }
+        const ev=Object.assign({t:same?x.t:x.slideT,m:x.slideTo,s:p.s,f:f2,key:'note|'+x.slideTo,art:'slide',learned:false},base); x.ev=ev; add(ev); continue; } }
+    const p=place(x.m,x,chordKey); if(!p) continue;
+    const ev=Object.assign({t:x.t,m:x.m,s:p.s,f:p.f,key:'note|'+x.m,art:'pick',learned:false},base); x.ev=ev; add(ev);
   }
   CH.stripKey=''; CH.key=''; undoUI();
   return cnt;
@@ -1906,11 +1926,11 @@ $('#eDel').addEventListener('click',()=>{const x=ED.ev; if(!x) return; snap(); i
 $('#eArt').addEventListener('click',e=>{const b=e.target.closest('button'); const x=ED.ev; if(!b||!x) return; snap(); x.art=b.dataset.a;
   // merken: gebundene Spieltechnik je Abstand zum vorigen Ton auf derselben Saite
   if(x.art!=='pick'){ let pv=null; for(let k=CH.ev.indexOf(x)-1;k>=0;k--){const q=CH.ev[k]; if(q.type==='note'){ if(q.s===x.s&&x.t-q.t<1.5) pv=q; break; } }
-    if(pv&&pv.m!==x.m){ S.artPref=Object.assign({},S.artPref||{},{[String(x.m-pv.m)]:x.art}); save(); } } x.edited=true; renderEdit(); CH.stripKey='';});
-$('#eFret').addEventListener('click',e=>{const b=e.target.closest('button'); const x=ED.ev; if(!b||!x) return; snap(); x.f=+b.dataset.f; x.m=OPEN_M[x.s]+x.f; x.key='note|'+x.m; x.edited=true; learnNote(x,'map'); renderEdit(); CH.stripKey='';});
-$('#eStr').addEventListener('click',e=>{const b=e.target.closest('button'); const x=ED.ev; if(!b||!x) return; snap(); const s=+b.dataset.s; x.s=s; x.f=x.m-OPEN_M[s]; x.edited=true; renderEdit(); CH.stripKey='';});
+    if(pv&&pv.m!==x.m){ S.artPref=Object.assign({},S.artPref||{},{[String(x.m-pv.m)]:x.art}); save(); } } x.edited=true; lessonSync(x); renderEdit(); CH.stripKey='';});
+$('#eFret').addEventListener('click',e=>{const b=e.target.closest('button'); const x=ED.ev; if(!b||!x) return; snap(); x.f=+b.dataset.f; x.m=OPEN_M[x.s]+x.f; x.key='note|'+x.m; x.edited=true; learnNote(x,'map'); lessonSync(x); renderEdit(); CH.stripKey='';});
+$('#eStr').addEventListener('click',e=>{const b=e.target.closest('button'); const x=ED.ev; if(!b||!x) return; snap(); const s=+b.dataset.s; x.s=s; x.f=x.m-OPEN_M[s]; x.edited=true; lessonSync(x); if(x.type==='note') learnString(x); renderEdit(); CH.stripKey='';});
 $('#eNoteStep').addEventListener('click',e=>{const b=e.target.closest('button'); const x=ED.ev; if(!b||!x) return; snap(); x.m+=+b.dataset.d; x.key='note|'+x.m; x.edited=true; learnNote(x,'map');
-  let f=x.m-OPEN_M[x.s]; if(f<0||f>17){const p=fretOptions(x.m)[0]; if(p){x.s=p.s; f=p.f;}} x.f=f; renderEdit(); CH.stripKey='';});
+  let f=x.m-OPEN_M[x.s]; if(f<0||f>17){const p=fretOptions(x.m)[0]; if(p){x.s=p.s; f=p.f;}} x.f=f; lessonSync(x); renderEdit(); CH.stripKey='';});
 // Metronom-Bedienfeld
 const mClose=()=>{$('#msheet').classList.remove('on'); metPreview(false);};
 $('#cmet').addEventListener('click',()=>{metUI(); $('#msheet').classList.add('on');});
