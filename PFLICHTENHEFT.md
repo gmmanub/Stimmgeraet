@@ -108,7 +108,16 @@ Oben 15 breite Balken (große Fläche), darunter groß der Ton, darunter Saite u
 - **Leiste oben rechts:** Reset-Knopf (Kreispfeil, leert Verlauf und angezeigten Akkord, gemerkte Griffe bleiben) und Mikro-Knopf (grau = aus, Akzentblau mit leichtem Leuchten = hört zu). Beim Öffnen ist das Mikro aus, Hinweis „Mikro oben rechts starten“. Nach **30 s Stille** schaltet es sich ab, Hinweis „Mikro nach 30 s Stille aus · oben rechts neu starten“. Im Hintergrund wird es ausgeschaltet und nur per Knopf wieder gestartet. Der letzte Akkord bleibt beim Stoppen stehen. Kein Sprachbefehl, weil das Mikro dafür dauerhaft lauschen müsste.
 - **Layout (Werte von Manu, in `LAY` im Code):** Oben ein kompakter Kopf: Akkordname 47 px, daneben das Griffbild 78 px breit (antippen = nächster Griff, „Griff x von n“ darunter). Darunter ein **Tab-Streifen** über die volle Breite: 6 Saitenlinien (hohe e oben), Saitenabstand 22 px, Bundzahlen 20 px, Akkordname über dem Tab 19 px mit 12 px Abstand, Zeitmaßstab 88 px pro Sekunde, Griffzahlen im Akkord an. Der Streifen läuft nach links weiter und folgt der Aufnahme; wischt man zurück, bleibt er stehen und folgt erst wieder, wenn man ans Ende wischt. Gestrichelte Linie = „jetzt“.
 - **Ereignisse:** Jeder erkannte Akkord wird mit Zeitstempel (Sekunden seit Aufnahmebeginn), Grundton, Art und Griff gespeichert (`CH.ev`). Nach Mikro-Stopp und Neustart geht der Verlauf mit 0,8 s Abstand weiter. Reset leert alles. Das ist die Grundlage für Bearbeiten, Lernen, Läufe und Takte.
-- **Noch nicht:** Taktstriche (kommen mit dem Metronom), Läufe als Bundzahlen, Antippen zum Bearbeiten.
+- **Noch nicht:** Läufe als Bundzahlen, Antippen zum Bearbeiten, Lernen.
+
+### Metronom (in der Akkorderkennung)
+- **Knopf oben rechts** (zwischen Reset und Mikro): öffnet das Bedienfeld. Leuchtet in der Akzentfarbe, wenn das Metronom bei der Aufnahme mitläuft, und blinkt im Takt (Eins stärker).
+- **Bedienfeld:** „Bei Aufnahme mitlaufen“ an/aus · Tempo 30–240 BPM mit −/+ (Gedrückthalten wiederholt), Regler und Tap-Tempo (Mittel der letzten bis zu 5 Taps, Pause > 2 s beginnt neu) · Probehören · Taktart 2/4, 3/4, 4/4, 6/8 (bei 6/8 ist jedes Achtel ein Klick, Betonung auf 1 und 4) · „Und“ leise (nicht bei 6/8) · Einzähler 1 Takt (Standard an) · Lautstärke. Gespeichert in den Einstellungen (`met`).
+- **Klänge:** Eins 4 kHz, Schläge 3,2 kHz, „Und“ 3,2 kHz leise und kurz. Kurze Sinus-Klicks.
+- **Ablauf:** Mikro starten → 1 Takt Einzählen (Hinweis „Einzählen · 1 … 4“) → Aufnahme beginnt auf der Eins. Tempo und Taktart gelten ab der nächsten Aufnahme.
+- **Klicks ausblenden (ohne Kopfhörer):** Vor der Analyse liegt ein Tiefpass (2 Biquads, 1700 Hz, Butterworth 4. Ordnung). Die Erkennung nutzt nur 75–1500 Hz. Test mit Manus Strophen-Aufnahme plus künstlichen Klicks: identische Akkorde wie ohne Klicks; ohne Filter hätten die Klicks zusätzliche Wechsel ausgelöst.
+- **Latenz:** Während des Einzählers misst die App über einen zweiten, ungefilterten Analysator, wann jeder Klick am Mikro ankommt (Median). Ohne Messung: Schätzwert aus der Geräte-Latenz. Damit liegen Taktstriche und Akkorde zeitlich richtig.
+- **Tab:** Bei Aufnahme mit Metronom zeigt der Streifen Taktstriche.
 - **Tests:** Zwei Aufnahmen von Manus Akustikgitarre (S24, Sprachrekorder). G (320033) 96 %, G (320003) 93 %, D 96 %, Em 95 %, Cmaj7 93 %, Asus2 79 % (Rest Esus4, wenn die A-Saite nicht mitklingt), jeweils mit dem richtigen Griff. Vorher wechselte die Anzeige je Akkord 5- bis 16-mal, jetzt einmal. Synthetischer Klang weiterhin 10/10.
 - Bekannt: Sprache wird manchmal als Akkord gelesen und landet im Verlauf.
 
@@ -118,14 +127,15 @@ Oben 15 breite Balken (große Fläche), darunter groß der Ton, darunter Saite u
 
 ## 8. Roadmap
 
-1. **Als Nächstes: BPM- und Takterkennung** (Grundlage für alles Weitere), inkl. Metronom mit Tap-Tempo, Taktart, Einzähler.
-2. Aufnahme und Auswertung: Akkordverlauf auf Zeitachse.
-3. Transkription: Einzeltöne (z. B. Basic Pitch), Tabs und gut lesbare Takte – als Grundlage für den Bassisten. Mit Bearbeitungsansicht zum Korrigieren. Design und Layout gemeinsam festlegen.
-4. Play-Along: aufgenommene Spuren einzeln ein- und ausschaltbar.
-5. Alternative Voicings für eine zweite Gitarre, optional in anderen Stimmungen.
-6. Schlagzeug-Gestalter (Kick, Snare, HiHat, Muster), Export als WAV.
-7. Songwriting-Assistent mit Vorschlägen (regelbasiert in der App; kreative Vorschläge im Chat mit Claude).
-8. Später ggf. installierbare App (PWA) oder APK.
+1. **Als Nächstes (Akkorde):** Bearbeiten (Antippen im Tab, Schnellwahl ähnlicher Akkorde, freie Auswahl, Entfernen) und Lernen (Klangbeispiele lokal, Korrektur wird übernommen). Danach Läufe als Bundzahlen im Tab (Testgrundlage: Manus Strophen-Aufnahme).
+2. **Bald: Aufnahme und Wiedergabe (Record/Playback):** Gespieltes aufnehmen und abspielen, um sich Melodien zu den Akkordwechseln auszudenken, die dann mitgeschrieben werden. Offen: ohne Kopfhörer würde die Wiedergabe mit erkannt. Ideen: Wiedergabe gezielt aus der Analyse herausrechnen (die App kennt das Signal) oder die Echo-Unterdrückung des Browsers testen.
+3. Automatische BPM- und Takterkennung für freies Spielen ohne Metronom.
+4. Transkription: Einzeltöne (z. B. Basic Pitch), Tabs und gut lesbare Takte – als Grundlage für den Bassisten. Mit Bearbeitungsansicht zum Korrigieren.
+5. Play-Along: aufgenommene Spuren einzeln ein- und ausschaltbar.
+6. Alternative Voicings für eine zweite Gitarre, optional in anderen Stimmungen.
+7. Schlagzeug-Gestalter (Kick, Snare, HiHat, Muster), Export als WAV.
+8. Songwriting-Assistent mit Vorschlägen (regelbasiert in der App; kreative Vorschläge im Chat mit Claude).
+9. Später ggf. installierbare App (PWA) oder APK.
 
 ## 9. Bekannte Grenzen
 

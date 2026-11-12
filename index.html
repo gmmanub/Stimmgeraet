@@ -108,6 +108,24 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 #cmic.on svg{stroke:var(--acc)}
 #cmic:not(.on) svg{stroke:var(--muted)}
 #creset svg{stroke:var(--muted)}
+#cmet svg{stroke:var(--muted);transition:stroke .3s}
+#cmet.on svg{stroke:var(--acc)}
+#cmet.on{border-color:color-mix(in oklab,var(--acc) 55%,var(--line))}
+#cmet.b0{animation:mb0 .22s ease-out}
+#cmet.b1{animation:mb1 .18s ease-out}
+@keyframes mb0{from{background:color-mix(in oklab,var(--acc) 55%,var(--panel))}to{background:var(--panel)}}
+@keyframes mb1{from{background:color-mix(in oklab,var(--acc) 25%,var(--panel))}to{background:var(--panel)}}
+#msheet{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.55);display:none;align-items:flex-end}
+#msheet.on{display:flex}
+.mbig{display:flex;align-items:center;justify-content:center;gap:14px}
+.mbig output{font-size:44px;font-weight:500;min-width:3ch;text-align:center;font-variant-numeric:tabular-nums;line-height:1}
+.mbig small{font-size:12px;color:var(--muted);display:block;text-align:center;margin-top:4px}
+#mRange,#mVol{width:100%;accent-color:var(--acc)}
+.mbtns{display:flex;gap:10px}
+.mbtns button{flex:1;height:52px;border-radius:12px;border:1px solid var(--line);font-size:15px}
+#mTap:active{background:color-mix(in oklab,var(--acc) 25%,var(--panel))}
+#mPrev.on{border-color:var(--acc);color:var(--acc)}
+.row:disabled{opacity:.4}
 #creset:active,#cmic:active{transform:scale(.95)}
 
 /* Settings sheet */
@@ -180,6 +198,9 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
     <span class="tspace"></span>
     <button class="iconbtn" id="creset" aria-label="Zurücksetzen: Verlauf und Akkord leeren">
       <svg viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4.5v4h4"/></svg>
+    </button>
+    <button class="iconbtn" id="cmet" aria-pressed="false" aria-label="Metronom einstellen">
+      <svg viewBox="0 0 24 24"><path d="M9.2 3.5h5.6L18.5 20.5h-13z M12 16l5-9.5 M8 16.5h8"/></svg>
     </button>
     <button class="iconbtn" id="cmic" aria-pressed="false" aria-label="Mikrofon starten">
       <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/></svg>
@@ -269,6 +290,35 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
   </div>
 </div>
 
+<div id="msheet" role="dialog" aria-modal="true" aria-label="Metronom">
+  <div class="sheet">
+    <div class="sh-head">
+      <h2>Metronom</h2>
+      <button class="iconbtn" id="mclose" aria-label="Metronom schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <button class="row" id="mOn"><span>Bei Aufnahme mitlaufen</span><span class="toggle" aria-hidden="true"></span></button>
+    <div class="group">
+      <div class="mbig">
+        <button class="sq" id="mMinus" aria-label="1 BPM langsamer">−</button>
+        <div><output id="mBpm">80</output><small>BPM</small></div>
+        <button class="sq" id="mPlus" aria-label="1 BPM schneller">+</button>
+      </div>
+      <input type="range" id="mRange" min="30" max="240" step="1" aria-label="Tempo">
+      <div class="mbtns"><button id="mTap">Tap-Tempo</button><button id="mPrev">Probehören</button></div>
+    </div>
+    <div class="group">
+      <h3>Taktart</h3>
+      <div class="seg wide" id="mSig"><button data-v="2">2/4</button><button data-v="3">3/4</button><button data-v="4">4/4</button><button data-v="6">6/8</button></div>
+      <button class="row" id="mUnd"><span>„Und“ leise mitspielen</span><span class="toggle" aria-hidden="true"></span></button>
+      <button class="row" id="mCnt"><span>Einzähler (1 Takt)</span><span class="toggle" aria-hidden="true"></span></button>
+    </div>
+    <div class="group">
+      <h3>Lautstärke</h3>
+      <input type="range" id="mVol" min="10" max="100" step="1" aria-label="Lautstärke">
+      <p>Die Klicks sind hoch und werden aus der Erkennung herausgefiltert. Kopfhörer sind nicht nötig. Tempo und Taktart gelten ab der nächsten Aufnahme. Bei 6/8 zählt jedes Achtel als Klick.</p>
+    </div>
+  </div>
+</div>
 <script>
 (()=>{
 const $=s=>document.querySelector(s);
@@ -699,7 +749,7 @@ $('#sclose').addEventListener('click',closeSheet);
 $('#sheet').addEventListener('click',e=>{if(e.target.id==='sheet')closeSheet();});
 $('#launch').addEventListener('click',startTuner);
 $('#close').addEventListener('click',stopTuner);
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('#sheet').classList.contains('on'))closeSheet();else if(running)stopTuner();else if(CH.running)stopChords();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('#msheet').classList.contains('on')){$('#msheet').classList.remove('on');metPreview(false);}else if($('#sheet').classList.contains('on'))closeSheet();else if(running)stopTuner();else if(CH.running)stopChords();}});
 
 function refresh(){
   root.classList.toggle('day',S.theme==='day');
@@ -931,7 +981,7 @@ function diagramSVG(v){
   return s+'</svg>';
 }
 
-const CH={running:false,raf:0,ctx:null,an:null,stream:null,T:null,eng:null,demoTimer:0,wake:null,hist:[],key:'',last:0,lastProc:0,micStart:0,run:0,mic:false,micMsg:'',ev:[],tNow:0,follow:true,stripKey:''};
+const CH={running:false,raf:0,ctx:null,an:null,stream:null,T:null,eng:null,demoTimer:0,wake:null,hist:[],key:'',last:0,lastProc:0,micStart:0,run:0,mic:false,micMsg:'',ev:[],tNow:0,follow:true,stripKey:'',grids:[],tBase:0,ctxT0:0,met:null,count:0,counting:false,raw:null,RB:null};
 // Layout-Werte (in der Vorschau abgestimmt)
 const LAY={dig:20,lab:19,gap:12,str:22,px:88};
 
@@ -947,6 +997,9 @@ function stripSVG(){
   for(let i=0;i<6;i++) o+=`<line x1="${left-8}" y1="${top+i*C}" x2="${W-4}" y2="${top+i*C}" stroke="var(--line)" stroke-width="1.2"/>`;
   'TAB'.split('').forEach((ch,i)=>o+=`<text x="9" y="${top+(1+i*1.5)*C*0.95}" font-size="${Math.min(13,C*.7)}" fill="var(--muted)" text-anchor="middle">${ch}</text>`);
   const cy=top-D*.62-G;
+  CH.grids.forEach(g=>{ const end=g.end==null?CH.tNow:g.end;
+    for(let k=Math.max(0,Math.ceil(-g.t/g.bar));g.t+k*g.bar<=end+1e-3;k++){ const x=left+(g.t+k*g.bar)*F+10;
+      o+=`<line x1="${x}" y1="${top-D*.62}" x2="${x}" y2="${top+5*C+D*.62}" stroke="var(--muted)" stroke-width="1.4" opacity=".8"/>`; } });
   CH.ev.forEach(e=>{
     const x=left+e.t*F+10, p=labelParts(e);
     o+=`<text x="${x}" y="${cy}" text-anchor="middle" font-size="${Lb}" font-weight="500" fill="var(--text)">${p.root}<tspan fill="var(--acc)" font-size="${Lb*.75}" dy="-${Lb*.18}">${p.suf}</tspan></text>`;
@@ -957,16 +1010,16 @@ function stripSVG(){
   return o+'</svg>';
 }
 function renderStrip(){
-  const key=CH.ev.map(e=>e.key+'@'+e.t.toFixed(2)+(e.f?e.f.join(','):'')).join(';')+'|'+S.notation+'|'+CH.mic+'|'+Math.floor(CH.tNow*6);
+  const key=CH.ev.map(e=>e.key+'@'+e.t.toFixed(2)+(e.f?e.f.join(','):'')).join(';')+'|'+S.notation+'|'+CH.mic+'|'+Math.floor(CH.tNow*6)+'|'+CH.grids.map(g=>g.t.toFixed(2)+(g.end==null?'':'/'+g.end.toFixed(2))).join(',');
   if(key===CH.stripKey) return; CH.stripKey=key;
   const el=$('#cstrip'); el.innerHTML=stripSVG();
   if(CH.follow) el.scrollLeft=el.scrollWidth;
   $('#cstripnote').textContent=CH.ev.length?'':'Hier erscheint dein Verlauf als Tabelle, Akkorde oben drüber.';
 }
 function renderChord(now){
-  const E=CH.eng, nameEl=$('#cname'), quiet=!E||now/1000-E.lastSound>1.5;
+  const E=CH.eng, nameEl=$('#cname'), quiet=!E||CH.tNow-E.lastSound>1.5;
   const l=E&&E.cur, vo=E&&E.voicing();
-  const key=(l?l.key:'none')+'|'+CH.mic+'|'+(vo?vo.v.id+'/'+vo.n+(E.vLock?'L':''):'')+'|'+S.notation;
+  const key=(l?l.key:'none')+'|'+CH.mic+'|'+(CH.counting?'c'+CH.count:'')+'|'+(vo?vo.v.id+'/'+vo.n+(E.vLock?'L':''):'')+'|'+S.notation;
   const le=CH.ev[CH.ev.length-1];
   if(le&&l&&le.key===l.key&&vo) le.f=vo.v.f;
   renderStrip();
@@ -984,16 +1037,29 @@ function renderChord(now){
     $('#cvoi').textContent=vo&&vo.n>1?`Griff ${vo.i+1} von ${vo.n} · tippen zum Wechseln`:'';
     $('#chint').textContent=!CH.mic&&CH.micMsg?CH.micMsg:(l.type==='note'?'Einzelton':(l.type==='power'?'Powerchord':''));
   }
+  if(CH.mic&&CH.counting) $('#chint').textContent=CH.count?'Einzählen · '+CH.count:'Einzählen …';
 }
 
 function chordFrame(now){
   if(!CH.running) return;
-  if(CH.mic&&CH.an&&now-CH.lastProc>=30){ // Analyse etwa 30-mal pro Sekunde
+  if(CH.mic&&CH.an&&CH.ctx&&now-CH.lastProc>=30){ // Analyse etwa 30-mal pro Sekunde
     const dt=Math.min(0.1,(now-CH.lastProc)/1000||0.033); CH.lastProc=now;
-    CH.an.getFloatTimeDomainData(CH.T);
-    CH.tNow+=dt;
-    CH.eng.process(CH.T,dt,now/1000,S.a4);
-    if(now/1000-Math.max(CH.eng.lastSound,CH.micStart)>30) chordMicOff('Mikro nach 30 s Stille aus · oben rechts neu starten');
+    const ctx=CH.ctx, M=CH.met; let go=true;
+    if(M){
+      // Latenz Lautsprecher → Mikro aus den Einzähl-Klicks (Median)
+      while(M.pend.length&&ctx.currentTime>=M.pend[0]+0.45){
+        const L=metMeasure(M.pend.shift());
+        if(L!=null){M.cal.push(L); const a=[...M.cal].sort((x,y)=>x-y); M.L=a[a.length>>1];}
+      }
+      const m=ctx.currentTime-M.L-M.down;
+      if(m<0){ go=false; CH.counting=true; CH.count=clamp(Math.floor((ctx.currentTime-M.L-M.t0)/M.beat)+1,0,M.beats); }
+      else { CH.counting=false; CH.tNow=CH.tBase+m; }
+    } else CH.tNow=CH.tBase+(ctx.currentTime-CH.ctxT0);
+    if(go){
+      CH.an.getFloatTimeDomainData(CH.T);
+      CH.eng.process(CH.T,dt,CH.tNow,S.a4);
+      if(CH.tNow-Math.max(CH.eng.lastSound,CH.tBase)>30) chordMicOff('Mikro nach 30 s Stille aus · oben rechts neu starten');
+    }
   }
   renderChord(now);
   CH.raf=requestAnimationFrame(chordFrame);
@@ -1002,7 +1068,7 @@ function onChordCommit(c){
   if(c.type!=='chord') return;
   const last=CH.ev[CH.ev.length-1];
   if(last&&last.key===c.key) return;
-  let t=Math.max(0,CH.tNow-(CH.eng?CH.eng.candT:0));
+  const E=CH.eng; let t=(E&&CH.tNow-E.lastOn<1)?E.lastOn:CH.tNow-(E?E.candT:0); t=Math.max(t,CH.tBase,0);
   if(last) t=Math.max(t,last.t+0.35);
   CH.ev.push({t,r:c.r,qi:c.qi,type:'chord',key:c.key,f:null});
   if(CH.ev.length>400) CH.ev.shift();
@@ -1026,13 +1092,13 @@ function demoStrum(ctx,dest,r,qi,t0){
 // Bildschirm öffnen: Mikro bleibt aus, bis „Start“ gedrückt wird
 function startChords(){
   $('#chords').classList.add('on');
-  CH.ev=[]; CH.tNow=0; CH.stripKey=''; CH.follow=true; CH.key=''; CH.eng=null; CH.micMsg='';
+  CH.ev=[]; CH.tNow=0; CH.tBase=0; CH.grids=[]; CH.stripKey=''; CH.follow=true; CH.key=''; CH.eng=null; CH.micMsg=''; metUI();
   $('#cbanner').classList.remove('on');
   setMicUI();
   CH.running=true; cancelAnimationFrame(CH.raf); CH.raf=requestAnimationFrame(chordFrame);
 }
 function stopChords(){
-  chordMicOff(); CH.running=false; cancelAnimationFrame(CH.raf); CH.eng=null;
+  chordMicOff(); metPreview(false); $('#msheet').classList.remove('on'); CH.running=false; cancelAnimationFrame(CH.raf); CH.eng=null;
   $('#chords').classList.remove('on');
 }
 function setMicUI(){
@@ -1040,12 +1106,91 @@ function setMicUI(){
   b.setAttribute('aria-label',CH.mic?'Mikrofon stoppen':'Mikrofon starten');
   CH.key='';
 }
+// =================== Metronom ===================
+function metCfg(){ return S.met=Object.assign({bpm:80,sig:4,und:false,on:false,cnt:true,vol:0.8},S.met||{}); }
+const MET={ctx:null,running:false,timer:0,n:0,t0:0,step:0.75,beats:4,und:false,prev:null,flashT:[]};
+// kind: 0 = Eins, 1 = Schlag, 2 = Und, 3 = schwacher Schlag (6/8)
+function metClick(ctx,t,kind,vol){
+  const f=[4000,3200,3200,3200][kind], a=[1,0.6,0.26,0.4][kind]*vol, d=[0.055,0.045,0.03,0.04][kind];
+  const o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine'; o.frequency.value=f;
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(a,t+0.002); g.gain.exponentialRampToValueAtTime(0.0005,t+d);
+  o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t+d+0.02);
+}
+function metFlash(ctx,t,kind){
+  if(kind===2) return;
+  const ms=Math.max(0,(t-ctx.currentTime)*1000);
+  MET.flashT.push(setTimeout(()=>{const b=$('#cmet'); b.classList.remove('b0','b1'); void b.offsetWidth; b.classList.add(kind===0?'b0':'b1');},ms));
+  if(MET.flashT.length>40) MET.flashT.splice(0,20);
+}
+// Startet das Metronom; t0 = Zeit der ersten Eins (Audiozeit)
+function metStart(ctx,t0){
+  metStop(); const c=metCfg();
+  MET.ctx=ctx; MET.t0=t0; MET.n=0; MET.beats=+c.sig; MET.und=c.und&&c.sig!=6;
+  MET.step=60/c.bpm/(MET.und?2:1); MET.running=true;
+  const tick=()=>{
+    if(!MET.running||ctx.state==='closed') return;
+    const until=ctx.currentTime+0.15;
+    while(true){
+      const t=MET.t0+MET.n*MET.step; if(t>until) break;
+      let kind;
+      if(MET.und){const b=Math.floor(MET.n/2); kind=MET.n%2?2:(b%MET.beats===0?0:1);}
+      else {const b=MET.n%MET.beats; kind=b===0?0:(MET.beats===6?(b===3?1:3):1);}
+      if(t>=ctx.currentTime-0.01){ metClick(ctx,t,kind,c.vol); metFlash(ctx,t,kind); }
+      MET.n++;
+    }
+  };
+  tick(); MET.timer=setInterval(tick,25);
+}
+function metStop(){ MET.running=false; clearInterval(MET.timer); MET.flashT.forEach(clearTimeout); MET.flashT=[]; }
+function metBeatLen(){const c=metCfg(); return 60/c.bpm;}
+// Probehören (ohne Aufnahme)
+function metPreview(on){
+  if(MET.prev){ metStop(); try{MET.prev.close();}catch(e){} MET.prev=null; }
+  if(on){ try{ MET.prev=new (window.AudioContext||window.webkitAudioContext)(); MET.prev.resume(); metStart(MET.prev,MET.prev.currentTime+0.12);}catch(e){MET.prev=null;} }
+  metUI();
+}
+// Latenz Lautsprecher → Mikro aus einem Einzähl-Klick messen (Sekunden) oder null
+function metMeasure(tc){
+  const ctx=CH.ctx, A=CH.raw; if(!ctx||!A) return null;
+  const B=CH.RB; A.getFloatTimeDomainData(B);
+  const sr=ctx.sampleRate, Tend=ctx.currentTime, N=B.length, w=48;
+  const idx=t=>Math.round(N-1-(Tend-t)*sr);
+  const i0=Math.max(1,idx(tc-0.2)), i1=Math.min(N-1,idx(tc+0.45)); if(i1-i0<sr*0.3) return null;
+  const env=new Float32Array(i1-i0); let acc=0;
+  for(let i=i0;i<i1;i++){const d=B[i]-B[i-1]; acc+=d*d; if(i-w>=i0){const e=B[i-w]-B[i-w-1]; acc-=e*e;} env[i-i0]=Math.max(0,acc);}
+  const kTc=idx(tc)-i0; let fl=0,nf=0; for(let k=w;k<kTc;k++){fl+=env[k];nf++;} fl=nf?fl/nf:0;
+  let mx=0; for(let k=Math.max(kTc,0);k<env.length;k++) if(env[k]>mx) mx=env[k];
+  if(mx<1e-7||mx<fl*20) return null;
+  const thr=Math.max(fl*6,mx*0.25);
+  for(let k=Math.max(kTc,w);k<env.length;k++) if(env[k]>thr){ const L=(i0+k-w/2-(N-1))/sr+Tend-tc; return (L>0.005&&L<0.4)?L:null; }
+  return null;
+}
+function metUI(){
+  const c=metCfg();
+  $('#cmet').classList.toggle('on',!!c.on);
+  $('#cmet').setAttribute('aria-pressed',!!c.on);
+  $('#mOn').setAttribute('aria-pressed',!!c.on);
+  $('#mUnd').setAttribute('aria-pressed',!!c.und&&c.sig!=6); $('#mUnd').disabled=c.sig==6;
+  $('#mCnt').setAttribute('aria-pressed',!!c.cnt);
+  $('#mBpm').textContent=c.bpm; $('#mRange').value=c.bpm; $('#mVol').value=Math.round(c.vol*100);
+  setSeg('#mSig',String(c.sig));
+  $('#mPrev').textContent=MET.prev?'Stopp':'Probehören';
+  $('#mPrev').classList.toggle('on',!!MET.prev);
+}
+function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) metPreview(true); }
+function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
+
 async function chordMicOn(){
   const run=++CH.run; CH.mic=true; CH.micMsg=''; setMicUI();
   let ctx=null, demo=true, stream=null;
   try{ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}
   if(!ctx){$('#cbanner').textContent='Audio wird von diesem Browser nicht unterstützt.';$('#cbanner').classList.add('on');CH.mic=false;setMicUI();return;}
+  metPreview(false);
   const an=ctx.createAnalyser(); an.fftSize=16384; an.smoothingTimeConstant=0;
+  // Tiefpass vor der Analyse: blendet die hohen Metronom-Klicks (3,2/4 kHz) aus
+  const lp1=ctx.createBiquadFilter(), lp2=ctx.createBiquadFilter();
+  lp1.type=lp2.type='lowpass'; lp1.frequency.value=lp2.frequency.value=1700; lp1.Q.value=0.541; lp2.Q.value=1.307;
+  lp1.connect(lp2); lp2.connect(an);
   try{
     if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw 0;
     stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
@@ -1054,10 +1199,13 @@ async function chordMicOn(){
   if(run!==CH.run){ // inzwischen gestoppt oder geschlossen
     try{if(stream) stream.getTracks().forEach(t=>t.stop());}catch(e){} try{ctx.close();}catch(e){} return;
   }
-  if(!demo){ ctx.createMediaStreamSource(stream).connect(an); CH.stream=stream; }
+  if(!demo){
+    const src=ctx.createMediaStreamSource(stream); src.connect(lp1); CH.stream=stream;
+    const raw=ctx.createAnalyser(); raw.fftSize=32768; raw.smoothingTimeConstant=0; src.connect(raw); CH.raw=raw; CH.RB=new Float32Array(raw.fftSize);
+  }
   else{
     const mute=ctx.createGain(); mute.gain.value=0; an.connect(mute); mute.connect(ctx.destination);
-    let i=0; const play=()=>{const [r,qi]=DEMO_SEQ[i%DEMO_SEQ.length]; demoStrum(ctx,an,r,qi,ctx.currentTime+0.05); i++;};
+    let i=0; const play=()=>{const [r,qi]=DEMO_SEQ[i%DEMO_SEQ.length]; demoStrum(ctx,lp1,r,qi,ctx.currentTime+0.05); i++;};
     play(); CH.demoTimer=setInterval(play,2400);
   }
   CH.ctx=ctx;
@@ -1068,7 +1216,16 @@ async function chordMicOn(){
     const old=CH.eng; CH.eng=makeChordEngine(ctx.sampleRate); if(old){CH.eng.cur=old.cur; CH.eng.vIdx=old.vIdx;}
   }
   CH.eng.pref=S.voi||(S.voi={}); CH.eng.onCommit=onChordCommit;
-  CH.micStart=performance.now()/1000; CH.lastProc=0; if(CH.ev.length) CH.tNow+=0.8;
+  CH.lastProc=0; CH.tBase=CH.tNow+(CH.ev.length?0.8:0); CH.tNow=CH.tBase; CH.ctxT0=ctx.currentTime;
+  CH.met=null; CH.counting=false; CH.count=0;
+  const mc=metCfg();
+  if(mc.on){
+    const beat=metBeatLen(), beats=+mc.sig, t0=ctx.currentTime+0.3, down=t0+(mc.cnt?beats*beat:0);
+    const L0=clamp((ctx.outputLatency||0)+(ctx.baseLatency||0)+0.02,0.03,0.35);
+    CH.met={t0,down,beat,beats,L:L0,cal:[],pend:mc.cnt?Array.from({length:beats},(_,k)=>t0+k*beat):[]};
+    CH.grids.push({t:CH.tBase,bar:beat*beats,end:null});
+    CH.counting=true; metStart(ctx,t0);
+  }
   $('#cbanner').textContent='Vorschau mit simulierter Gitarre: In dieser Ansicht ist das Mikrofon gesperrt. Die Akkorde werden aus einem künstlichen Gitarrenklang erkannt.';
   $('#cbanner').classList.toggle('on',demo);
   let w=null; try{if('wakeLock' in navigator) w=await navigator.wakeLock.request('screen');}catch(e){}
@@ -1076,6 +1233,8 @@ async function chordMicOn(){
 }
 function chordMicOff(msg){
   CH.run++; CH.mic=false; CH.micMsg=msg||''; clearInterval(CH.demoTimer);
+  metStop(); const g=CH.grids[CH.grids.length-1]; if(g&&g.end==null) g.end=CH.tNow;
+  CH.met=null; CH.counting=false; CH.raw=null; CH.key='';
   try{if(CH.stream) CH.stream.getTracks().forEach(t=>t.stop());}catch(e){}
   try{if(CH.ctx) CH.ctx.close();}catch(e){}
   try{if(CH.wake) CH.wake.release();}catch(e){}
@@ -1084,13 +1243,35 @@ function chordMicOff(msg){
 }
 $('#cstrip').addEventListener('scroll',e=>{const el=e.target; CH.follow=el.scrollLeft+el.clientWidth>=el.scrollWidth-40;});
 $('#cmic').addEventListener('click',()=>{CH.mic?chordMicOff():chordMicOn();});
+// Metronom-Bedienfeld
+const mClose=()=>{$('#msheet').classList.remove('on'); metPreview(false);};
+$('#cmet').addEventListener('click',()=>{metUI(); $('#msheet').classList.add('on');});
+$('#mclose').addEventListener('click',mClose);
+$('#msheet').addEventListener('click',e=>{if(e.target.id==='msheet') mClose();});
+$('#mOn').addEventListener('click',()=>metSet('on',!metCfg().on));
+$('#mUnd').addEventListener('click',()=>metSet('und',!metCfg().und));
+$('#mCnt').addEventListener('click',()=>metSet('cnt',!metCfg().cnt));
+document.querySelectorAll('#mSig button').forEach(b=>b.addEventListener('click',()=>metSet('sig',+b.dataset.v)));
+$('#mRange').addEventListener('input',e=>metBpm(+e.target.value));
+$('#mVol').addEventListener('input',e=>metSet('vol',+e.target.value/100));
+$('#mPrev').addEventListener('click',()=>metPreview(!MET.prev));
+[['#mMinus',-1],['#mPlus',1]].forEach(([id,d])=>{ // Gedrückthalten wiederholt
+  let t1=0,t2=0; const b=$(id), stop=()=>{clearTimeout(t1);clearInterval(t2);};
+  b.addEventListener('pointerdown',e=>{e.preventDefault(); metBpm(metCfg().bpm+d); t1=setTimeout(()=>{t2=setInterval(()=>metBpm(metCfg().bpm+d),70);},400);});
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,stop));
+});
+let mTaps=[];
+$('#mTap').addEventListener('pointerdown',()=>{const t=performance.now();
+  if(mTaps.length&&t-mTaps[mTaps.length-1]>2000) mTaps=[]; mTaps.push(t); if(mTaps.length>5) mTaps.shift();
+  if(mTaps.length>=2) metBpm(60000*(mTaps.length-1)/(mTaps[mTaps.length-1]-mTaps[0]));});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden') metPreview(false);});
 // App im Hintergrund: Mikro sofort freigeben (Neustart nur per Knopf)
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&CH.mic) chordMicOff();});
 $('#launchChords').addEventListener('click',startChords);
 $('#cclose').addEventListener('click',stopChords);
 $('#cchip').addEventListener('click',()=>openSheet());
 // Reset: Verlauf und angezeigten Akkord leeren (gemerkte Griffe bleiben)
-$('#creset').addEventListener('click',()=>{CH.ev=[]; CH.tNow=0; CH.stripKey=''; CH.follow=true; CH.key=''; if(CH.eng){const sr=CH.eng.sr,pref=CH.eng.pref; CH.eng=makeChordEngine(sr); CH.eng.pref=pref; CH.eng.onCommit=onChordCommit;}});
+$('#creset').addEventListener('click',()=>{const d=CH.tNow; CH.tBase-=d; CH.tNow=0; CH.ev=[]; CH.grids=CH.met?[{t:CH.tBase,bar:CH.met.beat*CH.met.beats,end:null}]:[]; CH.stripKey=''; CH.follow=true; CH.key=''; if(CH.eng){const sr=CH.eng.sr,pref=CH.eng.pref; CH.eng=makeChordEngine(sr); CH.eng.pref=pref; CH.eng.onCommit=onChordCommit;}});
 // Griffbild antippen: nächster Griff, wird für diesen Akkord gemerkt
 $('#cdiag').addEventListener('click',()=>{
   if(!CH.eng) return; const r=CH.eng.nextVoicing(); if(!r) return;
