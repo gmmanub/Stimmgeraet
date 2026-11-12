@@ -973,13 +973,13 @@ function makeNoteTracker(sr){
       T.hold=note; };
     const emit=(j,t0,art,from)=>{ const pv=T.prevNote; let m=M0+j;
       // Sprung von ≥ 10 Halbtönen nach oben, und die tiefere Oktave klingt mit → meist ist die tiefere gemeint (d5 statt d4)
-      if(j>=12&&((pv&&t0-pv.t<1.2&&m-pv.m>=10&&P[j-12]>=0.2*P[j])||(m>=72&&P[j-12]>=0.25*P[j]))) m-=12;
+      if(j>=12&&((pv&&t0-pv.t<1.2&&m-pv.m>=10&&P[j-12]>=0.2*P[j])||(m>=69&&P[j-12]>=0.25*P[j]))) m-=12;
       if(pv&&pv.m===m&&t0-pv.t<0.35) return;
       const note={t:t0,m,art:art||'pick',from:from??null};
       // Griff-Ton bestätigt sich, wenn es gebunden weitergeht oder schrittweise (≤ 2 Halbtöne) als Linie weiterläuft
       if(T.pend&&(note.art!=='pick'||(Math.abs(note.m-T.pend.m)<=2&&note.m!==T.pend.m&&t0-T.pend.t<0.7))){ publish(T.pend); T.pend=null; }
       if(note.art!=='pick'){}
-      else if(voiceM&&voiceM.includes(m)&&!(pv&&t0-pv.t<0.7&&Math.abs(m-pv.m)<=3)){ T.pend=note; return; }
+      else if(voiceM&&voiceM.includes(m)&&!(pv&&t0-pv.t<0.7&&m!==pv.m&&Math.abs(m-pv.m)<=3)){ T.pend=note; return; }
       else T.pend=null;
       publish(note); };
     // Bestätigen: Ton bleibt ~100 ms deutlich hörbar (Durchgangstöne beim Slide fallen heraus)
@@ -1312,7 +1312,7 @@ function onChordCommit(c){
   const last=lastChordEv();
   if(last&&last.key===c.key) return;
   // A – B – A: War der Akkord davor (B) nur kurz und kommt jetzt wieder A, war B ein Lesefehler → B entfernen, A läuft weiter
-  if(last&&!last.edited&&CH.tNow-last.t<1.2){ let i=CH.ev.indexOf(last), a=null; for(let k=i-1;k>=0;k--) if(CH.ev[k].type!=='note'){a=CH.ev[k];break;}
+  if(last&&!last.edited&&CH.tNow-last.t<0.6){ let i=CH.ev.indexOf(last), a=null; for(let k=i-1;k>=0;k--) if(CH.ev[k].type!=='note'){a=CH.ev[k];break;}
     if(a&&a.key===c.key){ logEv(last,'akkord-entfernt-zwischenlesung'); CH.ev.splice(i,1); return; } }
   const E=CH.eng; let t=(E&&CH.tNow-E.lastOn<1)?E.lastOn:CH.tNow-(E?E.candT:0); t=Math.max(t,CH.tBase,0);
   let cn=null;
@@ -1349,7 +1349,10 @@ function onNoteDetected(n){
   if(n.art&&n.art!=='pick'){
     let pv=null; for(let i=CH.ev.length-1;i>=0;i--){const e=CH.ev[i]; if(e.type==='note'){pv=e;break;}}
     const f=pv?n.m-OPEN_M[pv.s]:-1;
-    if(pv&&n.t-pv.t<0.9&&f>=0&&f<=17&&f!==pv.f) p={s:pv.s,f}; else n.art='pick';
+    if(pv&&n.t-pv.t<0.9&&f>=0&&f<=17&&f!==pv.f){ p={s:pv.s,f};
+      // gelernte Spieltechnik für diesen Abstand (z. B. +2 → Slide, wenn Manu 3/5 einmal korrigiert hat)
+      const k=String(n.m-pv.m), pr=(S.artPref||{})[k]; if(pr) n.art=pr; }
+    else n.art='pick';
   }
   const ev={t:Math.max(n.t-0.06,CH.tBase),type:'note',m:n.m,s:p.s,f:p.f,key:'note|'+n.m,art:n.art||'pick'};
   n.ev=ev; CH.ev.push(ev); logEv(ev,'ton'); if(CH.ev.length>600) CH.ev.shift();
@@ -1464,7 +1467,7 @@ function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) me
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
 // =================== Version ===================
-const APP_VERSION='2026-11-12.1837';
+const APP_VERSION='2026-11-12.1843';
 async function checkVersion(manual){
   const info=$('#verInfo'); if(info) info.textContent='Diese App: '+APP_VERSION;
   try{
@@ -1772,7 +1775,10 @@ $('#eDel').addEventListener('click',()=>{const x=ED.ev; if(!x) return; snap(); c
     // Der nächste Akkord desselben Anschlags rückt auf den Platz des gelöschten
     if(x.type!=='note') for(let k=i;k<CH.ev.length;k++){const y=CH.ev[k]; if(y.type==='note') continue; if(y.t-x.t<1.0) y.t=x.t; break;} }
   closeEdit();});
-$('#eArt').addEventListener('click',e=>{const b=e.target.closest('button'); const x=ED.ev; if(!b||!x) return; snap(); x.art=b.dataset.a; x.edited=true; renderEdit(); CH.stripKey='';});
+$('#eArt').addEventListener('click',e=>{const b=e.target.closest('button'); const x=ED.ev; if(!b||!x) return; snap(); x.art=b.dataset.a;
+  // merken: gebundene Spieltechnik je Abstand zum vorigen Ton auf derselben Saite
+  if(x.art!=='pick'){ let pv=null; for(let k=CH.ev.indexOf(x)-1;k>=0;k--){const q=CH.ev[k]; if(q.type==='note'){ if(q.s===x.s&&x.t-q.t<1.5) pv=q; break; } }
+    if(pv&&pv.m!==x.m){ S.artPref=Object.assign({},S.artPref||{},{[String(x.m-pv.m)]:x.art}); save(); } } x.edited=true; renderEdit(); CH.stripKey='';});
 $('#eFret').addEventListener('click',e=>{const b=e.target.closest('button'); const x=ED.ev; if(!b||!x) return; snap(); x.f=+b.dataset.f; x.m=OPEN_M[x.s]+x.f; x.key='note|'+x.m; x.edited=true; renderEdit(); CH.stripKey='';});
 $('#eStr').addEventListener('click',e=>{const b=e.target.closest('button'); const x=ED.ev; if(!b||!x) return; snap(); const s=+b.dataset.s; x.s=s; x.f=x.m-OPEN_M[s]; x.edited=true; renderEdit(); CH.stripKey='';});
 $('#eNoteStep').addEventListener('click',e=>{const b=e.target.closest('button'); const x=ED.ev; if(!b||!x) return; snap(); x.m+=+b.dataset.d; x.key='note|'+x.m; x.edited=true;
