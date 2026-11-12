@@ -92,9 +92,10 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .cname{font-weight:500;font-size:min(30vw,150px);line-height:1;display:flex;align-items:flex-start;transition:opacity .3s}
 .cname .acc{font-size:.4em;margin-top:.08em}
 .cname .suf{font-size:.4em;margin-top:.08em;margin-left:.04em;color:var(--acc)}
-.cname.idle,.cdiag.idle{opacity:.3}
+.cname.idle,.cdiag.idle,.cvoi.idle{opacity:.3}
 .chint{font-size:13px;color:var(--muted);min-height:18px}
-.cdiag{width:min(52vw,210px);aspect-ratio:180/210;transition:opacity .3s}
+.cdiag{width:min(52vw,210px);aspect-ratio:180/210;transition:opacity .3s;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.cvoi{font-size:12px;color:var(--muted);min-height:16px;margin-top:-6px;transition:opacity .3s}
 .cdiag svg{width:100%;height:100%;display:block;font-family:var(--f-display)}
 .chistwrap{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:6px}
 .chist{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;min-height:32px;max-width:440px}
@@ -174,7 +175,8 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
   <div class="cdisplay">
     <div class="cname idle" id="cname" aria-live="polite"><span>–</span></div>
     <div class="chint" id="chint">Spiel einen Akkord</div>
-    <div class="cdiag idle" id="cdiag"></div>
+    <div class="cdiag idle" id="cdiag" role="button" aria-label="Griffbild – antippen für anderen Griff"></div>
+    <div class="cvoi idle" id="cvoi"></div>
     <div class="chistwrap">
       <div class="chist" id="chist"></div>
       <button class="chip" id="cclear">Verlauf leeren</button>
@@ -699,6 +701,7 @@ function refresh(){
 }
 
 // =================== Akkorderkennung (Stufe 1) ===================
+// ==CHORD-CORE-START== (reine Analyse ohne DOM, wird auch im Test genutzt)
 const QUAL=[
   {id:'',iv:[0,4,7],p:1},{id:'m',iv:[0,3,7],p:1},
   {id:'7',iv:[0,4,7,10],p:.965},{id:'maj7',iv:[0,4,7,11],p:.955},{id:'m7',iv:[0,3,7,10],p:.955},
@@ -715,34 +718,175 @@ const TPL=[];
     TPL.push({r,qi,v});
   });
 })();
-const ROOTS=['C','C♯','D','E♭','E','F','F♯','G','A♭','A','B♭','B'];
-function rootName(pc){let n=ROOTS[pc];if(S.notation==='H'){if(n==='B')n='H';else if(n==='B♭')n='B';}return n;}
 
-// Griffbilder (Standardstimmung), Bünde Saite 6 → 1, -1 = nicht anschlagen
-const OPEN={
-  '0|':[-1,3,2,0,1,0],'9|':[-1,0,2,2,2,0],'7|':[3,2,0,0,0,3],'4|':[0,2,2,1,0,0],'2|':[-1,-1,0,2,3,2],
-  '9|m':[-1,0,2,2,1,0],'4|m':[0,2,2,0,0,0],'2|m':[-1,-1,0,2,3,1],
-  '9|7':[-1,0,2,0,2,0],'4|7':[0,2,0,1,0,0],'2|7':[-1,-1,0,2,1,2],'7|7':[3,2,0,0,0,1],'0|7':[-1,3,2,3,1,0],'11|7':[-1,2,1,2,0,2],
-  '0|maj7':[-1,3,2,0,0,0],'5|maj7':[-1,-1,3,2,1,0],'9|maj7':[-1,0,2,1,2,0],'2|maj7':[-1,-1,0,2,2,2],'4|maj7':[0,2,1,1,0,0],'7|maj7':[3,-1,0,0,0,2],
-  '9|m7':[-1,0,2,0,1,0],'4|m7':[0,2,0,0,0,0],'2|m7':[-1,-1,0,2,1,1],
-  '9|sus2':[-1,0,2,2,0,0],'2|sus2':[-1,-1,0,2,3,0],'0|sus2':[-1,3,0,0,3,3],
-  '4|sus4':[0,2,2,2,0,0],'9|sus4':[-1,0,2,2,3,0],'2|sus4':[-1,-1,0,2,3,3],'7|sus4':[3,3,0,0,1,3]
+// Griffe (Standardstimmung), Bünde Saite 6 → 1, -1 = nicht anschlagen. Reihenfolge = Vorrang.
+const OPEN_STR=[40,45,50,55,59,64];
+const GRIFFE={
+  '0|':[[-1,3,2,0,1,0],[-1,3,2,0,1,3],[3,3,2,0,1,0]],
+  '2|':[[-1,-1,0,2,3,2]],
+  '4|':[[0,2,2,1,0,0]],
+  '5|':[[-1,-1,3,2,1,1]],
+  '7|':[[3,2,0,0,0,3],[3,2,0,0,3,3],[3,-1,0,0,0,3],[3,-1,0,0,3,3]],
+  '9|':[[-1,0,2,2,2,0]],
+  '2|m':[[-1,-1,0,2,3,1]],'4|m':[[0,2,2,0,0,0]],'9|m':[[-1,0,2,2,1,0]],
+  '0|7':[[-1,3,2,3,1,0]],'2|7':[[-1,-1,0,2,1,2]],'4|7':[[0,2,0,1,0,0],[0,2,2,1,3,0]],'7|7':[[3,2,0,0,0,1]],
+  '9|7':[[-1,0,2,0,2,0],[-1,0,2,2,2,3]],'11|7':[[-1,2,1,2,0,2]],
+  '0|maj7':[[-1,3,2,0,0,0]],'2|maj7':[[-1,-1,0,2,2,2]],'4|maj7':[[0,2,1,1,0,0]],'5|maj7':[[-1,-1,3,2,1,0]],
+  '7|maj7':[[3,-1,0,0,0,2],[3,2,0,0,0,2]],'9|maj7':[[-1,0,2,1,2,0]],
+  '2|m7':[[-1,-1,0,2,1,1]],'4|m7':[[0,2,0,0,0,0],[0,2,2,0,3,0],[0,2,0,0,3,0]],'9|m7':[[-1,0,2,0,1,0]],
+  '0|sus2':[[-1,3,0,0,3,3]],'2|sus2':[[-1,-1,0,2,3,0]],'9|sus2':[[-1,0,2,2,0,0]],
+  '2|sus4':[[-1,-1,0,2,3,3]],'4|sus4':[[0,2,2,2,0,0]],'7|sus4':[[3,3,0,0,1,3]],'9|sus4':[[-1,0,2,2,3,0]]
 };
 const SHAPE_E={'':[0,2,2,1,0,0],m:[0,2,2,0,0,0],'7':[0,2,0,1,0,0],maj7:[0,-1,1,1,0,-1],m7:[0,2,0,0,0,0],sus4:[0,2,2,2,0,0]};
 const SHAPE_A={'':[-1,0,2,2,2,0],m:[-1,0,2,2,1,0],'7':[-1,0,2,0,2,0],maj7:[-1,0,2,1,2,0],m7:[-1,0,2,0,1,0],sus2:[-1,0,2,2,0,0],sus4:[-1,0,2,2,3,0]};
-function voicing(r,qi){
-  const q=QUAL[qi].id, o=OPEN[r+'|'+q];
-  if(o) return {frets:o,barre:0};
-  const opts=[];
-  if(SHAPE_E[q]) opts.push({rf:(r-4+12)%12,sh:SHAPE_E[q]});
-  if(SHAPE_A[q]) opts.push({rf:(r-9+12)%12,sh:SHAPE_A[q]});
-  opts.forEach(x=>{if(x.rf===0)x.rf=12;});
-  opts.sort((a,b)=>a.rf-b.rf);
-  const {rf,sh}=opts[0];
-  return {frets:sh.map(v=>v<0?-1:v+rf),barre:rf};
+// Erwartetes Tonhöhenbild eines Griffs (MIDI 40–88) inkl. Obertöne
+const PM0=40, PM1=88, PN=PM1-PM0+1;
+function griffBild(f){
+  const p=new Float32Array(PN);
+  f.forEach((b,s)=>{ if(b<0) return; const m=OPEN_STR[s]+b;
+    [[0,1],[12,.5],[19,.3],[24,.2]].forEach(([o,a])=>{const j=m+o-PM0; if(j>=0&&j<PN) p[j]+=a;}); });
+  let n=0; for(const x of p) n+=x*x; n=Math.sqrt(n)||1; for(let j=0;j<PN;j++) p[j]/=n;
+  return p;
 }
-function diagramSVG(r,qi){
-  const {frets,barre}=voicing(r,qi);
+const VOI_CACHE={};
+function voicings(r,qi){
+  const q=QUAL[qi].id, key=r+'|'+q;
+  if(VOI_CACHE[key]) return VOI_CACHE[key];
+  const list=[], seen=new Set();
+  const add=(f,b)=>{const id=f.map(x=>x<0?'x':x).join(''); if(seen.has(id)) return; seen.add(id); list.push({f,b,id,p:griffBild(f)});};
+  (GRIFFE[key]||[]).forEach(f=>add(f,0));
+  const gen=[];
+  if(SHAPE_E[q]) gen.push({rf:(r-4+12)%12,sh:SHAPE_E[q]});
+  if(SHAPE_A[q]) gen.push({rf:(r-9+12)%12,sh:SHAPE_A[q]});
+  gen.sort((a,b)=>a.rf-b.rf).forEach(({rf,sh})=>add(sh.map(v=>v<0?-1:v+rf),rf));
+  return VOI_CACHE[key]=list;
+}
+
+function makeChordEngine(sr){
+  const N=16384, binHz=sr/N, LOG=Math.ceil(Math.log2(N));
+  const win=new Float64Array(N); for(let i=0;i<N;i++) win[i]=0.42-0.5*Math.cos(2*Math.PI*i/(N-1))+0.08*Math.cos(4*Math.PI*i/(N-1));
+  const rev=new Uint32Array(N); for(let i=0;i<N;i++){let x=i,y=0;for(let b=0;b<LOG;b++){y=(y<<1)|(x&1);x>>=1;}rev[i]=y;}
+  const cs=new Float64Array(N/2), sn=new Float64Array(N/2); for(let i=0;i<N/2;i++){cs[i]=Math.cos(2*Math.PI*i/N);sn[i]=-Math.sin(2*Math.PI*i/N);}
+  const re=new Float64Array(N), im=new Float64Array(N);
+  const kmin=Math.floor(75/binHz), kmax=Math.min(N/2-2,Math.ceil(1500/binHz));
+  const M=new Float64Array(kmax+2);
+  function fft(){
+    for(let s=1;s<=LOG;s++){const m=1<<s,h=m>>1,st=N/m;
+      for(let k=0;k<N;k+=m) for(let j=0;j<h;j++){
+        const wr=cs[j*st],wi=sn[j*st],a=k+j,b=a+h,tr=wr*re[b]-wi*im[b],ti=wr*im[b]+wi*re[b];
+        re[b]=re[a]-tr;im[b]=im[a]-ti;re[a]+=tr;im[a]+=ti;}}
+  }
+  const E={sr,N,chroma:new Float32Array(12),prof:new Float32Array(PN),pf:new Float32Array(PN),pacc:new Float32Array(PN),
+    slowDb:-90,lastOn:-1e9,lastSound:-1e9,cur:null,cand:null,candT:0,
+    vIdx:0,vLock:false,pref:{},onCommit:null};
+
+  function baseScore(cn,r,qi,bassBonus){
+    const t=TPL[r*QUAL.length+qi]; let d=0; for(let k=0;k<12;k++) d+=cn[k]*t.v[k];
+    return d*QUAL[qi].p+bassBonus(r,qi);
+  }
+  // Passt das gehörte Tonhöhenbild zu einem bekannten Griff? (hilft z. B. bei Asus2 gegen Esus4)
+  const VW=0.15;
+  function fitOf(r,qi){let b=0; for(const v of voicings(r,qi)){const c=cosP(E.pf,v.p); if(c>b) b=c;} return b;}
+  function scoreOf(cn,r,qi,bassBonus){return baseScore(cn,r,qi,bassBonus)+VW*fitOf(r,qi);}
+  function cosP(a,p){let d=0,n=0;for(let j=0;j<PN;j++){d+=a[j]*p[j];n+=a[j]*a[j];}return n?d/Math.sqrt(n):0;}
+  function chooseVoicing(){
+    const c=E.cur; if(!c||c.type!=='chord'||E.vLock) return;
+    const L=voicings(c.r,c.qi); if(L.length<2){E.vIdx=0;return;}
+    const pref=E.pref[c.r+'|'+QUAL[c.qi].id];
+    const sc=L.map((v,i)=>cosP(E.pacc,v.p)-0.008*i-(v.b>0?0.03:0)+(pref===v.id?0.03:0));
+    let b=0; for(let i=1;i<sc.length;i++) if(sc[i]>sc[b]) b=i;
+    if(b!==E.vIdx&&sc[b]>sc[E.vIdx]+0.015) E.vIdx=b;
+  }
+  function startVoicing(c){
+    E.pacc.set(E.pf); E.vLock=false; E.vIdx=0;
+    if(c.type!=='chord') return;
+    const L=voicings(c.r,c.qi), pref=E.pref[c.r+'|'+QUAL[c.qi].id];
+    const i=L.findIndex(v=>v.id===pref); if(i>=0) E.vIdx=i;
+    chooseVoicing();
+  }
+
+  // buf: die letzten N Samples; dt: Sekunden seit dem letzten Aufruf; t: Zeit in Sekunden
+  E.process=function(buf,dt,t,a4){
+    const L=buf.length, off=L-N;
+    // Pegel aus den letzten ~40 ms (schnell), für Anschlagserkennung
+    let e=0; const sh=Math.min(L,2048); for(let i=L-sh;i<L;i++) e+=buf[i]*buf[i];
+    const rms=Math.sqrt(e/sh), db=20*Math.log10(rms+1e-9);
+    if(db>E.slowDb+6) E.lastOn=t;
+    E.slowDb+=(db-E.slowDb)*Math.min(1,dt*2);
+    if(rms<0.0035) return;
+    E.lastSound=t;
+    for(let i=0;i<N;i++){const j=rev[i]; re[j]=(off+i>=0?buf[off+i]:0)*win[i]; im[j]=0;}
+    fft();
+    let mx=0; for(let k=kmin-1;k<=kmax+1;k++){M[k]=Math.hypot(re[k],im[k]); if(k>=kmin&&k<=kmax&&M[k]>mx) mx=M[k];}
+    if(!mx) return;
+    const thr=mx*0.0158; // −36 dB
+    const c=new Float32Array(12); E.prof.fill(0);
+    for(let k=kmin;k<=kmax;k++){
+      const v=M[k]; if(v<thr||v<=M[k-1]||v<M[k+1]) continue;
+      const la=Math.log(M[k-1]+1e-12),lv=Math.log(v),lb=Math.log(M[k+1]+1e-12),den=la-2*lv+lb, d=den?0.5*(la-lb)/den:0;
+      const m=69+12*Math.log2((k+d)*binHz/a4), rm=Math.round(m), w=Math.cos(Math.PI*(m-rm));
+      const a=Math.sqrt(v)*w*w; c[((rm%12)+12)%12]+=a;
+      const j=rm-PM0; if(j>=0&&j<PN&&a>E.prof[j]) E.prof[j]=a;
+    }
+    let n=0; for(const x of c) n+=x*x; n=Math.sqrt(n); if(!n) return;
+    const fresh=t-E.lastOn<0.8;
+    const al=t-E.lastOn<0.06?0.5:Math.min(1,dt/0.35);
+    for(let k=0;k<12;k++) E.chroma[k]+=(c[k]/n-E.chroma[k])*al;
+    // Tonhöhenbild aus den Spitzen (für Bass und Griff): schnell (pf) und langsam (pacc)
+    let pmx=0; for(let j=0;j<PN;j++) if(E.prof[j]>pmx) pmx=E.prof[j];
+    let lowMx=0;
+    if(pmx) for(let j=0;j<PN;j++){const v=E.prof[j]/pmx; E.pf[j]+=(v-E.pf[j])*al; E.pacc[j]+=(v-E.pacc[j])*Math.min(1,dt/1.0); if(j<=24&&E.pf[j]>lowMx) lowMx=E.pf[j];}
+    // Bass: tiefster deutlich hörbarer Akkordton (Korpusresonanz zählt so nicht mit)
+    const bassBonus=(r,qi)=>{
+      const iv=QUAL[qi].iv;
+      for(let j=0;j<=24;j++){ if(E.pf[j]<0.3*lowMx) continue;
+        const pc=(PM0+j)%12, rel=(pc-r+12)%12;
+        if(iv.includes(rel)) return rel===0?0.06:0; }
+      return 0;
+    };
+    let cn=new Float32Array(12); n=0; for(const x of E.chroma) n+=x*x; n=Math.sqrt(n)||1; for(let k=0;k<12;k++) cn[k]=E.chroma[k]/n;
+    const cands=[];
+    for(let r=0;r<12;r++) for(let qi=0;qi<QUAL.length;qi++) cands.push([baseScore(cn,r,qi,bassBonus),r,qi]);
+    cands.sort((a,b)=>b[0]-a[0]);
+    let br=0,bq=0,bs=-1;
+    for(let i=0;i<5;i++){const [s0,r,qi]=cands[i], s=s0+VW*fitOf(r,qi); if(s>bs){bs=s;br=r;bq=qi;}}
+    let cmx=0; for(const x of cn) if(x>cmx) cmx=x;
+    let strong=0; for(const x of cn) if(x>0.3*cmx) strong++;
+    let lab;
+    if(strong===1){ let r=0; for(let k=1;k<12;k++) if(cn[k]>cn[r]) r=k; lab={type:'note',r,sc:1}; }
+    else {
+      if(bs<0.70+VW*0.6){E.cand=null;return;}
+      const q=QUAL[bq].id, third=Math.max(cn[(br+3)%12],cn[(br+4)%12])/cmx;
+      if((q===''||q==='m')&&third<0.15) lab={type:'power',r:br,sc:bs+(third<0.08?0.05:0)};
+      else lab={type:'chord',r:br,qi:bq,sc:bs};
+    }
+    lab.key=lab.type+'|'+lab.r+'|'+(lab.qi??'');
+    const cur=E.cur;
+    if(cur&&lab.key===cur.key){E.cand=null; if(cur.type==='chord') chooseVoicing(); return;}
+    let curSc=0;
+    if(cur&&cur.type!=='note') curSc=scoreOf(cn,cur.r,cur.type==='chord'?cur.qi:0,bassBonus);
+    const ok=!cur||(fresh&&lab.sc>curSc+0.04)||(lab.type==='chord'&&lab.sc>curSc+0.12);
+    if(!ok){E.cand=null; if(cur&&cur.type==='chord') chooseVoicing(); return;}
+    if(!E.cand||E.cand.key!==lab.key){E.cand=lab;E.candT=0;}
+    E.candT+=dt;
+    if(E.candT>=(cur?0.3:0.15)){
+      E.cur=E.cand; E.cand=null; startVoicing(E.cur);
+      if(E.onCommit) E.onCommit(E.cur);
+    }
+  };
+  E.reset=function(){E.chroma.fill(0);E.pacc.fill(0);E.pf.fill(0);E.cur=null;E.cand=null;E.candT=0;E.lastOn=-1e9;E.lastSound=-1e9;E.slowDb=-90;E.vIdx=0;E.vLock=false;};
+  E.voicing=function(){const c=E.cur; if(!c||c.type!=='chord') return null; const L=voicings(c.r,c.qi); return {v:L[Math.min(E.vIdx,L.length-1)],i:E.vIdx,n:L.length};};
+  E.nextVoicing=function(){const c=E.cur; if(!c||c.type!=='chord') return null; const L=voicings(c.r,c.qi);
+    E.vIdx=(E.vIdx+1)%L.length; E.vLock=true; return {key:c.r+'|'+QUAL[c.qi].id,id:L[E.vIdx].id};};
+  return E;
+}
+// ==CHORD-CORE-END==
+
+const ROOTS=['C','C♯','D','E♭','E','F','F♯','G','A♭','A','B♭','B'];
+function rootName(pc){let n=ROOTS[pc];if(S.notation==='H'){if(n==='B')n='H';else if(n==='B♭')n='B';}return n;}
+
+function diagramSVG(v){
+  const frets=v.f, barre=v.b;
   const played=frets.filter(f=>f>0), maxF=Math.max(...played,1);
   const base=maxF<=4?1:Math.min(...played);
   const W=180,H=210,x0=26,y0=34,sx=(W-2*x0)/5,sy=(H-y0-14)/5;
@@ -765,75 +909,7 @@ function diagramSVG(r,qi){
   return s+'</svg>';
 }
 
-const CH={running:false,raf:0,ctx:null,an:null,stream:null,F:null,T:null,demoTimer:0,demoNodes:[],wake:null,
-  chroma:new Float32Array(12),slowDb:-90,cur:null,cand:null,candT:0,lastSound:-1e9,hist:[],key:'',last:0};
-
-function chordScore(ch,bassPc){
-  let best=null,second=null;
-  for(const t of TPL){
-    let d=0; for(let k=0;k<12;k++) d+=ch[k]*t.v[k];
-    let sc=d*QUAL[t.qi].p;
-    if(bassPc>=0&&bassPc===t.r) sc+=0.03;
-    if(!best||sc>best.sc){second=best;best={...t,sc};} else if(!second||sc>second.sc) second={...t,sc};
-  }
-  return {best,second};
-}
-
-function analyseChord(dt,now){
-  const an=CH.an, F=CH.F, T=CH.T, sr=CH.ctx.sampleRate, binHz=sr/an.fftSize;
-  an.getFloatTimeDomainData(T);
-  let e=0; for(let i=0;i<T.length;i++) e+=T[i]*T[i];
-  const rms=Math.sqrt(e/T.length), db=20*Math.log10(rms+1e-9);
-  const onset=db>CH.slowDb+6;
-  CH.slowDb+=(db-CH.slowDb)*Math.min(1,dt*2);
-  if(rms<0.0035) return null;
-  CH.lastSound=now;
-  an.getFloatFrequencyData(F);
-  const kmin=Math.floor(70/binHz), kmax=Math.min(F.length-2,Math.ceil(2100/binHz));
-  let mx=-200; for(let k=kmin;k<kmax;k++) if(F[k]>mx) mx=F[k];
-  const floor=Math.max(mx-42,-95);
-  const c=new Float32Array(12), b=new Float32Array(12);
-  for(let k=kmin;k<kmax;k++){
-    const v=F[k]; if(v<floor||v<F[k-1]||v<=F[k+1]) continue;
-    const a=F[k-1],bb=F[k+1],den=a-2*v+bb, d=den?0.5*(a-bb)/den:0, f=(k+d)*binHz;
-    const m=69+12*Math.log2(f/S.a4), rm=Math.round(m), dev=m-rm, w=Math.cos(Math.PI*dev);
-    const wt=(v-floor)*w*w, pc=((rm%12)+12)%12;
-    c[pc]+=wt; if(f<250) b[pc]+=wt;
-  }
-  let n=0; for(const x of c) n+=x*x; n=Math.sqrt(n); if(!n) return null;
-  const al=onset?0.6:Math.min(1,dt/0.12);
-  for(let k=0;k<12;k++) CH.chroma[k]+=(c[k]/n-CH.chroma[k])*al;
-  let bassPc=-1,bm=0; for(let k=0;k<12;k++) if(b[k]>bm){bm=b[k];bassPc=k;}
-  return {bassPc,onset};
-}
-
-function decideChord(res,dt,now){
-  if(!res) return;
-  const ch=CH.chroma; let n=0; for(const x of ch) n+=x*x; n=Math.sqrt(n);
-  const cn=ch.map(x=>x/n);
-  const mx=Math.max(...cn), strong=[]; cn.forEach((x,k)=>{if(x>0.42*mx) strong.push(k);});
-  let label;
-  if(strong.length===1) label={type:'note',r:strong[0]};
-  else if(strong.length===2&&((strong[1]-strong[0]+12)%12===7||(strong[0]-strong[1]+12)%12===7)){
-    const r=(strong[1]-strong[0]+12)%12===7?strong[0]:strong[1];
-    label={type:'power',r};
-  } else {
-    const {best}=chordScore(cn,res.bassPc);
-    if(!best||best.sc<0.72) return;
-    label={type:'chord',r:best.r,qi:best.qi,sc:best.sc};
-  }
-  const key=label.type+'|'+label.r+'|'+(label.qi??'');
-  if(CH.cur&&key===CH.cur.key){CH.cand=null;return;}
-  if(!CH.cand||CH.cand.key!==key){CH.cand={...label,key};CH.candT=0;}
-  CH.candT+=dt;
-  if(CH.candT>=(CH.cur?0.14:0.08)){
-    CH.cur=CH.cand; CH.cand=null;
-    if(CH.cur.type==='chord'){
-      const last=CH.hist[CH.hist.length-1];
-      if(!last||last.key!==CH.cur.key){CH.hist.push(CH.cur); if(CH.hist.length>8) CH.hist.shift();}
-    }
-  }
-}
+const CH={running:false,raf:0,ctx:null,an:null,stream:null,T:null,eng:null,demoTimer:0,wake:null,hist:[],key:'',last:0,lastProc:0};
 
 function labelParts(l){
   if(l.type==='chord') return {root:rootName(l.r),suf:QUAL[l.qi].id};
@@ -841,19 +917,21 @@ function labelParts(l){
   return {root:rootName(l.r),suf:''};
 }
 function renderChord(now){
-  const nameEl=$('#cname'), quiet=now-CH.lastSound>1500;
-  const l=CH.cur;
-  const key=(l?l.key:'none')+'|'+S.notation+'|'+CH.hist.length+'|'+(CH.hist.map(h=>h.key).join(','));
+  const E=CH.eng, nameEl=$('#cname'), quiet=!E||now/1000-E.lastSound>1.5;
+  const l=E&&E.cur, vo=E&&E.voicing();
+  const key=(l?l.key:'none')+'|'+(vo?vo.v.id+'/'+vo.n+(E.vLock?'L':''):'')+'|'+S.notation+'|'+CH.hist.map(h=>h.key).join(',');
   nameEl.classList.toggle('idle',!l||quiet);
   $('#cdiag').classList.toggle('idle',!l||quiet);
+  $('#cvoi').classList.toggle('idle',!l||quiet);
   if(key===CH.key) return;
   CH.key=key;
-  if(!l){nameEl.innerHTML='<span>–</span>';$('#cdiag').innerHTML='';$('#chint').textContent='Spiel einen Akkord';}
+  if(!l){nameEl.innerHTML='<span>–</span>';$('#cdiag').innerHTML='';$('#cvoi').textContent='';$('#chint').textContent='Spiel einen Akkord';}
   else{
     const p=labelParts(l);
     nameEl.innerHTML=`<span>${p.root[0]}</span><span class="acc">${p.root.slice(1)}</span><span class="suf">${p.suf}</span>`;
     nameEl.classList.toggle('single',l.type==='note');
-    $('#cdiag').innerHTML=l.type==='chord'?diagramSVG(l.r,l.qi):'';
+    $('#cdiag').innerHTML=vo?diagramSVG(vo.v):'';
+    $('#cvoi').textContent=vo&&vo.n>1?`Griff ${vo.i+1} von ${vo.n} · tippen zum Wechseln`:'';
     $('#chint').textContent=l.type==='note'?'Einzelton':(l.type==='power'?'Powerchord':'');
   }
   $('#chist').innerHTML=CH.hist.map(h=>{const p=labelParts(h);return `<span>${p.root}${p.suf}</span>`;}).join('');
@@ -861,16 +939,24 @@ function renderChord(now){
 
 function chordFrame(now){
   if(!CH.running) return;
-  const dt=Math.min(0.05,(now-CH.last)/1000||0.016); CH.last=now;
-  decideChord(analyseChord(dt,now),dt,now);
+  if(now-CH.lastProc>=30){ // Analyse etwa 30-mal pro Sekunde
+    const dt=Math.min(0.1,(now-CH.lastProc)/1000||0.033); CH.lastProc=now;
+    CH.an.getFloatTimeDomainData(CH.T);
+    CH.eng.process(CH.T,dt,now/1000,S.a4);
+  }
   renderChord(now);
   CH.raf=requestAnimationFrame(chordFrame);
+}
+function onChordCommit(c){
+  if(c.type!=='chord') return;
+  const last=CH.hist[CH.hist.length-1];
+  if(!last||last.key!==c.key){CH.hist.push(c); if(CH.hist.length>8) CH.hist.shift();}
 }
 
 // Demo: synthetische Gitarrenakkorde, falls kein Mikrofon verfügbar ist
 const DEMO_SEQ=[[7,0],[4,1],[0,0],[2,0],[9,1],[9,5],[4,2],[0,3],[2,6],[9,4]];
 function demoStrum(ctx,dest,r,qi,t0){
-  const {frets}=voicing(r,qi), open=[40,45,50,55,59,64];
+  const frets=voicings(r,qi)[0].f, open=OPEN_STR;
   const wave=ctx.createPeriodicWave(new Float32Array([0,1,.55,.4,.28,.2,.14,.1,.07]),new Float32Array(9));
   frets.forEach((f,i)=>{
     if(f<0) return;
@@ -884,11 +970,11 @@ function demoStrum(ctx,dest,r,qi,t0){
 
 async function startChords(){
   $('#chords').classList.add('on');
-  CH.cur=null; CH.cand=null; CH.hist=[]; CH.key=''; CH.chroma.fill(0); CH.lastSound=-1e9;
+  CH.hist=[]; CH.key='';
   let ctx=null, demo=true;
   try{ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}
   if(!ctx){$('#cbanner').textContent='Audio wird von diesem Browser nicht unterstützt.';$('#cbanner').classList.add('on');return;}
-  const an=ctx.createAnalyser(); an.fftSize=8192; an.smoothingTimeConstant=0;
+  const an=ctx.createAnalyser(); an.fftSize=16384; an.smoothingTimeConstant=0;
   try{
     if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw 0;
     const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
@@ -899,18 +985,19 @@ async function startChords(){
     play(); CH.demoTimer=setInterval(play,2400);
   }
   try{await ctx.resume();}catch(e){}
-  CH.ctx=ctx; CH.an=an; CH.F=new Float32Array(an.frequencyBinCount); CH.T=new Float32Array(an.fftSize);
+  CH.ctx=ctx; CH.an=an; CH.T=new Float32Array(an.fftSize);
+  CH.eng=makeChordEngine(ctx.sampleRate); CH.eng.pref=S.voi||(S.voi={}); CH.eng.onCommit=onChordCommit;
   $('#cbanner').textContent='Vorschau mit simulierter Gitarre: In dieser Ansicht ist das Mikrofon gesperrt. Die Akkorde werden aus einem künstlichen Gitarrenklang erkannt.';
   $('#cbanner').classList.toggle('on',demo);
   try{if('wakeLock' in navigator) CH.wake=await navigator.wakeLock.request('screen');}catch(e){}
-  CH.running=true; CH.last=performance.now(); cancelAnimationFrame(CH.raf); CH.raf=requestAnimationFrame(chordFrame);
+  CH.running=true; CH.lastProc=0; cancelAnimationFrame(CH.raf); CH.raf=requestAnimationFrame(chordFrame);
 }
 function stopChords(){
   CH.running=false; cancelAnimationFrame(CH.raf); clearInterval(CH.demoTimer);
   try{if(CH.stream) CH.stream.getTracks().forEach(t=>t.stop());}catch(e){}
   try{if(CH.ctx) CH.ctx.close();}catch(e){}
   try{if(CH.wake) CH.wake.release();}catch(e){}
-  CH.stream=null; CH.ctx=null; CH.wake=null;
+  CH.stream=null; CH.ctx=null; CH.wake=null; CH.eng=null;
   $('#chords').classList.remove('on');
 }
 document.addEventListener('visibilitychange',async()=>{if(CH.running&&document.visibilityState==='visible'){try{CH.wake=await navigator.wakeLock.request('screen');}catch(e){}}});
@@ -918,7 +1005,12 @@ $('#launchChords').addEventListener('click',startChords);
 $('#cclose').addEventListener('click',stopChords);
 $('#cchip').addEventListener('click',()=>openSheet());
 $('#cclear').addEventListener('click',()=>{CH.hist=[];CH.key='';});
-window.__chord=()=>CH.cur?CH.cur.key:null;
+// Griffbild antippen: nächster Griff, wird für diesen Akkord gemerkt
+$('#cdiag').addEventListener('click',()=>{
+  if(!CH.eng) return; const r=CH.eng.nextVoicing(); if(!r) return;
+  (S.voi||(S.voi={}))[r.key]=r.id; CH.eng.pref=S.voi; save(); CH.key='';
+});
+window.__chord=()=>CH.eng&&CH.eng.cur?CH.eng.cur.key:null;
 
 refresh();
 })();

@@ -94,11 +94,17 @@ Oben 15 breite Balken (große Fläche), darunter groß der Ton, darunter Saite u
 
 ## 7. Modul Akkorde (Stufe 1, in Test)
 
-- Live-Erkennung über das Mikrofon: Tonklassen-Analyse (Chroma) mit Obertonmustern, Abgleich mit 84 Akkorden.
+- Live-Erkennung über das Mikrofon: eigene FFT (16384 Punkte, ca. 30 Analysen/s), Tonklassen (Chroma) aus Spektralspitzen mit komprimierter Amplitude, Bereich 75–1500 Hz, Abgleich mit 84 Akkordmustern.
 - Vokabular: Dur, Moll, 7, maj7, m7, sus2, sus4 auf allen 12 Grundtönen. Einzelton und Powerchord (z. B. E5) werden erkannt.
-- Anzeige: Akkordname groß, Griffbild (Standardstimmung, offene Griffe bevorzugt, sonst Barré in E- oder A-Form), Verlauf der letzten 8 Akkorde, „Verlauf leeren“.
-- Wechsel wird erst nach kurzer Stabilität angezeigt (gegen Flackern).
-- Test mit synthetischem Gitarrenklang: 10/10 korrekt. Test mit echter Gitarre steht aus.
+- **Entscheidung (Stand 12.11.):**
+  - Bass = tiefster deutlich hörbarer *Akkordton* (Bonus 0,06, wenn er der Grundton ist). Die Korpusresonanz (~105 Hz) zählt so nicht als Bass.
+  - Die 5 besten Kandidaten bekommen zusätzlich einen Bonus (0,15 × Übereinstimmung), wenn das gehörte Tonhöhenbild zu einem bekannten Griff passt. Das trennt z. B. Asus2 und Esus4 oder Cmaj7 und Em.
+  - Powerchord nur, wenn die Terz unter 15 % liegt. Einzelton nur, wenn eine Tonklasse klar alleine steht.
+  - **Ruhe:** Ein Wechsel braucht 0,3 s Stabilität und 0,04 Vorsprung, und zwar nur bis 0,8 s nach einem Anschlag. Beim Ausklingen bleibt der Akkord stehen, außer ein anderer liegt um mehr als 0,12 vorne.
+- **Griffbild:** Pro Akkord mehrere gängige Griffe (z. B. G: 320003, 320033, 3x0003, 3x0033 und Barré-Formen). Die App wählt den Griff, dessen Tonhöhen (inkl. Obertönen) am besten zum Gehörten passen. Offene Griffe haben Vorrang. **Antippen** blättert zum nächsten Griff und hält ihn, bis der Akkord wechselt. Die Wahl wird gemerkt (Einstellungen, Schlüssel `voi`) und künftig bevorzugt.
+- Anzeige: Akkordname groß, Griffbild mit „Griff x von n · tippen zum Wechseln“, Verlauf der letzten 8 Akkorde, „Verlauf leeren“.
+- **Tests:** Zwei Aufnahmen von Manus Akustikgitarre (S24, Sprachrekorder). G (320033) 96 %, G (320003) 93 %, D 96 %, Em 95 %, Cmaj7 93 %, Asus2 79 % (Rest Esus4, wenn die A-Saite nicht mitklingt), jeweils mit dem richtigen Griff. Vorher wechselte die Anzeige je Akkord 5- bis 16-mal, jetzt einmal. Synthetischer Klang weiterhin 10/10.
+- Bekannt: Sprache wird manchmal als Akkord gelesen und landet im Verlauf.
 
 ### Geplant für Akkorde
 - Stufe 2: Slash-Akkorde (z. B. D/B), add9 und weitere Erweiterungen.
