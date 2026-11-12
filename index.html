@@ -1257,13 +1257,13 @@ function onChordCommit(c){
   // Töne, die nur zum Akkordanschlag gehören (z. B. das A beim Asus2), sind keine Lauf-Töne
   { const pcs=QUAL[c.qi].iv.map(i=>(c.r+i)%12);
     for(let i=CH.ev.length-1;i>=0;i--){ const e=CH.ev[i]; if(e.t<t-0.12) break;
-      if(e.type==='note'&&!e.edited&&e.t<=t+0.45&&pcs.includes(e.m%12)) CH.ev.splice(i,1); } }
+      if(e.type==='note'&&!e.edited&&e.t<=t+0.45&&pcs.includes(e.m%12)){ logEv(e,'ton-entfernt-akkordanschlag'); CH.ev.splice(i,1); } } }
   const fields={r:c.r,qi:c.qi,type:'chord',key:c.key,orig:c.raw||c.key,learned:!!c.learned,f:null,cn,pf:E?Array.from(E.pf):null};
   // Gleicher Anschlag: Die App hat sich nur korrigiert (z. B. erst G7, dann G) → überschreiben, Zeitpunkt bleibt
   const strumSince=E?E.NT.lastStrum:0;
-  if(last&&!last.edited&&t-last.t<0.6&&!(strumSince>last.t+0.1)&&CH.ev.indexOf(last)>=CH.ev.length-3){ Object.assign(last,fields); return; }
+  if(last&&!last.edited&&t-last.t<0.6&&!(strumSince>last.t+0.1)&&CH.ev.indexOf(last)>=CH.ev.length-3){ Object.assign(last,fields); logEv(last,'akkord-ueberschrieben'); return; }
   if(last) t=Math.max(t,last.t+0.35);
-  CH.ev.push(Object.assign({t},fields));
+  const ne=Object.assign({t},fields); CH.ev.push(ne); logEv(ne,'akkord');
   if(CH.ev.length>600) CH.ev.shift();
 }
 // Lauf-Töne: Saite und Bund nach Spielbarkeit, bevorzugt auf der Saite des vorigen Tons
@@ -1283,10 +1283,10 @@ function onNoteDetected(n){
   if(!CH.mic||CH.counting) return;
   const p=placeNote(n.m); if(!p) return;
   const ev={t:Math.max(n.t-0.06,CH.tBase),type:'note',m:n.m,s:p.s,f:p.f,key:'note|'+n.m,art:n.art||'pick'};
-  n.ev=ev; CH.ev.push(ev); if(CH.ev.length>600) CH.ev.shift();
+  n.ev=ev; CH.ev.push(ev); logEv(ev,'ton'); if(CH.ev.length>600) CH.ev.shift();
 }
 function onNoteReplaced(n){ const e=n.ev; if(!e) return; const p=placeNote(n.m)||{s:e.s,f:n.m-OPEN_M[e.s]}; e.m=n.m; e.key='note|'+n.m;
-  const f=n.m-OPEN_M[e.s]; if(f>=0&&f<=17){e.f=f;} else {e.s=p.s;e.f=p.f;} }
+  const f=n.m-OPEN_M[e.s]; if(f>=0&&f<=17){e.f=f;} else {e.s=p.s;e.f=p.f;} logEv(e,'ton-ersetzt'); }
 
 // Demo: synthetische Gitarrenakkorde, falls kein Mikrofon verfügbar ist
 const DEMO_SEQ=[[7,0],[4,1],[0,0],[2,0],[9,1],[9,5],[4,2],[0,3],[2,6],[9,4]];
@@ -1466,6 +1466,8 @@ function renderEdit(){
 
 // =================== Test-Mitschnitt ===================
 // Speichert das rohe Mikrofonsignal und den erkannten Tab in EINER WAV-Datei (Zusatzblock „tabj“ mit JSON).
+const LOG=[]; // unveränderliches Protokoll der Live-Erkennung
+function logEv(e,what){ if(LOG.length<5000) LOG.push(Object.assign({what},e.type==='note'?{t:+e.t.toFixed(3),type:'note',m:e.m,s:e.s,f:e.f,art:e.art||'pick'}:{t:+e.t.toFixed(3),type:e.type,key:e.key,orig:e.orig,learned:!!e.learned})); }
 const CAP={on:false,node:null,mute:null,chunks:[],n:0,segs:[],seg:null,sr:48000,max:48000*600};
 function capStart(ctx,src){
   if(!S.capture||!src) return;
@@ -1483,12 +1485,14 @@ function capStart(ctx,src){
 }
 function capFrame(ctx){ if(CAP.on&&CAP.seg) CAP.seg.offset=CH.tNow-ctx.currentTime; }
 function capStop(){ try{ if(CAP.node){CAP.node.disconnect(); CAP.mute.disconnect();} }catch(e){} CAP.node=null; CAP.mute=null; CAP.on=false; CAP.seg=null; capUI(); }
-function capClear(){ CAP.chunks=[]; CAP.n=0; CAP.segs=[]; capUI(); }
+function capClear(){ CAP.chunks=[]; CAP.n=0; CAP.segs=[]; LOG.length=0; capUI(); }
 function capUI(){ const b=$('#ccap'); if(!b) return; b.style.display=S.capture&&CAP.n>0?'':'none'; b.textContent=`Mitschnitt + Tab speichern (${Math.round(CAP.n/CAP.sr)} s)`; }
 function tabJSON(){
   const nm=e=>{const p=labelParts(e);return p.root+p.suf;};
   return {app:'Gitarren-App',when:new Date().toISOString(),a4:S.a4,notation:S.notation,tune:CH.eng?+CH.eng.tune.toFixed(3):0,
     met:metCfg(),segments:CAP.segs,
+    note:'events = Stand nach Bearbeitung durch Manu; live = alles, was die App live erkannt hat (unverändert)',
+    live:LOG,
     grids:CH.grids.map(g=>({lines:g.lines.map(x=>+x.toFixed(3)),bar:+g.bar.toFixed(3),beats:g.beats,end:g.end==null?null:+g.end.toFixed(3)})),
     events:CH.ev.map(e=>e.type==='note'?{t:+e.t.toFixed(3),type:'note',m:e.m,s:e.s,f:e.f,art:e.art||'pick',edited:!!e.edited}
       :{t:+e.t.toFixed(3),type:e.type,name:nm(e),key:e.key,orig:e.orig,f:e.f,learned:!!e.learned,edited:!!e.edited})};
@@ -1681,7 +1685,7 @@ $('#launchChords').addEventListener('click',startChords);
 $('#cclose').addEventListener('click',stopChords);
 $('#cchip').addEventListener('click',()=>openSheet());
 // Reset: Verlauf und angezeigten Akkord leeren (gemerkte Griffe bleiben)
-$('#creset').addEventListener('click',()=>{closeEdit(); ALIGN_UNDO=null; if(!CAP.on) capClear(); else {CAP.chunks=[];CAP.n=0;CAP.segs=[CAP.seg];CAP.seg.wavStart=0;CAP.seg.ctxStart=null;}const d=CH.tNow; CH.tBase-=d; CH.tNow=0; CH.ev=[]; CH.grids=CH.met?[newGrid(CH.tBase,CH.met.beat*CH.met.beats,CH.met.beats)]:[]; CH.stripKey=''; CH.follow=true; CH.key=''; if(CH.eng){const sr=CH.eng.sr,pref=CH.eng.pref; CH.eng=makeChordEngine(sr); CH.eng.pref=pref; CH.eng.onCommit=onChordCommit; CH.eng.NT.onNote=onNoteDetected; CH.eng.NT.onReplace=onNoteReplaced; CH.eng.learn=LEARN;}});
+$('#creset').addEventListener('click',()=>{closeEdit(); ALIGN_UNDO=null; if(!CAP.on) capClear(); else {CAP.chunks=[];CAP.n=0;CAP.segs=[CAP.seg];CAP.seg.wavStart=0;CAP.seg.ctxStart=null;LOG.length=0;}const d=CH.tNow; CH.tBase-=d; CH.tNow=0; CH.ev=[]; CH.grids=CH.met?[newGrid(CH.tBase,CH.met.beat*CH.met.beats,CH.met.beats)]:[]; CH.stripKey=''; CH.follow=true; CH.key=''; if(CH.eng){const sr=CH.eng.sr,pref=CH.eng.pref; CH.eng=makeChordEngine(sr); CH.eng.pref=pref; CH.eng.onCommit=onChordCommit; CH.eng.NT.onNote=onNoteDetected; CH.eng.NT.onReplace=onNoteReplaced; CH.eng.learn=LEARN;}});
 // Griffbild antippen: nächster Griff, wird für diesen Akkord gemerkt
 $('#cdiag').addEventListener('click',()=>{
   if(!CH.eng) return; const r=CH.eng.nextVoicing(); if(!r) return;
