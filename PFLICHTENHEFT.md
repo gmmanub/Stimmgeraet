@@ -145,6 +145,15 @@ Oben 15 breite Balken (große Fläche), darunter groß der Ton, darunter Saite u
 - **Noch nicht:** Aufnahmen bleiben nicht erhalten, wenn man die Akkorderkennung schließt.
 - **Wunsch Manu (nächste Version):** bessere Erkennung bei echter Spielweise (Melodie auf B-/e-Saite während Achtel-Strumming); Pull-off-Ton vor dem Em fehlt oft.
 
+### Neue Ton-Erkennung (Basic Pitch, Test, seit 12.11. 19:45)
+- **Warum:** Die selbstgebaute Ton-Erkennung schafft bei Manus Spielweise etwa zwei Drittel, beim Zupfen fast nichts (Bass unter A3 fehlt, tiefe Anschläge gelten als Strum). Basic Pitch (Spotify, neuronales Netz, 0,9 MB Modell) erkennt auch mehrere Töne gleichzeitig und Bass. Vergleich mit Manus Korrekturen (ab A3): 18:14 15/19 statt 9/19, 18:51 13/19 wie bisher, 19:07 12/20 statt 9/20.
+- **Schalter:** Einstellungen → Test → „Neue Ton-Erkennung (Test)“ (Standard aus, `S.bp`).
+- **Ablauf:** Akkordnamen kommen weiter live aus der bisherigen Erkennung. Live-Töne sind aus. Die App nimmt den Rohklang auf; nach „Stopp“ rechnet Basic Pitch im Browser (tfjs, WebGL) die Töne aus, Fortschritt im Hinweisfeld, dann „N Töne eingetragen“. Rückgängig nimmt alle eingetragenen Töne auf einmal zurück.
+- **Vom Ergebnis zum Tab:** Töne mit Lautstärke > 0,25, E2–E6, ab Aufnahmebeginn (nach dem Einzählen). 3 und mehr Töne fast gleichzeitig (Abstand ≤ 40 ms, gesamt ≤ 90 ms) = Anschlag: davon bleiben nur akkordfremde Töne ab G3 (Melodieton im Anschlag). Akkordtöne bis 0,25 s nach einem Anschlag = Nachklang, fallen weg. Einzelne und Zweiergruppen (Zupfen, Bass + Melodie) bleiben, gleichzeitige Töne auf verschiedenen Saiten. Saite/Bund wie bisher nach Spielbarkeit. Ton-Lernen gilt auch hier (Klangprofil alle 0,1 s gemerkt). Spieltechnik vorerst immer Anschlag.
+- **Dateien:** `bp/bp.js` (Basic Pitch + tfjs, 0,9 MB, lädt erst bei eingeschaltetem Schalter), `bp/model/`. Mitschnitt: Töne tragen `bp:true`.
+- **Tests:** Ergebnis im Browser identisch mit der Python-Version (319 von 323 Tönen gleich). Zupf-Aufnahme 19:11: Bass und Melodie stehen im Tab. Rechenzeit im Test-Browser ohne Grafikkarte etwa 2,5 s je Sekunde Audio, auf dem S24 mit WebGL deutlich schneller (noch zu messen).
+- **Nächste Schritte nach Manus Test-Aufnahmen:** Feinabstimmung, Slide/Hammer-on/Pull-off aus den Tonhöhen-Kurven, prüfen ob fast live möglich ist.
+
 ### Metronom (in der Akkorderkennung)
 - **Knopf oben rechts** (zwischen Reset und Mikro): öffnet das Bedienfeld. Leuchtet in der Akzentfarbe, wenn das Metronom bei der Aufnahme mitläuft, und blinkt im Takt (Eins stärker).
 - **Bedienfeld:** „Bei Aufnahme mitlaufen“ an/aus · Tempo 30–240 BPM mit −/+ (Gedrückthalten wiederholt), Regler und Tap-Tempo (Mittel der letzten bis zu 5 Taps, Pause > 2 s beginnt neu) · Probehören · Taktart 2/4, 3/4, 4/4, 6/8 (bei 6/8 ist jedes Achtel ein Klick, Betonung auf 1 und 4) · „Und“ leise (nicht bei 6/8) · Einzähler 1 Takt (Standard an) · Lautstärke. Gespeichert in den Einstellungen (`met`).
@@ -162,6 +171,7 @@ Oben 15 breite Balken (große Fläche), darunter groß der Ton, darunter Saite u
 
 ## 8. Roadmap
 
+0. **Jetzt:** Ton-Erkennung mit Basic Pitch testen (Schalter, siehe 7.) und abstimmen.
 1. **Als Nächstes:** **Aufnahmen-Bereich** auf dem Startbildschirm (Sessions mit Name, Datum, Tempo, Taktart speichern, wieder öffnen, weiter aufnehmen oder neu starten) – vorher besprechen. Dann Läufe als Bundzahlen im Tab (Testgrundlage: Manus Strophen-Aufnahme). Dann **mitlaufendes Metronom** (setzt die Taktstriche selbst an Manus Anschläge; Ziehen bleibt zum Nachkorrigieren): Manu gibt ein ungefähres Tempo vor, das Metronom passt sich seinem Spiel an (sein Tempo im Song schwankt). Vorher gemeinsam besprechen.
 2. **Timeline-Bearbeitung (Manus Liste, 12.11.):** **Akkorde hinzufügen** (an einer Stelle im Tab einen Akkord eintragen, wie bei Tönen). Akkorde sind feste Anker; Einzeltöne zwischen zwei Akkorden werden beim Verschieben proportional gestaucht/gedehnt und rasten ein. Absicherungen: Originalpositionen merken (keine Rundungsfehler), Akkord stoppt am Nachbarakkord, Notenlängen mitskalieren, von Hand korrigierte Töne bleiben fix, Vorschau beim Ziehen. Mehrfachauswahl (z. B. zum Löschen; Bedienung offen, Vorschlag: lange drücken + Rahmen aufziehen), kein Copy-Paste. Grundsatz: Bearbeitung schlank halten, die Erkennung hat Vorrang.
 3. **Idee: Kamera** zur Unterstützung (Saite/Bund, Slide/Hammer/Pull, Griff) per Hand-Erkennung im Browser; großes eigenes Projekt, erst wenn das Hören ausgereizt ist.

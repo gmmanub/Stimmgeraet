@@ -326,6 +326,8 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
     <div class="group">
       <h3>Test</h3>
       <button class="row" id="capT"><span>Test-Mitschnitt: Akkorderkennung nimmt den Klang mit auf (zum Verbessern der Erkennung)</span><span class="toggle" aria-hidden="true"></span></button>
+      <button class="row" id="bpT"><span>Neue Ton-Erkennung (Test): Einzeltöne erscheinen erst nach „Stopp“, dafür auch Bass und Gezupftes</span><span class="toggle" aria-hidden="true"></span></button>
+      <p>Neue Ton-Erkennung: Akkordnamen kommen weiter live. Die Töne rechnet nach dem Stoppen ein neuronales Netz (Basic Pitch) aus, das dauert ein paar Sekunden.</p>
       <p>Im Akkord-Bildschirm erscheint dann unter dem Tab „Mitschnitt + Tab speichern“. Die WAV-Datei enthält Klang und erkannten Tab, bis 10 Minuten. Reset leert den Mitschnitt.</p>
     </div>
     <div class="group">
@@ -810,6 +812,7 @@ document.querySelectorAll('#aPre button').forEach(b=>b.addEventListener('click',
 $('#hap').addEventListener('click',()=>{S.haptic=!S.haptic;save();refresh();});
 $('#cfT').addEventListener('click',()=>{S.chordFrets=S.chordFrets===false;save();refresh();CH.stripKey='';});
 $('#capT').addEventListener('click',()=>{S.capture=!S.capture;save();refresh();});
+$('#bpT').addEventListener('click',()=>{S.bp=!S.bp;save();refresh(); if(S.bp) bpLoad().catch(()=>{});});
 $('#waveT').addEventListener('click',()=>{S.wave=!S.wave;save();refresh();});
 $('#sweetForce').addEventListener('click',()=>{S.sweetForce=!S.sweetForce;save();refresh();});
 
@@ -836,7 +839,7 @@ function refresh(){
   document.querySelectorAll('#aPre button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.v===S.a4));
   $('#hap').setAttribute('aria-pressed',S.haptic);
   $('#cfT').setAttribute('aria-pressed',S.chordFrets!==false);
-  $('#capT').setAttribute('aria-pressed',!!S.capture); if(typeof capUI==='function') capUI();
+  $('#capT').setAttribute('aria-pressed',!!S.capture); $('#bpT').setAttribute('aria-pressed',!!S.bp); if(typeof capUI==='function') capUI();
   $('#sweetForce').setAttribute('aria-pressed',S.sweetForce);
   $('#waveT').setAttribute('aria-pressed',S.wave);
   const T=tuning();
@@ -1296,7 +1299,7 @@ function chordFrame(now){
       if(m<0){ go=false; CH.counting=true; CH.count=clamp(Math.floor((ctx.currentTime-M.L-M.t0)/M.beat)+1,0,M.beats); }
       else { CH.counting=false; CH.tNow=CH.tBase+m; }
     } else CH.tNow=CH.tBase+(ctx.currentTime-CH.ctxT0);
-    capFrame(ctx);
+    capFrame(ctx); bpFrame(ctx);
     if(go){
       CH.an.getFloatTimeDomainData(CH.T);
       CH.eng.process(CH.T,dt,CH.tNow,S.a4);
@@ -1345,6 +1348,8 @@ function placeNote(m){
 }
 function onNoteDetected(n){
   if(!CH.mic||CH.counting) return;
+  if(BPB.on) return; // neue Ton-Erkennung: Töne kommen nach dem Stoppen
+
   let p=placeNote(n.m); if(!p) return;
   // Slide, Hammer-on und Pull-off gehen nur auf derselben Saite: dort platzieren oder als Anschlag werten
   if(n.art&&n.art!=='pick'){
@@ -1385,7 +1390,7 @@ function demoStrum(ctx,dest,r,qi,t0){
 // Bildschirm öffnen: Mikro bleibt aus, bis „Start“ gedrückt wird
 function startChords(){
   $('#chords').classList.add('on');
-  capClear(); UNDO.length=0; CH.ev=[]; CH.tNow=0; CH.tBase=0; CH.grids=[]; CH.stripKey=''; CH.follow=true; CH.key=''; CH.eng=null; CH.micMsg=''; metUI();
+  capClear(); BPB.gen++; UNDO.length=0; CH.ev=[]; CH.tNow=0; CH.tBase=0; CH.grids=[]; CH.stripKey=''; CH.follow=true; CH.key=''; CH.eng=null; CH.micMsg=''; metUI();
   $('#cbanner').classList.remove('on');
   setMicUI();
   CH.running=true; cancelAnimationFrame(CH.raf); CH.raf=requestAnimationFrame(chordFrame);
@@ -1474,7 +1479,7 @@ function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) me
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
 // =================== Version ===================
-const APP_VERSION='2026-11-12.1900';
+const APP_VERSION='2026-11-12.1945';
 async function checkVersion(manual){
   const info=$('#verInfo'); if(info) info.textContent='Diese App: '+APP_VERSION;
   try{
@@ -1610,11 +1615,11 @@ function capUI(){ const b=$('#ccap'); if(!b) return; b.style.display=S.capture&&
 function tabJSON(){
   const nm=e=>{const p=labelParts(e);return p.root+p.suf;};
   return {app:'Gitarren-App',when:new Date().toISOString(),a4:S.a4,notation:S.notation,tune:CH.eng?+CH.eng.tune.toFixed(3):0,
-    met:metCfg(),segments:CAP.segs,
+    met:metCfg(),segments:CAP.segs,bp:!!S.bp,
     note:'events = Stand nach Bearbeitung durch Manu; live = alles, was die App live erkannt hat (unverändert)',
     live:LOG, noteLessons:NLEARN.length, chordLessons:LEARN.length,
     grids:CH.grids.map(g=>({lines:g.lines.map(x=>+x.toFixed(3)),bar:+g.bar.toFixed(3),beats:g.beats,end:g.end==null?null:+g.end.toFixed(3)})),
-    events:CH.ev.map(e=>e.type==='note'?{t:+e.t.toFixed(3),type:'note',m:e.m,origM:e.origM??null,s:e.s,f:e.f,art:e.art||'pick',edited:!!e.edited,added:!!e.added,learned:!!e.learned}
+    events:CH.ev.map(e=>e.type==='note'?{t:+e.t.toFixed(3),type:'note',m:e.m,origM:e.origM??null,s:e.s,f:e.f,art:e.art||'pick',edited:!!e.edited,added:!!e.added,learned:!!e.learned,bp:!!e.bp}
       :{t:+e.t.toFixed(3),type:e.type,name:nm(e),key:e.key,orig:e.orig,f:e.f,learned:!!e.learned,edited:!!e.edited})};
 }
 function capSave(){
@@ -1628,6 +1633,101 @@ function capSave(){
   const blob=new Blob([buf],{type:'audio/wav'}), a=document.createElement('a'), d=new Date();
   a.href=URL.createObjectURL(blob); a.download=`gitarre-mitschnitt-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}.wav`;
   document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},4000);
+}
+
+// =================== Neue Ton-Erkennung (Basic Pitch, Test) ===================
+// Nimmt während der Aufnahme den Rohklang auf; nach dem Stoppen rechnet Basic Pitch die Töne aus und trägt sie in den Tab ein.
+const BPB={on:false,node:null,mute:null,chunks:[],n:0,sr:48000,ctxStart:null,offset:0,tBase:0,pf:[],pfT:-1,gen:0,lib:null,q:Promise.resolve()};
+function bpLoad(){
+  if(!BPB.lib) BPB.lib=new Promise((res,rej)=>{ const sc=document.createElement('script'); sc.src='bp/bp.js?v='+APP_VERSION;
+    sc.onload=()=>{ try{ res(new BP.BasicPitch('bp/model/model.json')); }catch(e){ rej(e); } }; sc.onerror=()=>{ BPB.lib=null; rej(new Error('laden')); }; document.head.appendChild(sc); });
+  return BPB.lib;
+}
+function bpStart(ctx,src){
+  BPB.on=false; if(!S.bp||!src) return;
+  bpLoad().catch(()=>{});
+  try{
+    const node=ctx.createScriptProcessor(4096,1,1), mute=ctx.createGain(); mute.gain.value=0;
+    BPB.chunks=[]; BPB.n=0; BPB.sr=ctx.sampleRate; BPB.ctxStart=null; BPB.offset=CH.tNow-ctx.currentTime; BPB.tBase=CH.tBase; BPB.pf=[]; BPB.pfT=-1;
+    const max=ctx.sampleRate*600;
+    node.onaudioprocess=e=>{ if(BPB.n>=max) return; const d=e.inputBuffer.getChannelData(0);
+      if(BPB.ctxStart==null) BPB.ctxStart=e.playbackTime-d.length/BPB.sr;
+      BPB.chunks.push(new Float32Array(d)); BPB.n+=d.length; };
+    src.connect(node); node.connect(mute); mute.connect(ctx.destination);
+    BPB.node=node; BPB.mute=mute; BPB.on=true;
+  }catch(e){ BPB.on=false; }
+}
+function bpFrame(ctx){
+  if(!BPB.on) return;
+  if(!CH.counting) BPB.offset=CH.tNow-ctx.currentTime;
+  // Klangprofil alle 0,1 s merken – fürs Ton-Lernen
+  if(CH.eng&&!CH.counting&&CH.tNow-BPB.pfT>=0.1){ BPB.pfT=CH.tNow; BPB.pf.push({t:CH.tNow,pf:Array.from(CH.eng.pf,v=>+v.toFixed(3))}); }
+}
+function bpStop(){
+  if(!BPB.node) { BPB.on=false; return; }
+  try{ BPB.node.disconnect(); BPB.mute.disconnect(); }catch(e){}
+  BPB.node=null; BPB.mute=null; BPB.on=false;
+  if(BPB.n<BPB.sr*0.5||BPB.ctxStart==null) return;
+  const job={chunks:BPB.chunks,n:BPB.n,sr:BPB.sr,t0:BPB.ctxStart+BPB.offset,tBase:BPB.tBase,pf:BPB.pf,gen:BPB.gen};
+  BPB.chunks=[]; BPB.n=0;
+  bpBanner('Töne werden erkannt …');
+  BPB.q=BPB.q.then(()=>bpAnalyze(job)).catch(e=>{ bpBanner('Neue Ton-Erkennung fehlgeschlagen ('+(e&&e.message||e)+')',4000); });
+}
+function bpBanner(txt,hide){ const b=$('#cbanner'); b.textContent=txt; b.classList.add('on'); clearTimeout(BPB.bt); if(hide) BPB.bt=setTimeout(()=>b.classList.remove('on'),hide); }
+async function bpAnalyze(job){
+  const model=await bpLoad();
+  // auf 22 050 Hz mono umrechnen
+  const ab=new AudioBuffer({length:job.n,sampleRate:job.sr,numberOfChannels:1}), d=ab.getChannelData(0); let o=0;
+  for(const c of job.chunks){ d.set(c,o); o+=c.length; }
+  const oc=new OfflineAudioContext(1,Math.ceil(job.n*22050/job.sr),22050), sn=oc.createBufferSource(); sn.buffer=ab; sn.connect(oc.destination); sn.start();
+  const r=await oc.startRendering();
+  const F=[],O=[],C=[]; let last=0;
+  await model.evaluateModel(r.getChannelData(0),(f,on,c)=>{F.push(...f);O.push(...on);C.push(...c);},p=>{ const q=Math.round(p*100); if(q>=last+5){last=q; bpBanner('Töne werden erkannt … '+q+' %');} });
+  const raw=BP.noteFramesToTime(BP.addPitchBendsToNoteEvents(C,BP.outputToNotesPoly(F,O,0.5,0.3,7)));
+  if(job.gen!==BPB.gen){ $('#cbanner').classList.remove('on'); return; }
+  const n=bpToTab(raw,job);
+  bpBanner(n?`${n} Töne eingetragen (neue Erkennung)`:'Keine Einzeltöne gefunden (neue Erkennung)',3500);
+}
+function bpChordAt(t){ let c=null; for(const e of CH.ev){ if(e.t>t+0.1) break; if(e.type!=='note') c=e; } return c; }
+function bpToTab(raw,job){
+  let N=raw.filter(x=>x.amplitude>0.25&&x.pitchMidi>=40&&x.pitchMidi<=88).map(x=>({t:job.t0+x.startTimeSeconds,m:x.pitchMidi,d:x.durationSeconds}))
+    .filter(x=>x.t>=job.tBase-0.05).sort((a,b)=>a.t-b.t);
+  // Anschläge zusammenfassen: 3 und mehr Töne fast gleichzeitig = Akkord → nur akkordfremde Töne bleiben (Melodieton im Anschlag)
+  const keep=[]; let lastStrum=-9;
+  for(let i=0;i<N.length;){ let j=i+1; while(j<N.length&&N[j].t-N[j-1].t<=0.04&&N[j].t-N[i].t<=0.09) j++;
+    const grp=N.slice(i,j);
+    if(grp.length>=3){ const c=bpChordAt(grp[0].t+0.3), pcs=c&&c.type==='chord'?QUAL[c.qi].iv.map(k=>(c.r+k)%12):null;
+      if(pcs) grp.forEach(x=>{ if(x.m>=55&&!pcs.includes(x.m%12)) keep.push(Object.assign(x,{grp:grp})); }); lastStrum=grp[grp.length-1].t; }
+    else grp.forEach(x=>{ // Nachzügler eines Anschlags (Akkordton kurz danach) weglassen
+      if(x.t-lastStrum<0.25){ const c=bpChordAt(x.t+0.3); if(c&&c.type==='chord'&&QUAL[c.qi].iv.map(k=>(c.r+k)%12).includes(x.m%12)) return; }
+      keep.push(Object.assign(x,{grp})); });
+    i=j; }
+  if(!keep.length) return 0;
+  snap();
+  let prev=null, cnt=0;
+  for(const x of keep){
+    let m=x.m;
+    const pr=prev&&x.t-prev.t<1.5?prev:null, prevO=pr?(pr.origM??pr.m):null;
+    const c=bpChordAt(x.t), chordKey=c&&c.type!=='note'?c.key:null;
+    let pf=null,bd=1e9; for(const p of job.pf){ const dd=Math.abs(p.t-x.t); if(dd<bd){bd=dd;pf=p.pf;} if(p.t>x.t) break; }
+    const les=pf?noteLesson(m,chordKey,prevO,pf):null;
+    if(les&&les.kind==='drop'){ logEv({t:x.t,type:'note',m,s:0,f:0,art:'pick'},'ton-bp-gelernt-weggelassen'); continue; }
+    if(les&&les.kind==='map') m=les.to;
+    // Saite: spielbar, nah am vorigen Ton; gleichzeitige Töne auf verschiedenen Saiten
+    const used=x.grp.filter(y=>y.ev&&y!==x).map(y=>y.ev.s);
+    const pv=prev&&x.t-prev.t<3?prev:null;
+    let best=null,bs=1e9;
+    for(const q of fretOptions(m)){ if(used.includes(q.s)) continue; let sc=q.f+(q.f>5?(q.f-5)*1.5:0);
+      if(pv){ if(q.s===pv.s&&Math.abs(q.f-pv.f)<=5) sc-=4; sc+=Math.abs(q.f-pv.f)*0.3; if(q.f===0&&q.s!==pv.s) sc+=2; } else if(q.f===0) sc+=0.5;
+      if(sc<bs){bs=sc;best=q;} }
+    if(!best) continue;
+    const ev={t:x.t,type:'note',m,s:best.s,f:best.f,key:'note|'+m,art:'pick',origM:x.m,prevM:prevO,chordKey,pf,learned:!!les,bp:true};
+    x.ev=ev; prev=ev;
+    let k=CH.ev.length; while(k>0&&CH.ev[k-1].t>ev.t) k--; CH.ev.splice(k,0,ev);
+    logEv(ev,les?'ton-bp-gelernt':'ton-bp'); cnt++;
+  }
+  CH.stripKey=''; CH.key=''; undoUI();
+  return cnt;
 }
 
 async function chordMicOn(){
@@ -1676,7 +1776,7 @@ async function chordMicOn(){
     CH.grids.push(newGrid(CH.tBase,beat*beats,beats));
     CH.counting=true; metStart(ctx,t0);
   }
-  if(!demo) capStart(ctx,CH.src);
+  if(!demo){ capStart(ctx,CH.src); bpStart(ctx,CH.src); }
   $('#cbanner').textContent='Vorschau mit simulierter Gitarre: In dieser Ansicht ist das Mikrofon gesperrt. Die Akkorde werden aus einem künstlichen Gitarrenklang erkannt.';
   $('#cbanner').classList.toggle('on',demo);
   let w=null; try{if('wakeLock' in navigator) w=await navigator.wakeLock.request('screen');}catch(e){}
@@ -1684,7 +1784,7 @@ async function chordMicOn(){
 }
 function chordMicOff(msg){
   CH.run++; CH.mic=false; CH.micMsg=msg||''; clearInterval(CH.demoTimer);
-  metStop(); capStop(); CH.src=null; const g=CH.grids[CH.grids.length-1]; if(g&&g.end==null) g.end=CH.tNow;
+  metStop(); capStop(); bpStop(); CH.src=null; const g=CH.grids[CH.grids.length-1]; if(g&&g.end==null) g.end=CH.tNow;
   CH.met=null; CH.counting=false; CH.raw=null; CH.key='';
   try{if(CH.stream) CH.stream.getTracks().forEach(t=>t.stop());}catch(e){}
   try{if(CH.ctx) CH.ctx.close();}catch(e){}
