@@ -245,7 +245,7 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
   </div>
   <div class="cstrip" id="cstrip" aria-label="Tablatur-Verlauf"></div>
   <div class="cstripnote" id="cstripnote"></div>
-  <div class="ctools"><button class="chip" id="calign" style="display:none">An Zählzeiten ausrichten</button><span id="chelp"></span></div>
+  <div class="ctools"><button class="chip" id="calign" style="display:none">An Zählzeiten ausrichten</button><button class="chip" id="ccap" style="display:none"></button><span id="chelp"></span></div>
 </section>
 
 <section id="tuner" class="screen" aria-label="Stimmgerät">
@@ -315,6 +315,11 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
     <div class="group">
       <h3>Rückmeldung</h3>
       <button class="row" id="hap"><span>Kurz vibrieren, wenn der Ton sitzt</span><span class="toggle" aria-hidden="true"></span></button>
+    </div>
+    <div class="group">
+      <h3>Test</h3>
+      <button class="row" id="capT"><span>Test-Mitschnitt: Akkorderkennung nimmt den Klang mit auf (zum Verbessern der Erkennung)</span><span class="toggle" aria-hidden="true"></span></button>
+      <p>Im Akkord-Bildschirm erscheint dann unter dem Tab „Mitschnitt + Tab speichern“. Die WAV-Datei enthält Klang und erkannten Tab, bis 10 Minuten. Reset leert den Mitschnitt.</p>
     </div>
     <div class="group">
       <h3>Akkorde · Gelerntes</h3>
@@ -784,6 +789,7 @@ $('#aMinus').addEventListener('click',()=>setA4(S.a4-1));
 $('#aPlus').addEventListener('click',()=>setA4(S.a4+1));
 document.querySelectorAll('#aPre button').forEach(b=>b.addEventListener('click',()=>setA4(+b.dataset.v)));
 $('#hap').addEventListener('click',()=>{S.haptic=!S.haptic;save();refresh();});
+$('#capT').addEventListener('click',()=>{S.capture=!S.capture;save();refresh();});
 $('#waveT').addEventListener('click',()=>{S.wave=!S.wave;save();refresh();});
 $('#sweetForce').addEventListener('click',()=>{S.sweetForce=!S.sweetForce;save();refresh();});
 
@@ -809,6 +815,7 @@ function refresh(){
   $('#aVal').textContent=S.a4+' Hz';
   document.querySelectorAll('#aPre button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.v===S.a4));
   $('#hap').setAttribute('aria-pressed',S.haptic);
+  $('#capT').setAttribute('aria-pressed',!!S.capture); if(typeof capUI==='function') capUI();
   $('#sweetForce').setAttribute('aria-pressed',S.sweetForce);
   $('#waveT').setAttribute('aria-pressed',S.wave);
   const T=tuning();
@@ -1186,7 +1193,7 @@ function renderStrip(){
   if(CH.follow&&el.scrollLeft<el.scrollWidth-el.clientWidth-2){CH.progScroll=true; el.scrollLeft=el.scrollWidth;}
   $('#cstripnote').textContent=CH.ev.length?'':'Hier erscheint dein Verlauf als Tabelle, Akkorde oben drüber.';
   $('#chelp').textContent=CH.ev.length?(CH.grids.length?'Antippen = bearbeiten · lange drücken und ziehen = verschieben (auch die Griffe unter den Taktstrichen)':'Antippen = bearbeiten · lange drücken und ziehen = verschieben'):'';
-  alignUI();
+  alignUI(); capUI();
 }
 function renderChord(now){
   const E=CH.eng, nameEl=$('#cname'), quiet=!E||CH.tNow-E.lastSound>1.5;
@@ -1228,6 +1235,7 @@ function chordFrame(now){
       if(m<0){ go=false; CH.counting=true; CH.count=clamp(Math.floor((ctx.currentTime-M.L-M.t0)/M.beat)+1,0,M.beats); }
       else { CH.counting=false; CH.tNow=CH.tBase+m; }
     } else CH.tNow=CH.tBase+(ctx.currentTime-CH.ctxT0);
+    capFrame(ctx);
     if(go){
       CH.an.getFloatTimeDomainData(CH.T);
       CH.eng.process(CH.T,dt,CH.tNow,S.a4);
@@ -1298,7 +1306,7 @@ function demoStrum(ctx,dest,r,qi,t0){
 // Bildschirm öffnen: Mikro bleibt aus, bis „Start“ gedrückt wird
 function startChords(){
   $('#chords').classList.add('on');
-  CH.ev=[]; CH.tNow=0; CH.tBase=0; CH.grids=[]; CH.stripKey=''; CH.follow=true; CH.key=''; CH.eng=null; CH.micMsg=''; metUI();
+  capClear(); CH.ev=[]; CH.tNow=0; CH.tBase=0; CH.grids=[]; CH.stripKey=''; CH.follow=true; CH.key=''; CH.eng=null; CH.micMsg=''; metUI();
   $('#cbanner').classList.remove('on');
   setMicUI();
   CH.running=true; cancelAnimationFrame(CH.raf); CH.raf=requestAnimationFrame(chordFrame);
@@ -1456,6 +1464,48 @@ function renderEdit(){
   $('#eVoi').textContent=L.length>1?`Griff ${(L.findIndex(x=>x.f.join()===(e.f||[]).join())+1)||1} von ${L.length} · tippen zum Wechseln`:'';
 }
 
+// =================== Test-Mitschnitt ===================
+// Speichert das rohe Mikrofonsignal und den erkannten Tab in EINER WAV-Datei (Zusatzblock „tabj“ mit JSON).
+const CAP={on:false,node:null,mute:null,chunks:[],n:0,segs:[],seg:null,sr:48000,max:48000*600};
+function capStart(ctx,src){
+  if(!S.capture||!src) return;
+  CAP.sr=ctx.sampleRate; CAP.max=CAP.sr*600;
+  try{
+    const node=ctx.createScriptProcessor(4096,1,1), mute=ctx.createGain(); mute.gain.value=0;
+    CAP.seg={wavStart:CAP.n/CAP.sr,ctxStart:null,offset:null,met:!!CH.met};
+    node.onaudioprocess=e=>{ if(CAP.n>=CAP.max) return; const d=e.inputBuffer.getChannelData(0);
+      if(CAP.seg&&CAP.seg.ctxStart==null) CAP.seg.ctxStart=e.playbackTime-d.length/CAP.sr;
+      const a=new Int16Array(d.length); for(let i=0;i<d.length;i++){const v=Math.max(-1,Math.min(1,d[i])); a[i]=v<0?v*32768:v*32767;}
+      CAP.chunks.push(a); CAP.n+=a.length; };
+    src.connect(node); node.connect(mute); mute.connect(ctx.destination);
+    CAP.node=node; CAP.mute=mute; CAP.on=true; CAP.segs.push(CAP.seg);
+  }catch(e){ CAP.on=false; }
+}
+function capFrame(ctx){ if(CAP.on&&CAP.seg) CAP.seg.offset=CH.tNow-ctx.currentTime; }
+function capStop(){ try{ if(CAP.node){CAP.node.disconnect(); CAP.mute.disconnect();} }catch(e){} CAP.node=null; CAP.mute=null; CAP.on=false; CAP.seg=null; capUI(); }
+function capClear(){ CAP.chunks=[]; CAP.n=0; CAP.segs=[]; capUI(); }
+function capUI(){ const b=$('#ccap'); if(!b) return; b.style.display=S.capture&&CAP.n>0?'':'none'; b.textContent=`Mitschnitt + Tab speichern (${Math.round(CAP.n/CAP.sr)} s)`; }
+function tabJSON(){
+  const nm=e=>{const p=labelParts(e);return p.root+p.suf;};
+  return {app:'Gitarren-App',when:new Date().toISOString(),a4:S.a4,notation:S.notation,tune:CH.eng?+CH.eng.tune.toFixed(3):0,
+    met:metCfg(),segments:CAP.segs,
+    grids:CH.grids.map(g=>({lines:g.lines.map(x=>+x.toFixed(3)),bar:+g.bar.toFixed(3),beats:g.beats,end:g.end==null?null:+g.end.toFixed(3)})),
+    events:CH.ev.map(e=>e.type==='note'?{t:+e.t.toFixed(3),type:'note',m:e.m,s:e.s,f:e.f,art:e.art||'pick',edited:!!e.edited}
+      :{t:+e.t.toFixed(3),type:e.type,name:nm(e),key:e.key,orig:e.orig,f:e.f,learned:!!e.learned,edited:!!e.edited})};
+}
+function capSave(){
+  if(!CAP.n) return;
+  const json=new TextEncoder().encode(JSON.stringify(tabJSON())), jl=json.length+(json.length&1);
+  const dataLen=CAP.n*2, total=44+dataLen+8+jl, buf=new ArrayBuffer(total), v=new DataView(buf); let o=0;
+  const str=s=>{for(let i=0;i<s.length;i++) v.setUint8(o++,s.charCodeAt(i));}, u32=x=>{v.setUint32(o,x,true);o+=4;}, u16=x=>{v.setUint16(o,x,true);o+=2;};
+  str('RIFF'); u32(total-8); str('WAVE'); str('fmt '); u32(16); u16(1); u16(1); u32(CAP.sr); u32(CAP.sr*2); u16(2); u16(16);
+  str('data'); u32(dataLen); for(const c of CAP.chunks){ new Int16Array(buf,o,c.length).set(c); o+=c.length*2; }
+  str('tabj'); u32(json.length); new Uint8Array(buf,o,json.length).set(json);
+  const blob=new Blob([buf],{type:'audio/wav'}), a=document.createElement('a'), d=new Date();
+  a.href=URL.createObjectURL(blob); a.download=`gitarre-mitschnitt-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}.wav`;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},4000);
+}
+
 async function chordMicOn(){
   const run=++CH.run; CH.mic=true; CH.micMsg=''; setMicUI();
   let ctx=null, demo=true, stream=null;
@@ -1476,7 +1526,7 @@ async function chordMicOn(){
     try{if(stream) stream.getTracks().forEach(t=>t.stop());}catch(e){} try{ctx.close();}catch(e){} return;
   }
   if(!demo){
-    const src=ctx.createMediaStreamSource(stream); src.connect(lp1); CH.stream=stream;
+    const src=ctx.createMediaStreamSource(stream); src.connect(lp1); CH.stream=stream; CH.src=src;
     const raw=ctx.createAnalyser(); raw.fftSize=32768; raw.smoothingTimeConstant=0; src.connect(raw); CH.raw=raw; CH.RB=new Float32Array(raw.fftSize);
   }
   else{
@@ -1502,6 +1552,7 @@ async function chordMicOn(){
     CH.grids.push(newGrid(CH.tBase,beat*beats,beats));
     CH.counting=true; metStart(ctx,t0);
   }
+  if(!demo) capStart(ctx,CH.src);
   $('#cbanner').textContent='Vorschau mit simulierter Gitarre: In dieser Ansicht ist das Mikrofon gesperrt. Die Akkorde werden aus einem künstlichen Gitarrenklang erkannt.';
   $('#cbanner').classList.toggle('on',demo);
   let w=null; try{if('wakeLock' in navigator) w=await navigator.wakeLock.request('screen');}catch(e){}
@@ -1509,7 +1560,7 @@ async function chordMicOn(){
 }
 function chordMicOff(msg){
   CH.run++; CH.mic=false; CH.micMsg=msg||''; clearInterval(CH.demoTimer);
-  metStop(); const g=CH.grids[CH.grids.length-1]; if(g&&g.end==null) g.end=CH.tNow;
+  metStop(); capStop(); CH.src=null; const g=CH.grids[CH.grids.length-1]; if(g&&g.end==null) g.end=CH.tNow;
   CH.met=null; CH.counting=false; CH.raw=null; CH.key='';
   try{if(CH.stream) CH.stream.getTracks().forEach(t=>t.stop());}catch(e){}
   try{if(CH.ctx) CH.ctx.close();}catch(e){}
@@ -1574,6 +1625,7 @@ function pressEnd(){
 let ALIGN_UNDO=null, alignT=0;
 function alignUI(){ const b=$('#calign'); if(!b) return; const can=CH.grids.length>0&&CH.ev.length>0;
   b.style.display=can||ALIGN_UNDO?'':'none'; b.textContent=ALIGN_UNDO?'Rückgängig':'An Zählzeiten ausrichten'; }
+$('#ccap').addEventListener('click',capSave);
 $('#calign').addEventListener('click',()=>{
   if(ALIGN_UNDO){ ALIGN_UNDO.forEach(([e,t])=>e.t=t); ALIGN_UNDO=null; CH.ev.sort((a,b)=>a.t-b.t); }
   else { ALIGN_UNDO=CH.ev.map(e=>[e,e.t]); CH.ev.forEach(e=>e.t=snapT(e.t,e.type==='note'?2:1));
@@ -1629,7 +1681,7 @@ $('#launchChords').addEventListener('click',startChords);
 $('#cclose').addEventListener('click',stopChords);
 $('#cchip').addEventListener('click',()=>openSheet());
 // Reset: Verlauf und angezeigten Akkord leeren (gemerkte Griffe bleiben)
-$('#creset').addEventListener('click',()=>{closeEdit(); ALIGN_UNDO=null;const d=CH.tNow; CH.tBase-=d; CH.tNow=0; CH.ev=[]; CH.grids=CH.met?[newGrid(CH.tBase,CH.met.beat*CH.met.beats,CH.met.beats)]:[]; CH.stripKey=''; CH.follow=true; CH.key=''; if(CH.eng){const sr=CH.eng.sr,pref=CH.eng.pref; CH.eng=makeChordEngine(sr); CH.eng.pref=pref; CH.eng.onCommit=onChordCommit; CH.eng.NT.onNote=onNoteDetected; CH.eng.NT.onReplace=onNoteReplaced; CH.eng.learn=LEARN;}});
+$('#creset').addEventListener('click',()=>{closeEdit(); ALIGN_UNDO=null; if(!CAP.on) capClear(); else {CAP.chunks=[];CAP.n=0;CAP.segs=[CAP.seg];CAP.seg.wavStart=0;CAP.seg.ctxStart=null;}const d=CH.tNow; CH.tBase-=d; CH.tNow=0; CH.ev=[]; CH.grids=CH.met?[newGrid(CH.tBase,CH.met.beat*CH.met.beats,CH.met.beats)]:[]; CH.stripKey=''; CH.follow=true; CH.key=''; if(CH.eng){const sr=CH.eng.sr,pref=CH.eng.pref; CH.eng=makeChordEngine(sr); CH.eng.pref=pref; CH.eng.onCommit=onChordCommit; CH.eng.NT.onNote=onNoteDetected; CH.eng.NT.onReplace=onNoteReplaced; CH.eng.learn=LEARN;}});
 // Griffbild antippen: nächster Griff, wird für diesen Akkord gemerkt
 $('#cdiag').addEventListener('click',()=>{
   if(!CH.eng) return; const r=CH.eng.nextVoicing(); if(!r) return;
