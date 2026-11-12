@@ -894,7 +894,7 @@ function makeNoteTracker(sr){
   const T={cand:null,lastNote:-1e9,lastStrum:-1e9,prevNote:null,onNote:null,dbg:null};
   function fft(){ for(let s=1;s<=LOG;s++){const m=1<<s,h=m>>1,st=N/m; for(let k=0;k<N;k+=m) for(let j=0;j<h;j++){
       const wr=cs[j*st],wi=sn[j*st],a=k+j,b=a+h,tr=wr*re[b]-wi*im[b],ti=wr*im[b]+wi*re[b]; re[b]=re[a]-tr;im[b]=im[a]-ti;re[a]+=tr;im[a]+=ti;}} }
-  T.process=function(buf,t,a4,tune){
+  T.process=function(buf,t,a4,tune,onset){
     const L=buf.length, off=L-N;
     for(let i=0;i<N;i++){const j=rev[i]; re[j]=(off+i>=0?buf[off+i]:0)*win[i]; im[j]=0;}
     fft();
@@ -919,17 +919,26 @@ function makeNoteTracker(sr){
     if(loCount>=2&&lo>1.0&&lo>=0.8*hi){ T.lastStrum=t; T.cand=null; res.strum=true; return res; }
     // Lauf-Ton: ein klarer neuer Ton oben
     if(t-T.lastStrum>0.15&&hi>0.5&&loCount<=1&&best>=0&&bs>0.08&&P[best]>=0.35*pm){
-      if(!T.cand||(T.cand.j!==best&&bs>T.cand.s*1.2)) T.cand={j:best,t0:t,n:0,s:bs};
+      if(!T.cand||(T.cand.j!==best&&(bs>T.cand.s*1.2||P[T.cand.j]<0.35*pm))) T.cand={j:best,t0:t,n:0,s:bs,on:!!onset};
     }
+    const emit=(j,t0)=>{ const pv=T.prevNote, m=M0+j; if(pv&&pv.m===m&&t0-pv.t<0.35) return;
+      const note={t:t0,m}; T.prevNote=note; T.lastNote=t; if(T.onNote) T.onNote(note); res.note=note; };
     // Bestätigen: Ton bleibt ~100 ms deutlich hörbar (Durchgangstöne beim Slide fallen heraus)
     if(T.cand){
       const c=T.cand;
+      // Slide/Bindung: dem stärksten Nachbarton (±2 Halbtöne) folgen, Durchgangstöne werden nicht bestätigt
+      let g=c.j; for(let j=Math.max(0,c.j-2);j<=Math.min(NP-1,c.j+2);j++) if(M0+j>=57&&P[j]>P[g]*1.15) g=j;
+      if(g!==c.j){
+        // angeschlagener Ton, der danach gleitet (3/5): erst den Startton notieren
+        if(c.on&&c.n>=1&&!c.slid) emit(c.j,c.t0);
+        c.j=g; c.n=0; c.t0=t; c.slid=true; c.on=false; }
       if(P[c.j]>=0.35*pm){ c.n++; if(c.n>=2){ T.cand=null;
         const pv=T.prevNote, m=M0+c.j;
-        if(pv&&pv.m===m&&c.t0-pv.t<0.35){}
+        // gleicher Ton noch einmal: nur bei echtem neuen Anschlag
+        if(pv&&pv.m===m&&(c.t0-pv.t<0.35||!(onset||c.on))){}
         // Slide: ein Halbton-Durchgang direkt davor wird durch den Zielton ersetzt
         else if(pv&&Math.abs(m-pv.m)===1&&c.t0-pv.t<0.15&&T.onReplace){ pv.m=m; T.lastNote=t; T.onReplace(pv); }
-        else { const note={t:c.t0,m}; T.prevNote=note; T.lastNote=t; if(T.onNote) T.onNote(note); res.note=note; } } }
+        else emit(c.j,c.t0); } }
       else if(t-c.t0>0.25) T.cand=null;
     }
     return res;
@@ -1017,7 +1026,7 @@ function makeChordEngine(sr){
         const la=Math.log(M[k-1]+1e-12),lv=Math.log(v),lb=Math.log(M[k+1]+1e-12),den=la-2*lv+lb,d=den?0.5*(la-lb)/den:0;
         const m=69+12*Math.log2((k+d)*binHz/a4); const dv=m-Math.round(m)-E.tune; const dd=dv-Math.round(dv); sw+=v; sd+=v*dd; }
       if(sw) E.tune=Math.max(-0.45,Math.min(0.45,E.tune+(sd/sw)*0.03)); }
-    const NR=E.NT.process(buf,t,a4,E.tune);
+    const NR=E.NT.process(buf,t,a4,E.tune,t-E.lastOn<0.12);
     // Akkordwechsel nur nach Strumming; nach Lauf-Tönen hält der Akkord
     const noteRecent=t-E.NT.lastNote<1.5;
     const fresh=(t-E.NT.lastStrum<0.8)||(t-E.lastOn<0.8&&!noteRecent);
