@@ -252,7 +252,7 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
   </div>
   <div class="cstrip" id="cstrip" aria-label="Tablatur-Verlauf"></div>
   <div class="cstripnote" id="cstripnote"></div>
-  <div class="ctools"><button class="chip" id="czoom" style="display:none"></button><button class="chip" id="calign" style="display:none">An Zählzeiten ausrichten</button><button class="chip" id="cundo" style="display:none">↶ Rückgängig</button><button class="chip" id="credo" style="display:none">↷ Wiederholen</button><button class="chip" id="ccap" style="display:none"></button><span id="chelp"></span></div>
+  <div class="ctools"><button class="chip" id="cplay" style="display:none"></button><button class="chip" id="czoom" style="display:none"></button><button class="chip" id="calign" style="display:none">An Zählzeiten ausrichten</button><button class="chip" id="cundo" style="display:none">↶ Rückgängig</button><button class="chip" id="credo" style="display:none">↷ Wiederholen</button><button class="chip" id="ccap" style="display:none"></button><span id="chelp"></span></div>
 </section>
 
 <section id="tuner" class="screen" aria-label="Stimmgerät">
@@ -839,7 +839,7 @@ function refresh(){
   document.querySelectorAll('#aPre button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.v===S.a4));
   $('#hap').setAttribute('aria-pressed',S.haptic);
   $('#cfT').setAttribute('aria-pressed',S.chordFrets!==false);
-  $('#capT').setAttribute('aria-pressed',!!S.capture); $('#bpT').setAttribute('aria-pressed',!!S.bp); if(typeof capUI==='function') capUI();
+  $('#capT').setAttribute('aria-pressed',!!S.capture); $('#bpT').setAttribute('aria-pressed',!!S.bp); if(typeof playUI==='function') playUI(); if(typeof capUI==='function') capUI();
   $('#sweetForce').setAttribute('aria-pressed',S.sweetForce);
   $('#waveT').setAttribute('aria-pressed',S.wave);
   const T=tuning();
@@ -1479,7 +1479,7 @@ function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) me
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
 // =================== Version ===================
-const APP_VERSION='2026-11-12.2015';
+const APP_VERSION='2026-11-12.2055';
 async function checkVersion(manual){
   const info=$('#verInfo'); if(info) info.textContent='Diese App: '+APP_VERSION;
   try{
@@ -1620,7 +1620,7 @@ function capUI(){ const b=$('#ccap'); if(!b) return; b.style.display=S.capture&&
 function tabJSON(){
   const nm=e=>{const p=labelParts(e);return p.root+p.suf;};
   return {app:'Gitarren-App',when:new Date().toISOString(),a4:S.a4,notation:S.notation,tune:CH.eng?+CH.eng.tune.toFixed(3):0,
-    met:metCfg(),segments:CAP.segs,bp:!!S.bp,
+    met:metCfg(),segments:CAP.segs,bp:!!S.bp,play:S.play||'strum',
     note:'events = Stand nach Bearbeitung durch Manu; live = alles, was die App live erkannt hat (unverändert)',
     live:LOG, noteLessons:NLEARN.length, chordLessons:LEARN.length,
     grids:CH.grids.map(g=>({lines:g.lines.map(x=>+x.toFixed(3)),bar:+g.bar.toFixed(3),beats:g.beats,end:g.end==null?null:+g.end.toFixed(3)})),
@@ -1673,7 +1673,7 @@ function bpStop(){
   try{ BPB.node.disconnect(); BPB.mute.disconnect(); }catch(e){}
   BPB.node=null; BPB.mute=null; BPB.on=false;
   if(BPB.n<BPB.sr*0.5||BPB.ctxStart==null) return;
-  const job={chunks:BPB.chunks,n:BPB.n,sr:BPB.sr,t0:BPB.ctxStart+BPB.offset,tBase:BPB.tBase,pf:BPB.pf,gen:BPB.gen};
+  const job={chunks:BPB.chunks,n:BPB.n,sr:BPB.sr,t0:BPB.ctxStart+BPB.offset,tBase:BPB.tBase,pf:BPB.pf,gen:BPB.gen,pick:S.play==='pick'};
   BPB.chunks=[]; BPB.n=0;
   bpBanner('Töne werden erkannt …');
   BPB.q=BPB.q.then(()=>bpAnalyze(job)).catch(e=>{ bpBanner('Neue Ton-Erkennung fehlgeschlagen ('+(e&&e.message||e)+')',4000); });
@@ -1701,7 +1701,8 @@ function bpToTab(raw,job){
   const keep=[]; let lastStrum=-9;
   for(let i=0;i<N.length;){ let j=i+1; while(j<N.length&&N[j].t-N[j-1].t<=0.04&&N[j].t-N[i].t<=0.09) j++;
     const grp=N.slice(i,j);
-    if(grp.length>=3){ const c=bpChordAt(grp[0].t+0.3), pcs=c&&c.type==='chord'?QUAL[c.qi].iv.map(k=>(c.r+k)%12):null;
+    if(job.pick) grp.forEach(x=>keep.push(Object.assign(x,{grp}))); // Zupfen: alles behalten
+    else if(grp.length>=3){ const c=bpChordAt(grp[0].t+0.3), pcs=c&&c.type==='chord'?QUAL[c.qi].iv.map(k=>(c.r+k)%12):null;
       if(pcs) grp.forEach(x=>{ if(x.m>=55&&!pcs.includes(x.m%12)) keep.push(Object.assign(x,{grp:grp})); }); lastStrum=grp[grp.length-1].t; }
     else grp.forEach(x=>{ // Nachzügler eines Anschlags (Akkordton kurz danach) weglassen
       if(x.t-lastStrum<0.25){ const c=bpChordAt(x.t+0.3); if(c&&c.type==='chord'&&QUAL[c.qi].iv.map(k=>(c.r+k)%12).includes(x.m%12)) return; }
@@ -1710,7 +1711,7 @@ function bpToTab(raw,job){
   // Doppelt erkannte Töne (gleiche Tonhöhe innerhalb 0,12 s) zusammenfassen
   for(let i=keep.length-1;i>0;i--){ for(let k=i-1;k>=0&&keep[i].t-keep[k].t<0.12;k--) if(keep[k].m===keep[i].m){ keep.splice(i,1); break; } }
   // Slide: kurzer Ton, direkt danach (ohne Lücke) 1–2 Halbtöne daneben = ein gerutschter Ton
-  for(let i=0;i<keep.length;i++){ const A=keep[i]; if(A.used||A.d>0.3) continue;
+  if(!job.pick) for(let i=0;i<keep.length;i++){ const A=keep[i]; if(A.used||A.d>0.3) continue;
     for(let k=i+1;k<keep.length&&keep[k].t-A.t<=0.32;k++){ const B=keep[k], dm=Math.abs(B.m-A.m);
       if(B.used||B.t-A.t<0.08||dm<1||dm>2||A.t+A.d<B.t-0.06||B.grp.length>2) continue;
       A.slideTo=B.m; A.slideT=B.t; B.used=true; break; } }
@@ -1722,8 +1723,11 @@ function bpToTab(raw,job){
     const used=x.grp.filter(y=>y.ev&&y!==x).map(y=>y.ev.s), pv=prev&&x.t-prev.t<3?prev:null, opts=fretOptions(m).filter(q=>!used.includes(q.s));
     if(!skipPref){ const sp=S.strPref||{}, ps=sp[m+'|'+(chordKey||'')]??sp[m+'|*']; const q=opts.find(o=>o.s===ps); if(q) return q; }
     let best=null,bs=1e9;
+    const c=bpChordAt(x.t), cf=c&&c.type==='chord'?(c.f||(voicings(c.r,c.qi)[0]||{}).f):null;
     for(const q of opts){ let sc=q.f+(q.f>5?(q.f-5)*1.5:0);
-      if(pv){ if(q.s===pv.s&&Math.abs(q.f-pv.f)<=5) sc-=4; sc+=Math.abs(q.f-pv.f)*0.3; if(q.f===0&&q.s!==pv.s) sc+=2; } else if(q.f===0) sc+=0.5;
+      if(cf&&cf[q.s]===q.f) sc-=job.pick?6:3; // Ton liegt im aktuellen Griff → diese Saite
+      if(job.pick){ if(q.f===0) sc-=0.5; }
+      else if(pv){ if(q.s===pv.s&&Math.abs(q.f-pv.f)<=5) sc-=4; sc+=Math.abs(q.f-pv.f)*0.3; if(q.f===0&&q.s!==pv.s) sc+=2; } else if(q.f===0) sc+=0.5;
       if(sc<bs){bs=sc;best=q;} }
     return best; };
   for(const x of keep){ if(x.used) continue;
@@ -1889,6 +1893,10 @@ let ALIGN_UNDO=null, alignT=0;
 function alignUI(){ const b=$('#calign'); if(!b) return; const can=CH.grids.length>0&&CH.ev.length>0;
   b.style.display=can?'':'none'; b.textContent='An Zählzeiten ausrichten'; }
 $('#ccap').addEventListener('click',capSave);
+// Spielweise für die neue Ton-Erkennung: Strummen (Anschläge zusammenfassen) oder Zupfen (alle Töne behalten)
+function playUI(){ const b=$('#cplay'); if(!b) return; b.style.display=S.bp?'':'none'; b.textContent='Spielweise: '+(S.play==='pick'?'Zupfen':'Strummen'); b.setAttribute('aria-label','Spielweise wechseln, jetzt '+(S.play==='pick'?'Zupfen':'Strummen')); }
+$('#cplay').addEventListener('click',()=>{ S.play=S.play==='pick'?'strum':'pick'; save(); playUI(); });
+playUI();
 $('#calign').addEventListener('click',()=>{
   { snap(); CH.ev.forEach(e=>e.t=snapT(e.t,e.type==='note'?gridDiv():1));
     // gleiche Stelle: Reihenfolge erhalten, Töne nicht übereinanderlegen
