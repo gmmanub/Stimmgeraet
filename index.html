@@ -88,19 +88,19 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 /* Akkorde */
 #chords{display:none;z-index:5}
 #chords.on{display:flex}
-.cdisplay{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 16px 24px;min-height:0}
-.cname{font-weight:500;font-size:min(30vw,150px);line-height:1;display:flex;align-items:flex-start;transition:opacity .3s}
+.cdisplay{display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 12px 0;min-height:0}
+.chead{display:flex;align-items:center;justify-content:center;gap:18px;min-height:96px}
+.cname{font-weight:500;font-size:47px;line-height:1;display:flex;align-items:flex-start;transition:opacity .3s}
 .cname .acc{font-size:.4em;margin-top:.08em}
 .cname .suf{font-size:.4em;margin-top:.08em;margin-left:.04em;color:var(--acc)}
 .cname.idle,.cdiag.idle,.cvoi.idle{opacity:.3}
-.chint{font-size:13px;color:var(--muted);min-height:18px}
-.cdiag{width:min(52vw,210px);aspect-ratio:180/210;transition:opacity .3s;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.cvoi{font-size:12px;color:var(--muted);min-height:16px;margin-top:-6px;transition:opacity .3s}
+.chint{font-size:13px;color:var(--muted);min-height:18px;text-align:center}
+.cdiag{width:78px;aspect-ratio:180/210;flex:none;transition:opacity .3s;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.cvoi{font-size:12px;color:var(--muted);min-height:16px;transition:opacity .3s;text-align:center}
+.cstrip{overflow-x:auto;overflow-y:hidden;border-top:1px solid var(--line);margin:10px 0 0;padding-top:4px;flex:none;width:100%;user-select:none;scrollbar-width:thin}
+.cstrip svg{display:block}
+.cstripnote{font-size:11px;color:var(--muted);text-align:center;padding:6px 16px}
 .cdiag svg{width:100%;height:100%;display:block;font-family:var(--f-display)}
-.chistwrap{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:6px}
-.chist{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;min-height:32px;max-width:440px}
-.chist span{font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);opacity:.6}
-.chist span:last-child{border-color:var(--acc);opacity:1}
 .tspace{flex:1}
 #cmic{transition:border-color .3s,background .3s,box-shadow .3s}
 #cmic svg{transition:stroke .3s}
@@ -187,14 +187,15 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
   </div>
   <div class="banner" id="cbanner"></div>
   <div class="cdisplay">
-    <div class="cname idle" id="cname" aria-live="polite"><span>–</span></div>
-    <div class="chint" id="chint">Spiel einen Akkord</div>
-    <div class="cdiag idle" id="cdiag" role="button" aria-label="Griffbild – antippen für anderen Griff"></div>
-    <div class="cvoi idle" id="cvoi"></div>
-    <div class="chistwrap">
-      <div class="chist" id="chist"></div>
+    <div class="chead">
+      <div class="cname idle" id="cname" aria-live="polite"><span>–</span></div>
+      <div class="cdiag idle" id="cdiag" role="button" aria-label="Griffbild – antippen für anderen Griff"></div>
     </div>
+    <div class="chint" id="chint">Spiel einen Akkord</div>
+    <div class="cvoi idle" id="cvoi"></div>
   </div>
+  <div class="cstrip" id="cstrip" aria-label="Tablatur-Verlauf"></div>
+  <div class="cstripnote" id="cstripnote"></div>
 </section>
 
 <section id="tuner" class="screen" aria-label="Stimmgerät">
@@ -923,24 +924,52 @@ function diagramSVG(v){
   }
   frets.forEach((f,i)=>{
     const x=x0+i*sx;
-    if(f<0) s+=`<text x="${x}" y="${y0-12}" text-anchor="middle" font-size="14" fill="var(--muted)">×</text>`;
-    else if(f===0) s+=`<circle cx="${x}" cy="${y0-17}" r="5" fill="none" stroke="var(--muted)" stroke-width="1.6"/>`;
-    else s+=`<circle cx="${x}" cy="${y0+(f-base+0.5)*sy}" r="9" fill="var(--acc)"/>`;
+    if(f<0) s+=`<text x="${x}" y="${y0-12}" text-anchor="middle" font-size="26" font-weight="500" fill="var(--muted)">×</text>`;
+    else if(f===0) s+=`<circle cx="${x}" cy="${y0-17}" r="7.5" fill="none" stroke="var(--muted)" stroke-width="3"/>`;
+    else s+=`<circle cx="${x}" cy="${y0+(f-base+0.5)*sy}" r="11" fill="var(--acc)"/>`;
   });
   return s+'</svg>';
 }
 
-const CH={running:false,raf:0,ctx:null,an:null,stream:null,T:null,eng:null,demoTimer:0,wake:null,hist:[],key:'',last:0,lastProc:0,micStart:0,run:0,mic:false,micMsg:''};
+const CH={running:false,raf:0,ctx:null,an:null,stream:null,T:null,eng:null,demoTimer:0,wake:null,hist:[],key:'',last:0,lastProc:0,micStart:0,run:0,mic:false,micMsg:'',ev:[],tNow:0,follow:true,stripKey:''};
+// Layout-Werte (in der Vorschau abgestimmt)
+const LAY={dig:20,lab:19,gap:12,str:22,px:88};
 
 function labelParts(l){
   if(l.type==='chord') return {root:rootName(l.r),suf:QUAL[l.qi].id};
   if(l.type==='power') return {root:rootName(l.r),suf:'5'};
   return {root:rootName(l.r),suf:''};
 }
+function stripSVG(){
+  const {dig:D,lab:Lb,gap:G,str:C,px:F}=LAY, top=Math.round(Lb+G+D*.62+6), left=30;
+  const vw=($('#cstrip').clientWidth||360), W=Math.max(vw,left+CH.tNow*F+70), H=Math.round(top+5*C+D*.7+10);
+  let o=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Tablatur">`;
+  for(let i=0;i<6;i++) o+=`<line x1="${left-8}" y1="${top+i*C}" x2="${W-4}" y2="${top+i*C}" stroke="var(--line)" stroke-width="1.2"/>`;
+  'TAB'.split('').forEach((ch,i)=>o+=`<text x="9" y="${top+(1+i*1.5)*C*0.95}" font-size="${Math.min(13,C*.7)}" fill="var(--muted)" text-anchor="middle">${ch}</text>`);
+  const cy=top-D*.62-G;
+  CH.ev.forEach(e=>{
+    const x=left+e.t*F+10, p=labelParts(e);
+    o+=`<text x="${x}" y="${cy}" text-anchor="middle" font-size="${Lb}" font-weight="500" fill="var(--text)">${p.root}<tspan fill="var(--acc)" font-size="${Lb*.75}" dy="-${Lb*.18}">${p.suf}</tspan></text>`;
+    if(e.f) e.f.forEach((f,i)=>{ if(f<0) return; const y=top+(5-i)*C, n=String(f).length;
+      o+=`<rect x="${x-D*.42*n-1}" y="${y-D*.62}" width="${D*.84*n+2}" height="${D*1.15}" fill="var(--bg)"/><text x="${x}" y="${y+D*.36}" text-anchor="middle" font-size="${D}" fill="var(--text)">${f}</text>`; });
+  });
+  if(CH.mic){const nx=left+CH.tNow*F+10+F*.5; o+=`<line x1="${nx}" y1="${cy-Lb}" x2="${nx}" y2="${top+5*C+D*.7}" stroke="var(--acc)" stroke-width="1.5" stroke-dasharray="3 3" opacity=".7"/>`;}
+  return o+'</svg>';
+}
+function renderStrip(){
+  const key=CH.ev.map(e=>e.key+'@'+e.t.toFixed(2)+(e.f?e.f.join(','):'')).join(';')+'|'+S.notation+'|'+CH.mic+'|'+Math.floor(CH.tNow*6);
+  if(key===CH.stripKey) return; CH.stripKey=key;
+  const el=$('#cstrip'); el.innerHTML=stripSVG();
+  if(CH.follow) el.scrollLeft=el.scrollWidth;
+  $('#cstripnote').textContent=CH.ev.length?'':'Hier erscheint dein Verlauf als Tabelle, Akkorde oben drüber.';
+}
 function renderChord(now){
   const E=CH.eng, nameEl=$('#cname'), quiet=!E||now/1000-E.lastSound>1.5;
   const l=E&&E.cur, vo=E&&E.voicing();
-  const key=(l?l.key:'none')+'|'+CH.mic+'|'+(vo?vo.v.id+'/'+vo.n+(E.vLock?'L':''):'')+'|'+S.notation+'|'+CH.hist.map(h=>h.key).join(',');
+  const key=(l?l.key:'none')+'|'+CH.mic+'|'+(vo?vo.v.id+'/'+vo.n+(E.vLock?'L':''):'')+'|'+S.notation;
+  const le=CH.ev[CH.ev.length-1];
+  if(le&&l&&le.key===l.key&&vo) le.f=vo.v.f;
+  renderStrip();
   nameEl.classList.toggle('idle',!l||quiet);
   $('#cdiag').classList.toggle('idle',!l||quiet);
   $('#cvoi').classList.toggle('idle',!l||quiet);
@@ -955,7 +984,6 @@ function renderChord(now){
     $('#cvoi').textContent=vo&&vo.n>1?`Griff ${vo.i+1} von ${vo.n} · tippen zum Wechseln`:'';
     $('#chint').textContent=!CH.mic&&CH.micMsg?CH.micMsg:(l.type==='note'?'Einzelton':(l.type==='power'?'Powerchord':''));
   }
-  $('#chist').innerHTML=CH.hist.map(h=>{const p=labelParts(h);return `<span>${p.root}${p.suf}</span>`;}).join('');
 }
 
 function chordFrame(now){
@@ -963,6 +991,7 @@ function chordFrame(now){
   if(CH.mic&&CH.an&&now-CH.lastProc>=30){ // Analyse etwa 30-mal pro Sekunde
     const dt=Math.min(0.1,(now-CH.lastProc)/1000||0.033); CH.lastProc=now;
     CH.an.getFloatTimeDomainData(CH.T);
+    CH.tNow+=dt;
     CH.eng.process(CH.T,dt,now/1000,S.a4);
     if(now/1000-Math.max(CH.eng.lastSound,CH.micStart)>30) chordMicOff('Mikro nach 30 s Stille aus · oben rechts neu starten');
   }
@@ -971,8 +1000,12 @@ function chordFrame(now){
 }
 function onChordCommit(c){
   if(c.type!=='chord') return;
-  const last=CH.hist[CH.hist.length-1];
-  if(!last||last.key!==c.key){CH.hist.push(c); if(CH.hist.length>8) CH.hist.shift();}
+  const last=CH.ev[CH.ev.length-1];
+  if(last&&last.key===c.key) return;
+  let t=Math.max(0,CH.tNow-(CH.eng?CH.eng.candT:0));
+  if(last) t=Math.max(t,last.t+0.35);
+  CH.ev.push({t,r:c.r,qi:c.qi,type:'chord',key:c.key,f:null});
+  if(CH.ev.length>400) CH.ev.shift();
 }
 
 // Demo: synthetische Gitarrenakkorde, falls kein Mikrofon verfügbar ist
@@ -993,7 +1026,7 @@ function demoStrum(ctx,dest,r,qi,t0){
 // Bildschirm öffnen: Mikro bleibt aus, bis „Start“ gedrückt wird
 function startChords(){
   $('#chords').classList.add('on');
-  CH.hist=[]; CH.key=''; CH.eng=null; CH.micMsg='';
+  CH.ev=[]; CH.tNow=0; CH.stripKey=''; CH.follow=true; CH.key=''; CH.eng=null; CH.micMsg='';
   $('#cbanner').classList.remove('on');
   setMicUI();
   CH.running=true; cancelAnimationFrame(CH.raf); CH.raf=requestAnimationFrame(chordFrame);
@@ -1035,7 +1068,7 @@ async function chordMicOn(){
     const old=CH.eng; CH.eng=makeChordEngine(ctx.sampleRate); if(old){CH.eng.cur=old.cur; CH.eng.vIdx=old.vIdx;}
   }
   CH.eng.pref=S.voi||(S.voi={}); CH.eng.onCommit=onChordCommit;
-  CH.micStart=performance.now()/1000; CH.lastProc=0;
+  CH.micStart=performance.now()/1000; CH.lastProc=0; if(CH.ev.length) CH.tNow+=0.8;
   $('#cbanner').textContent='Vorschau mit simulierter Gitarre: In dieser Ansicht ist das Mikrofon gesperrt. Die Akkorde werden aus einem künstlichen Gitarrenklang erkannt.';
   $('#cbanner').classList.toggle('on',demo);
   let w=null; try{if('wakeLock' in navigator) w=await navigator.wakeLock.request('screen');}catch(e){}
@@ -1049,6 +1082,7 @@ function chordMicOff(msg){
   CH.stream=null; CH.ctx=null; CH.an=null; CH.wake=null;
   setMicUI();
 }
+$('#cstrip').addEventListener('scroll',e=>{const el=e.target; CH.follow=el.scrollLeft+el.clientWidth>=el.scrollWidth-40;});
 $('#cmic').addEventListener('click',()=>{CH.mic?chordMicOff():chordMicOn();});
 // App im Hintergrund: Mikro sofort freigeben (Neustart nur per Knopf)
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&CH.mic) chordMicOff();});
@@ -1056,13 +1090,14 @@ $('#launchChords').addEventListener('click',startChords);
 $('#cclose').addEventListener('click',stopChords);
 $('#cchip').addEventListener('click',()=>openSheet());
 // Reset: Verlauf und angezeigten Akkord leeren (gemerkte Griffe bleiben)
-$('#creset').addEventListener('click',()=>{CH.hist=[]; CH.key=''; if(CH.eng){const sr=CH.eng.sr,pref=CH.eng.pref; CH.eng=makeChordEngine(sr); CH.eng.pref=pref; CH.eng.onCommit=onChordCommit;}});
+$('#creset').addEventListener('click',()=>{CH.ev=[]; CH.tNow=0; CH.stripKey=''; CH.follow=true; CH.key=''; if(CH.eng){const sr=CH.eng.sr,pref=CH.eng.pref; CH.eng=makeChordEngine(sr); CH.eng.pref=pref; CH.eng.onCommit=onChordCommit;}});
 // Griffbild antippen: nächster Griff, wird für diesen Akkord gemerkt
 $('#cdiag').addEventListener('click',()=>{
   if(!CH.eng) return; const r=CH.eng.nextVoicing(); if(!r) return;
   (S.voi||(S.voi={}))[r.key]=r.id; CH.eng.pref=S.voi; save(); CH.key='';
 });
 window.__chord=()=>CH.eng&&CH.eng.cur?CH.eng.cur.key:null;
+window.__ev=()=>CH.ev;
 
 refresh();
 })();
