@@ -136,6 +136,10 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 #esheet .sheet{gap:18px}
 .ehead h2 #eName{font-size:26px;margin:0}
 .ehead h2 span{font-size:13px;font-weight:400;color:var(--muted);margin-left:8px}
+.etop{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:-6px}
+.etop>button{height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--line);font-size:15px}
+#eDel2{color:#e08a8a;border-color:color-mix(in oklab,#e08a8a 45%,var(--line))}
+#eGrid{margin-left:auto}
 .elrn{font-size:12px;color:var(--acc);margin-top:-8px;min-height:0}
 .elrn:empty{display:none}
 #esheet.note .gChord{display:none}
@@ -248,7 +252,7 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
   </div>
   <div class="cstrip" id="cstrip" aria-label="Tablatur-Verlauf"></div>
   <div class="cstripnote" id="cstripnote"></div>
-  <div class="ctools"><button class="chip" id="calign" style="display:none">An Zählzeiten ausrichten</button><button class="chip" id="cundo" style="display:none">↶ Rückgängig</button><button class="chip" id="ccap" style="display:none"></button><span id="chelp"></span></div>
+  <div class="ctools"><button class="chip" id="calign" style="display:none">An Zählzeiten ausrichten</button><button class="chip" id="cundo" style="display:none">↶ Rückgängig</button><button class="chip" id="credo" style="display:none">↷ Wiederholen</button><button class="chip" id="ccap" style="display:none"></button><span id="chelp"></span></div>
 </section>
 
 <section id="tuner" class="screen" aria-label="Stimmgerät">
@@ -373,6 +377,8 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
       <h2><span id="eName">–</span><span id="eWhen"></span></h2>
       <button class="iconbtn" id="eclose" aria-label="Bearbeiten schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
+    <div class="etop"><button id="eDel2">Entfernen</button><button id="eLeft" aria-label="Einen Rasterschritt früher">←</button><button id="eRight" aria-label="Einen Rasterschritt später">→</button>
+      <div class="seg" id="eGrid"><button data-v="8">1/8</button><button data-v="16">1/16</button><button data-v="12">Triole</button></div></div>
     <p class="elrn" id="eLrn"></p>
     <div class="group" id="gNote"><h3>Ton</h3><div class="echips" id="eNoteStep"><button data-d="-1">½ tiefer</button><button data-d="1">½ höher</button></div><h3 style="margin-top:6px">Bund</h3><div class="egrid" id="eFret"></div><h3 style="margin-top:6px">Saite · Bund</h3><div class="echips" id="eStr"></div><h3 style="margin-top:6px">Spieltechnik</h3><div class="echips" id="eArt"><button data-a="pick">Anschlag</button><button data-a="slide">Slide</button><button data-a="h">Hammer-on</button><button data-a="p">Pull-off</button></div></div>
     <div class="group gChord"><h3>Ähnlich klingend · ein Tipp genügt</h3><div class="echips" id="eSim"></div></div>
@@ -913,7 +919,7 @@ function makeNoteTracker(sr){
   const T={cand:null,lastNote:-1e9,lastStrum:-1e9,prevNote:null,onNote:null,dbg:null};
   function fft(){ for(let s=1;s<=LOG;s++){const m=1<<s,h=m>>1,st=N/m; for(let k=0;k<N;k+=m) for(let j=0;j<h;j++){
       const wr=cs[j*st],wi=sn[j*st],a=k+j,b=a+h,tr=wr*re[b]-wi*im[b],ti=wr*im[b]+wi*re[b]; re[b]=re[a]-tr;im[b]=im[a]-ti;re[a]+=tr;im[a]+=ti;}} }
-  T.process=function(buf,t,a4,tune,onset,chordPcs){
+  T.process=function(buf,t,a4,tune,onset,chordPcs,voiceM){
     const L=buf.length, off=L-N;
     for(let i=0;i<N;i++){const j=rev[i]; re[j]=(off+i>=0?buf[off+i]:0)*win[i]; im[j]=0;}
     fft();
@@ -944,8 +950,29 @@ function makeNoteTracker(sr){
     else if((t-T.lastStrum>0.15||(chordPcs&&best>=0&&!chordPcs.includes((M0+best)%12)))&&hi>0.5&&loCount<=1&&best>=0&&bs>0.08&&P[best]>=0.35*pm){
       if(!T.cand||(T.cand.j!==best&&(bs>T.cand.s*1.2||P[T.cand.j]<0.35*pm))) T.cand={j:best,t0:t,n:0,s:bs,on:!!onset,pk:P[best]};
     }
+    // Griff-Ton (gehört genau zum gegriffenen Akkord, z. B. g4 im G 320033): nur Melodie, wenn er eine Linie fortsetzt
+    // oder danach auf ihm gebunden weitergespielt wird (Slide/Hammer/Pull); sonst ist es nur ein erneuter Anschlag des Akkords.
+    if(T.pend&&t-T.pend.t>0.7) T.pend=null;
+    const out=note=>{ note.pub=true; T.lastPub=note; if(T.onNote) T.onNote(note); res.note=note; };
+    // Töne werden kurz zurückgehalten, damit ein Anschlag, der eine Spur tief beginnt und auf den Ton rutscht, korrigiert werden kann
+    if(T.hold&&t-T.hold.t>0.42){ out(T.hold); T.hold=null; }
+    const publish=note=>{
+      // Anschlag eine Spur tief, dann auf den Ton gerutscht (c# → d): kein eigener Ton, nur die Tonhöhe korrigieren
+      if(note.art==='slide'&&T.hold&&T.hold.art==='pick'&&Math.abs(note.m-T.hold.m)===1&&note.t-T.hold.t<0.4){ T.hold.m=note.m; T.prevNote=T.hold; T.lastNote=t; return; }
+      T.prevNote=note; T.lastNote=t;
+      const h=T.hold; T.hold=null;
+      if(h){ const a=T.lastPub?T.lastPub.m:null;
+        const between=false; // Durchgangston-Regel verworfen: sie löschte auch echte Lauf-Töne (e d c b)
+        if(!between) out(h); }
+      T.hold=note; };
     const emit=(j,t0,art,from)=>{ const pv=T.prevNote, m=M0+j; if(pv&&pv.m===m&&t0-pv.t<0.35) return;
-      const note={t:t0,m,art:art||'pick',from:from??null}; T.prevNote=note; T.lastNote=t; if(T.onNote) T.onNote(note); res.note=note; };
+      const note={t:t0,m,art:art||'pick',from:from??null};
+      // Griff-Ton bestätigt sich, wenn es gebunden weitergeht oder schrittweise (≤ 2 Halbtöne) als Linie weiterläuft
+      if(T.pend&&(note.art!=='pick'||(Math.abs(note.m-T.pend.m)<=2&&note.m!==T.pend.m&&t0-T.pend.t<0.7))){ publish(T.pend); T.pend=null; }
+      if(note.art!=='pick'){}
+      else if(voiceM&&voiceM.includes(m)&&!(pv&&t0-pv.t<0.7&&Math.abs(m-pv.m)<=3)){ T.pend=note; return; }
+      else T.pend=null;
+      publish(note); };
     // Bestätigen: Ton bleibt ~100 ms deutlich hörbar (Durchgangstöne beim Slide fallen heraus)
     if(T.cand){
       const c=T.cand;
@@ -956,15 +983,15 @@ function makeNoteTracker(sr){
         if(!c.slid&&t-c.t0<0.075&&Math.abs(g-c.j)===1){ c.j=g; }
         else {
           // angeschlagener Ton, der danach gleitet (3/5): erst den Startton notieren
-          if(c.on&&!c.slid&&(c.n>=1||c.pk>=0.5*pm)) emit(c.j,c.t0,'pick');
+          if(c.on&&!c.slid&&(c.n>=1||c.pk>=0.5*pm)){ emit(c.j,c.t0,'pick'); if(T.hold&&T.hold.m===M0+c.j) T.hold.keep=true; }
           c.from=c.from??c.j; c.j=g; c.n=0; c.t0=t; c.slid=true; c.on=false; } }
       if(P[c.j]>(c.pk||0)) c.pk=P[c.j];
-      if(P[c.j]>=0.35*pm){ c.n++; if(c.n>=2){ T.cand=null;
-        const pv=T.prevNote, m=M0+c.j;
+      if(P[c.j]>=0.35*pm){ c.n++; if(c.n>=3){ T.cand=null;
+        const pv=T.pend||T.prevNote, m=M0+c.j;
         // gleicher Ton noch einmal: nur bei echtem neuen Anschlag
         if(pv&&pv.m===m&&(c.t0-pv.t<0.35||!(onset||c.on))){}
         // Slide: ein Halbton-Durchgang direkt davor wird durch den Zielton ersetzt
-        else if(pv&&Math.abs(m-pv.m)===1&&c.t0-pv.t<0.15&&T.onReplace){ pv.m=m; T.lastNote=t; T.onReplace(pv); }
+        else if(pv&&Math.abs(m-pv.m)===1&&c.t0-pv.t<0.15&&T.onReplace){ pv.m=m; T.lastNote=t; if(pv.pub) T.onReplace(pv); }
         else {
           // Spieltechnik: geglitten = Slide; ohne neuen Anschlag = Hammer-on (höher) / Pull-off (tiefer)
           let art='pick';
@@ -1062,7 +1089,7 @@ function makeChordEngine(sr){
         const la=Math.log(M[k-1]+1e-12),lv=Math.log(v),lb=Math.log(M[k+1]+1e-12),den=la-2*lv+lb,d=den?0.5*(la-lb)/den:0;
         const m=69+12*Math.log2((k+d)*binHz/a4); const dv=m-Math.round(m)-E.tune; const dd=dv-Math.round(dv); sw+=v; sd+=v*dd; }
       if(sw) E.tune=Math.max(-0.45,Math.min(0.45,E.tune+(sd/sw)*0.03)); }
-    const NR=E.NT.process(buf,t,a4,E.tune,t-E.lastOn<0.12,E.cur&&E.cur.type==='chord'?QUAL[E.cur.qi].iv.map(i=>(E.cur.r+i)%12):null);
+    const NR=E.NT.process(buf,t,a4,E.tune,t-E.lastOn<0.12,E.cur&&E.cur.type==='chord'?QUAL[E.cur.qi].iv.map(i=>(E.cur.r+i)%12):null,(()=>{const v=E.voicing(); return v?v.v.f.map((b,s)=>b<0?-1:OPEN_STR[s]+b):null;})());
     // Akkordwechsel nur nach Strumming; nach Lauf-Tönen hält der Akkord
     const noteRecent=t-E.NT.lastNote<1.5;
     const fresh=(t-E.NT.lastStrum<0.8)||(t-E.lastOn<0.8&&!noteRecent);
@@ -1194,12 +1221,13 @@ function stripSVG(){
       o+=`<rect x="${x-D*.42*n-1}" y="${y-D*.62}" width="${D*.84*n+2}" height="${D*1.15}" fill="${ED.ev===e||DR.ev===e?'none':'var(--bg)'}"/><text x="${x}" y="${y+D*.36}" text-anchor="middle" font-size="${D}" fill="var(--text)">${f}</text>`; });
     o+=`<rect data-i="${i}" x="${x-Math.max(Lb,D)*1.1}" y="0" width="${Math.max(Lb,D)*2.2}" height="${H}" fill="transparent" style="cursor:pointer"/>`;
   });
+  if(DR.active&&DR.ev&&DR.snapTo!=null){ const sx=left+DR.snapTo*F+10; o+=`<line x1="${sx}" y1="${cy-Lb}" x2="${sx}" y2="${top+5*C+D*.62}" stroke="var(--acc)" stroke-width="2" stroke-dasharray="4 3"/>`; }
   o+=handles;
   if(CH.mic){const nx=left+CH.tNow*F+10+F*.5; o+=`<line x1="${nx}" y1="${cy-Lb}" x2="${nx}" y2="${top+5*C+D*.7}" stroke="var(--acc)" stroke-width="1.5" stroke-dasharray="3 3" opacity=".7"/>`;}
   return o+'</svg>';
 }
 function renderStrip(){
-  const key=(ED.ev?CH.ev.indexOf(ED.ev):-1)+'#'+CH.ev.map(e=>e.key+'@'+e.t.toFixed(2)+(e.type==='note'?e.s+'/'+e.f+(e.art||''):(e.f?e.f.join(','):''))).join(';')+'|'+S.notation+'|'+CH.mic+'|'+Math.floor(CH.tNow*6)+'|'+CH.grids.map(g=>g.lines.map(x=>x.toFixed(2)).join(':')+(g.end==null?'':'/'+g.end.toFixed(2))).join(',')+'|'+(DR.active?1:0);
+  const key=(ED.ev?CH.ev.indexOf(ED.ev):-1)+'#'+CH.ev.map(e=>e.key+'@'+e.t.toFixed(2)+(e.type==='note'?e.s+'/'+e.f+(e.art||''):(e.f?e.f.join(','):''))).join(';')+'|'+S.notation+'|'+CH.mic+'|'+Math.floor(CH.tNow*6)+'|'+CH.grids.map(g=>g.lines.map(x=>x.toFixed(2)).join(':')+(g.end==null?'':'/'+g.end.toFixed(2))).join(',')+'|'+(DR.active?1:0)+'|'+(DR.snapTo!=null?DR.snapTo.toFixed(2):'');
   if(key===CH.stripKey) return; CH.stripKey=key;
   const el=$('#cstrip'); el.innerHTML=stripSVG();
   if(!CH.follow&&CH.mic&&!ED.ev&&performance.now()-(CH.scrollT||0)>4000) CH.follow=true;
@@ -1274,7 +1302,7 @@ function onChordCommit(c){
   const fields={r:c.r,qi:c.qi,type:'chord',key:c.key,orig:c.raw||c.key,learned:!!c.learned,f:null,cn,pf:E?Array.from(E.pf):null};
   // Gleicher Anschlag: Die App hat sich nur korrigiert (z. B. erst G7, dann G) → überschreiben, Zeitpunkt bleibt
   const strumSince=E?E.NT.lastStrum:0;
-  if(last&&!last.edited&&t-last.t<0.6&&!(strumSince>last.t+0.1)&&CH.ev.indexOf(last)>=CH.ev.length-3){ Object.assign(last,fields); logEv(last,'akkord-ueberschrieben'); return; }
+  if(last&&!last.edited&&(t-last.t<0.45||(t-last.t<0.6&&!(strumSince>last.t+0.1)))&&CH.ev.indexOf(last)>=CH.ev.length-3){ Object.assign(last,fields); logEv(last,'akkord-ueberschrieben'); return; }
   if(last) t=Math.max(t,last.t+0.35);
   const ne=Object.assign({t},fields); CH.ev.push(ne); logEv(ne,'akkord');
   if(CH.ev.length>600) CH.ev.shift();
@@ -1414,7 +1442,7 @@ function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) me
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
 // =================== Version ===================
-const APP_VERSION='2026-11-12.1542';
+const APP_VERSION='2026-11-12.1822';
 async function checkVersion(manual){
   const info=$('#verInfo'); if(info) info.textContent='Diese App: '+APP_VERSION;
   try{
@@ -1479,6 +1507,7 @@ const SNAME=['tiefe E','A','D','G','B','hohe e'];
 function noteName2(m){return rootName(((m%12)+12)%12)+(Math.floor(m/12)-1);}
 function renderEdit(){
   const e=ED.ev; if(!e) return;
+  document.querySelectorAll('#eGrid button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===(S.grid||'8')));
   $('#esheet').classList.toggle('note',e.type==='note');
   if(e.type==='note'){
     $('#eName').textContent=noteName2(e.m); $('#eLrn').textContent='';
@@ -1613,15 +1642,18 @@ function chordMicOff(msg){
 $('#cstrip').addEventListener('scroll',e=>{const el=e.target; if(CH.progScroll){CH.progScroll=false;return;} CH.follow=el.scrollLeft+el.clientWidth>=el.scrollWidth-40; CH.scrollT=performance.now();});
 $('#cmic').addEventListener('click',()=>{CH.mic?chordMicOff():chordMicOn();});
 // =================== Rückgängig ===================
-const UNDO=[];
-function snap(){ if(CH.mic) return; UNDO.push({ev:CH.ev.map(e=>Object.assign({},e,{f:Array.isArray(e.f)?e.f.slice():e.f})),grids:CH.grids.map(g=>Object.assign({},g,{lines:g.lines.slice()}))}); if(UNDO.length>40) UNDO.shift(); undoUI(); }
-function undoUI(){ const b=$('#cundo'); if(b) b.style.display=UNDO.length&&!CH.mic?'':'none'; }
-$('#cundo').addEventListener('click',()=>{ const u=UNDO.pop(); if(!u) return; closeEdit(); CH.ev=u.ev; CH.grids=u.grids; ALIGN_UNDO=null; CH.stripKey=''; CH.key=''; undoUI(); alignUI(); });
+const UNDO=[], REDO=[];
+function stateNow(){ return {ev:CH.ev.map(e=>Object.assign({},e,{f:Array.isArray(e.f)?e.f.slice():e.f})),grids:CH.grids.map(g=>Object.assign({},g,{lines:g.lines.slice()}))}; }
+function snap(){ if(CH.mic) return; UNDO.push(stateNow()); if(UNDO.length>40) UNDO.shift(); REDO.length=0; undoUI(); }
+function undoUI(){ const b=$('#cundo'), r=$('#credo'); if(b) b.style.display=UNDO.length&&!CH.mic?'':'none'; if(r) r.style.display=REDO.length&&!CH.mic?'':'none'; }
+$('#credo').addEventListener('click',()=>{ const u=REDO.pop(); if(!u) return; UNDO.push(stateNow()); closeEdit(); CH.ev=u.ev; CH.grids=u.grids; CH.stripKey=''; CH.key=''; undoUI(); alignUI(); });
+$('#cundo').addEventListener('click',()=>{ const u=UNDO.pop(); if(!u) return; REDO.push(stateNow()); closeEdit(); CH.ev=u.ev; CH.grids=u.grids; ALIGN_UNDO=null; CH.stripKey=''; CH.key=''; undoUI(); alignUI(); });
 
 // =================== Takte und Verschieben ===================
 function newGrid(t0,bar,beats){ return {t:t0,bar,beats,lines:[t0],end:null}; }
 function gridExtend(g){ const end=g.end==null?CH.tNow:g.end, L=g.lines; let n=0; while(L[L.length-1]+g.bar<=end+1e-3&&n++<2000) L.push(L[L.length-1]+g.bar); }
 // Nächste Zählzeit (div 1 = Viertel/Schlag, 2 = Achtel); ohne Takt: unverändert
+function gridDiv(){ return {'8':2,'16':4,'12':3}[S.grid||'8']||2; }
 function snapT(t,div){
   for(let gi=CH.grids.length-1;gi>=0;gi--){ const g=CH.grids[gi], L=g.lines; gridExtend(g);
     const endT=(g.end==null?CH.tNow:g.end)+g.bar; if(t<L[0]-g.bar*0.25||t>endT) continue;
@@ -1644,7 +1676,7 @@ function pressStart(x,y,target){
 }
 function pressMove(x,y){
   if(DR.active){ const dt=(x-DR.x0)/LAY.px;
-    if(DR.ev){ const e=DR.ev; e.t=Math.max(0,snapT(DR.t0+dt,e.type==='note'?2:1)); }
+    if(DR.ev){ const e=DR.ev; e.t=Math.max(0,DR.t0+dt); DR.snapTo=snapT(e.t,gridDiv()); }
     else if(DR.b){ const {g,k}=DR.b, L=g.lines, L0=DR.lines0; let nt=L0[k]+dt; nt=Math.max(L0[k-1]+0.25,nt); const d=nt-L0[k];
       for(let j=k;j<L.length;j++) L[j]=(L0[j]??L0[L0.length-1]+(j-L0.length+1)*g.bar)+d; }
     CH.stripKey=''; return true; }
@@ -1654,7 +1686,7 @@ function pressMove(x,y){
 function pressEnd(){
   clearTimeout(DR.timer); DR.timer=0; if(!DR.active) return;
   DR.active=false; DR.justDragged=true; setTimeout(()=>DR.justDragged=false,400);
-  if(DR.ev){ if(DR.ev.type!=='note') DR.ev.edited=DR.ev.edited||false; CH.ev.sort((a,b)=>a.t-b.t); }
+  if(DR.ev){ DR.ev.t=snapT(DR.ev.t,gridDiv()); DR.snapTo=null; CH.ev.sort((a,b)=>a.t-b.t); }
   DR.ev=null; DR.b=null; DR.lines0=null; CH.stripKey='';
 }
 { const st=$('#cstrip');
@@ -1672,13 +1704,12 @@ function pressEnd(){
 // Ausrichten: Akkorde auf Viertel, Lauf-Töne auf Achtel (mit Rückgängig)
 let ALIGN_UNDO=null, alignT=0;
 function alignUI(){ const b=$('#calign'); if(!b) return; const can=CH.grids.length>0&&CH.ev.length>0;
-  b.style.display=can||ALIGN_UNDO?'':'none'; b.textContent=ALIGN_UNDO?'Rückgängig':'An Zählzeiten ausrichten'; }
+  b.style.display=can?'':'none'; b.textContent='An Zählzeiten ausrichten'; }
 $('#ccap').addEventListener('click',capSave);
 $('#calign').addEventListener('click',()=>{
-  if(ALIGN_UNDO){ ALIGN_UNDO.forEach(([e,t])=>e.t=t); ALIGN_UNDO=null; CH.ev.sort((a,b)=>a.t-b.t); }
-  else { snap(); ALIGN_UNDO=CH.ev.map(e=>[e,e.t]); CH.ev.forEach(e=>e.t=snapT(e.t,e.type==='note'?2:1));
+  { snap(); CH.ev.forEach(e=>e.t=snapT(e.t,e.type==='note'?gridDiv():1));
     // gleiche Stelle: Reihenfolge erhalten, Töne nicht übereinanderlegen
-    CH.ev.sort((a,b)=>a.t-b.t); clearTimeout(alignT); alignT=setTimeout(()=>{ALIGN_UNDO=null;alignUI();},8000); }
+    CH.ev.sort((a,b)=>a.t-b.t); }
   CH.stripKey=''; alignUI(); });
 
 // Bearbeiten
@@ -1698,6 +1729,12 @@ $('#eQual').addEventListener('click',e=>{const b=e.target.closest('button'); if(
 $('#eDiag').addEventListener('click',()=>{const x=ED.ev; if(!x) return; snap(); const L=evVoicings(x); let i=L.findIndex(v=>v.f.join()===(x.f||[]).join()); i=(i+1)%L.length; x.f=L[i].f; x.edited=true;
   if(x.type==='chord'&&L.length>1){(S.voi||(S.voi={}))[x.r+'|'+QUAL[x.qi].id]=L[i].id; save(); if(CH.eng){CH.eng.pref=S.voi; if(lastChordEv()===x){CH.eng.vIdx=i;CH.eng.vLock=true;}}}
   renderEdit(); CH.stripKey=''; CH.key='';});
+$('#eDel2').addEventListener('click',()=>$('#eDel').click());
+function stepEv(d){ const x=ED.ev; if(!x) return; snap(); const g=CH.grids.length?null:0.25;
+  if(g) x.t=Math.max(0,x.t+d*g); else { const a=snapT(x.t,gridDiv()); let b=snapT(a+d*0.02+d*0.0001,gridDiv()); let k=0; while(Math.abs(b-a)<1e-4&&k++<200) b=snapT(a+d*0.01*(k+2),gridDiv()); x.t=Math.max(0,b); }
+  CH.ev.sort((p,q)=>p.t-q.t); renderEdit(); CH.stripKey=''; }
+$('#eLeft').addEventListener('click',()=>stepEv(-1)); $('#eRight').addEventListener('click',()=>stepEv(1));
+$('#eGrid').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b) return; S.grid=b.dataset.v; save(); renderEdit();});
 $('#eDel').addEventListener('click',()=>{const x=ED.ev; if(!x) return; snap(); const i=CH.ev.indexOf(x);
   if(i>=0){ CH.ev.splice(i,1);
     // Der nächste Akkord desselben Anschlags rückt auf den Platz des gelöschten
@@ -1736,7 +1773,7 @@ $('#launchChords').addEventListener('click',startChords);
 $('#cclose').addEventListener('click',stopChords);
 $('#cchip').addEventListener('click',()=>openSheet());
 // Reset: Verlauf und angezeigten Akkord leeren (gemerkte Griffe bleiben)
-$('#creset').addEventListener('click',()=>{closeEdit(); ALIGN_UNDO=null; UNDO.length=0; if(!CAP.on) capClear(); else {CAP.chunks=[];CAP.n=0;CAP.segs=[CAP.seg];CAP.seg.wavStart=0;CAP.seg.ctxStart=null;LOG.length=0;}const d=CH.tNow; CH.tBase-=d; CH.tNow=0; CH.ev=[]; CH.grids=CH.met?[newGrid(CH.tBase,CH.met.beat*CH.met.beats,CH.met.beats)]:[]; CH.stripKey=''; CH.follow=true; CH.key=''; if(CH.eng){const sr=CH.eng.sr,pref=CH.eng.pref; CH.eng=makeChordEngine(sr); CH.eng.pref=pref; CH.eng.onCommit=onChordCommit; CH.eng.NT.onNote=onNoteDetected; CH.eng.NT.onReplace=onNoteReplaced; CH.eng.learn=LEARN;}});
+$('#creset').addEventListener('click',()=>{closeEdit(); ALIGN_UNDO=null; UNDO.length=0; REDO.length=0; if(!CAP.on) capClear(); else {CAP.chunks=[];CAP.n=0;CAP.segs=[CAP.seg];CAP.seg.wavStart=0;CAP.seg.ctxStart=null;LOG.length=0;}const d=CH.tNow; CH.tBase-=d; CH.tNow=0; CH.ev=[]; CH.grids=CH.met?[newGrid(CH.tBase,CH.met.beat*CH.met.beats,CH.met.beats)]:[]; CH.stripKey=''; CH.follow=true; CH.key=''; if(CH.eng){const sr=CH.eng.sr,pref=CH.eng.pref; CH.eng=makeChordEngine(sr); CH.eng.pref=pref; CH.eng.onCommit=onChordCommit; CH.eng.NT.onNote=onNoteDetected; CH.eng.NT.onReplace=onNoteReplaced; CH.eng.learn=LEARN;}});
 // Griffbild antippen: nächster Griff, wird für diesen Akkord gemerkt
 $('#cdiag').addEventListener('click',()=>{
   if(!CH.eng) return; const r=CH.eng.nextVoicing(); if(!r) return;
