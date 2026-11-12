@@ -954,7 +954,7 @@ function makeNoteTracker(sr){
       else { T.cand=null; return res; } }
     // Lauf-Ton: ein klarer neuer Ton oben
     else if((t-T.lastStrum>0.15||(chordPcs&&best>=0&&!chordPcs.includes((M0+best)%12)))&&hi>0.5&&loCount<=1&&best>=0&&bs>0.08&&P[best]>=0.35*pm){
-      if(!T.cand||(T.cand.j!==best&&(bs>T.cand.s*1.2||P[T.cand.j]<0.35*pm))) T.cand={j:best,t0:t,n:0,s:bs,on:!!onset,pk:P[best]};
+      if(!T.cand||(T.cand.j!==best&&(bs>T.cand.s*1.2||P[T.cand.j]<0.35*pm))) T.cand={j:best,j0:M0+best,t0:t,n:0,s:bs,on:!!onset,pk:P[best]};
     }
     // Griff-Ton (gehört genau zum gegriffenen Akkord, z. B. g4 im G 320033): nur Melodie, wenn er eine Linie fortsetzt
     // oder danach auf ihm gebunden weitergespielt wird (Slide/Hammer/Pull); sonst ist es nur ein erneuter Anschlag des Akkords.
@@ -986,7 +986,8 @@ function makeNoteTracker(sr){
     if(T.cand){
       const c=T.cand;
       // Slide/Bindung: dem stärksten Nachbarton (±2 Halbtöne) folgen, Durchgangstöne werden nicht bestätigt
-      let g=c.j; for(let j=Math.max(0,c.j-1);j<=Math.min(NP-1,c.j+1);j++) if(M0+j>=57&&P[j]>P[g]*1.15) g=j;
+      // Slide höchstens 2 Halbtöne vom Anschlag weg verfolgen (3/5), sonst läuft er in klingende Akkordtöne wie das g4 des G
+      let g=c.j; for(let j=Math.max(0,c.j-1);j<=Math.min(NP-1,c.j+1);j++) if(M0+j>=57&&P[j]>P[g]*1.15&&Math.abs(M0+j-(c.j0??(M0+c.j)))<=2) g=j;
       if(g!==c.j){
         // Einschwingen: in den ersten ~70 ms einen Halbton daneben → nur die Tonhöhe korrigieren
         if(!c.slid&&t-c.t0<0.075&&Math.abs(g-c.j)===1){ c.j=g; }
@@ -1467,7 +1468,7 @@ function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) me
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
 // =================== Version ===================
-const APP_VERSION='2026-11-12.1843';
+const APP_VERSION='2026-11-12.1852';
 async function checkVersion(manual){
   const info=$('#verInfo'); if(info) info.textContent='Diese App: '+APP_VERSION;
   try{
