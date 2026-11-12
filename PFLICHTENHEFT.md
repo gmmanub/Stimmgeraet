@@ -1,0 +1,122 @@
+# Pflichtenheft – Gitarren-App
+
+Stand: 12.11.2026 · Wird bei jeder Änderung an der App mitgepflegt.
+
+## 1. Überblick
+
+Eine Web-App für Akustikgitarre, gedacht für zu Hause, optimiert für das Samsung S24 (Chrome).
+
+- **Code:** `index.html` in diesem Repository (eine Datei: HTML, CSS, JavaScript)
+- **Live-Adresse:** GitHub Pages dieses Repositorys
+- **Vorschau ohne Mikrofon:** Claude-Artefakt „Gitarren-Stimmgerät“. Dort ist das Mikrofon gesperrt, die App läuft mit simulierter Gitarre.
+- **Mikrofon:** nur über HTTPS (GitHub Pages). Lokal geöffnete Dateien funktionieren auf dem S24 nicht.
+
+## 2. Arbeitsweise
+
+1. Manu beschreibt einen Wunsch oder stellt eine Frage.
+2. Claude schlägt vor, was es ändern würde. **Nichts wird ohne Freigabe umgesetzt.**
+3. Bei Animationen oder Designfragen erst Vorschauen mit Reglern im Chat zeigen; Manu schickt seine Werte über „Werte senden“.
+4. Nach Freigabe: Claude ändert `index.html`, prüft den **ganzen Ablauf mit Davor und Danach** (keine Folgefehler), lädt hoch und aktualisiert dieses Pflichtenheft.
+5. Manu testet auf der Pages-Adresse nach einmaligem Neuladen (etwa 1 Minute nach dem Hochladen).
+
+## 3. Globale Regeln
+
+- **Notennamen:** Standard „B“ (international). Umschalter B/H in den Einstellungen gilt für die ganze App, auch für Akkorde und spätere Tabs. Bei H heißt B♭ „B“.
+- **Sprache:** Deutsch.
+- **Design:** dezent, erwachsen, aufgeräumt. Basis ist das Pitchblack-Pedal.
+  - Schrift: **M PLUS Rounded 1c** (runde Ecken, gut lesbare Ziffern)
+  - Dunkelmodus Standard: Anthrazit `#171b20`, Text hellgrau `#c9d1d9` (keine harten Kontraste)
+  - Hellmodus: gedämpftes Hellgrau `#dde1e6`, Text `#2a3139`
+  - Farben: Anzeige gedämpftes Stahlblau (Farbton 212, Sättigung 42 %), „Ton sitzt“ Eisblau (Farbton 200, Sättigung 95 %) mit fast weißem Kern. Über ein Farbrad (Farbton + Sättigung) änderbar.
+- **Bildschirm bleibt an**, solange ein Werkzeug aktiv ist (Wake Lock).
+- **Mikrofon:** Rauschunterdrückung, Echo- und Pegelautomatik aus.
+- **Einstellungen werden lokal gespeichert** (localStorage).
+
+## 4. Startbildschirm
+
+Zwei runde Buttons untereinander: **Stimmgerät** und **Akkorde**. Darunter: aktuelle Stimmung, Feinstimmung, Saitentöne, Kammerton. Oben rechts: Einstellungen.
+
+## 5. Einstellungen
+
+- Darstellung: Dunkel / Hell; Schalter „Wellenlinie in den Balken“ (Standard: an)
+- Notenbezeichnung: B / H
+- Feinstimmung: **Mathematisch** (exakt 0 Cent) / **Menschlich** (Standard; Peterson-„Sweetened“-Werte) / **Buzz Feiten**
+  - Menschlich, Saite 6→1: −2,3 · 0 · 0 · −0,4 · −2,1 · −2,3 Cent
+  - Buzz Feiten, Saite 6→1: −2 · −2 · −2 · −2 · +1 · 0 Cent
+  - Gilt automatisch nur für Standard, Halbton/Ganzton tiefer, Drop D, Drop C. Bei DADGAD und Open-Stimmungen automatisch Mathematisch (Anzeige „Mathe (auto)“), per Schalter erzwingbar.
+- Stimmungen: Standard, Drop D, Halbton tiefer, Ganzton tiefer, Drop C, DADGAD, Open G, Open D, Open E, Open C, Chromatisch
+- Kammerton A4: 415–466 Hz, Schnellwahl 432 / 440 / 442 / 443
+- Farbrad für „Anzeige“ und „Ton sitzt“
+- Vibration, wenn der Ton sitzt (Standard: an)
+
+## 6. Modul Stimmgerät (fertig)
+
+### Aufbau
+Oben 15 breite Balken (große Fläche), darunter groß der Ton, darunter Saite und Bund. Keine Cent-/Hz-Anzeige, keine Textzeile, kein Strobe, kein Richtungsstreifen (bewusst entfernt).
+
+### Zielbestimmung
+- Nahe an einer leeren Saite (≤ 1,5 Halbtöne): Ziel ist diese Saite.
+- Tiefer als die tiefste Saite: Ziel ist die tiefste Saite (lockere Saite).
+- Sonst: gegriffener Ton, chromatisch angezeigt. Die eingestellte Stimmung bleibt erhalten.
+- Kontinuität: Beim gleitenden Hoch-/Runterstimmen bleibt die App bei der Saite.
+- Mehr als 50 Cent daneben: äußerster Balken auf der passenden Seite leuchtet; klein links neben dem Zielton der gehörte Ton („D♯ → E“).
+- Saite/Bund: alle möglichen Griffe (max. 3) in fester Reihenfolge, der wahrscheinlichste hervorgehoben.
+
+### Balken und Welle (abgestimmte Werte, `const P` im Code)
+| Parameter | Wert |
+|---|---|
+| Wellen über die Breite (FQ) | 1,5 |
+| Tempo der Welle (SP) | 0,8 |
+| Überschwingen (OV) | 1,0 |
+| Saitendicke (TH) | 2 |
+| Zieldicke (TT) | 71, nach oben/unten weich auslaufend |
+| Ziel-Deckkraft (TO) | 0,60 |
+| Helligkeit Balken (BR) | 1,25 |
+| Abstufung außen→innen (G) | 0,15 |
+| Mittelbalken: Einblendbereich (FR) | 27 Cent |
+| Mittelbalken: Vorab-Stärke (FS) | 0,40 |
+| Übergang ins Ziel (TR) | 0,9 s |
+| Kurve des Aufbaus (CU) | 1,2 |
+| Lichteffekt (SW) | 0,60 |
+| Tempo Lichteffekt (SS) | 2,2 |
+| Nachleuchten (AG) | 0,90 |
+
+### Verhalten
+- Welle nur innerhalb der Balken sichtbar, in der Mitte und an den Rändern fixiert, läuft von der Mitte nach außen.
+- Ziellinie schwingt mit der Lautstärke. Saitenlinie: zu hoch → wölbt sich nach oben, zu tief → nach unten; in Richtung der Verstimmung stärker, leichtes Überschwingen über die Ziellinie.
+- Saitenlinie ist nie im Mittelbalken sichtbar.
+- Leuchten nur auf der Seite, von der man kommt – **nie über die Mitte hinaus**, auch nicht beim Nachfedern.
+- Mittelbalken unsichtbar, blendet beim Annähern weich ein.
+- **Treffer (±2 Cent, 0,2 s stabil):** Mitte kommt weich an → erst danach läuft ein Lichtimpuls symmetrisch von der Mitte nach außen → alle Balken leuchten nach, Nachbarn der Mitte fast so hell wie die Mitte. Saitenlinie blendet aus, Ziellinie leuchtet heller und verschmilzt mit dem Mittelbalken.
+- Buchstabe wächst weich um ca. 10 % und bleibt groß, mit Farbverlauf und kleinem Glow. **Kein Ploppen.**
+- Helligkeit folgt der Lautstärke; neuer Anschlag hellt in ca. 0,2 s weich auf.
+- **Verklingen im Stimmt-Zustand:** alles dimmt gemeinsam weich herunter, Mittelbalken zuletzt; Saitenlinie taucht dabei nicht wieder auf. Aufgehoben wird der Zustand erst durch einen neuen, nicht stimmenden Ton oder eine andere Saite.
+
+## 7. Modul Akkorde (Stufe 1, in Test)
+
+- Live-Erkennung über das Mikrofon: Tonklassen-Analyse (Chroma) mit Obertonmustern, Abgleich mit 84 Akkorden.
+- Vokabular: Dur, Moll, 7, maj7, m7, sus2, sus4 auf allen 12 Grundtönen. Einzelton und Powerchord (z. B. E5) werden erkannt.
+- Anzeige: Akkordname groß, Griffbild (Standardstimmung, offene Griffe bevorzugt, sonst Barré in E- oder A-Form), Verlauf der letzten 8 Akkorde, „Verlauf leeren“.
+- Wechsel wird erst nach kurzer Stabilität angezeigt (gegen Flackern).
+- Test mit synthetischem Gitarrenklang: 10/10 korrekt. Test mit echter Gitarre steht aus.
+
+### Geplant für Akkorde
+- Stufe 2: Slash-Akkorde (z. B. D/B), add9 und weitere Erweiterungen.
+- **Trainierbar:** Akkorde beibringen und Fehler korrigieren; die App speichert eigene Klangbeispiele lokal und gleicht zuerst damit ab.
+
+## 8. Roadmap
+
+1. **Als Nächstes: BPM- und Takterkennung** (Grundlage für alles Weitere), inkl. Metronom mit Tap-Tempo, Taktart, Einzähler.
+2. Aufnahme und Auswertung: Akkordverlauf auf Zeitachse.
+3. Transkription: Einzeltöne (z. B. Basic Pitch), Tabs und gut lesbare Takte – als Grundlage für den Bassisten. Mit Bearbeitungsansicht zum Korrigieren. Design und Layout gemeinsam festlegen.
+4. Play-Along: aufgenommene Spuren einzeln ein- und ausschaltbar.
+5. Alternative Voicings für eine zweite Gitarre, optional in anderen Stimmungen.
+6. Schlagzeug-Gestalter (Kick, Snare, HiHat, Muster), Export als WAV.
+7. Songwriting-Assistent mit Vorschlägen (regelbasiert in der App; kreative Vorschläge im Chat mit Claude).
+8. Später ggf. installierbare App (PWA) oder APK.
+
+## 9. Bekannte Grenzen
+
+- Saite und Bund lassen sich aus dem Klang nicht sicher bestimmen; die App schätzt nach Spielbarkeit.
+- Rhythmus in Transkriptionen wird Nachbearbeitung brauchen.
+- Downloads (z. B. WAV) funktionieren auf der Pages-Adresse, nicht in der Claude-Vorschau.
