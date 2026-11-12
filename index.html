@@ -1474,7 +1474,7 @@ function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) me
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
 // =================== Version ===================
-const APP_VERSION='2026-11-12.1857';
+const APP_VERSION='2026-11-12.1900';
 async function checkVersion(manual){
   const info=$('#verInfo'); if(info) info.textContent='Diese App: '+APP_VERSION;
   try{
@@ -1746,12 +1746,12 @@ function pressEnd(){
 }
 { const st=$('#cstrip');
   if(S.px) LAY.px=S.px;
-  // Zoomen mit zwei Fingern (waagerecht), die Stelle zwischen den Fingern bleibt stehen
+  // Zoomen mit zwei Fingern (in jede Richtung gespreizt), die Stelle zwischen den Fingern bleibt stehen
   let Z=null;
   st.addEventListener('touchstart',e=>{ if(e.touches.length===2){ clearTimeout(DR.timer); DR.timer=0; const a=e.touches[0],b=e.touches[1], r=st.getBoundingClientRect();
-    const mid=(a.clientX+b.clientX)/2-r.left; Z={d0:Math.abs(a.clientX-b.clientX)||1,px0:LAY.px,tm:(st.scrollLeft+mid-40)/LAY.px,mid}; } },{passive:true});
+    const mid=(a.clientX+b.clientX)/2-r.left; Z={d0:Math.max(30,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),px0:LAY.px,tm:(st.scrollLeft+mid-40)/LAY.px,mid}; } },{passive:true});
   st.addEventListener('touchmove',e=>{ if(Z&&e.touches.length===2){ e.preventDefault(); const a=e.touches[0],b=e.touches[1];
-    LAY.px=clamp(Z.px0*(Math.abs(a.clientX-b.clientX)||1)/Z.d0,30,320); CH.follow=false; CH.stripKey=''; renderStrip(); st.scrollLeft=Z.tm*LAY.px+40-Z.mid; } },{passive:false});
+    LAY.px=clamp(Z.px0*Math.max(30,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY))/Z.d0,30,320); CH.follow=false; CH.stripKey=''; renderStrip(); st.scrollLeft=Z.tm*LAY.px+40-Z.mid; } },{passive:false});
   st.addEventListener('touchend',e=>{ if(Z&&e.touches.length<2){ Z=null; S.px=Math.round(LAY.px); save(); zoomUI(); } });
   // Touch-Ereignisse hängen am berührten Element; der Tab wird beim Ziehen neu gezeichnet, deshalb die Zuhörer direkt dort anbringen
   const onMove=e=>{ const t=e.touches[0]; if(t&&pressMove(t.clientX,t.clientY)) e.preventDefault(); };
