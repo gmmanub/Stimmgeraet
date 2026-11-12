@@ -86,7 +86,7 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .hint.lock{color:var(--tune)}
 
 /* Akkorde */
-#chords{display:none;z-index:5}
+#chords{display:none;z-index:5;overflow-y:auto}
 #chords.on{display:flex}
 .cdisplay{display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 12px 0;min-height:0}
 .chead{display:flex;align-items:center;justify-content:center;gap:18px;min-height:96px}
@@ -97,7 +97,7 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .chint{font-size:13px;color:var(--muted);min-height:18px;text-align:center}
 .cdiag{width:78px;aspect-ratio:180/210;flex:none;transition:opacity .3s;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .cvoi{font-size:12px;color:var(--muted);min-height:16px;transition:opacity .3s;text-align:center}
-.cstrip{-webkit-touch-callout:none;overflow-x:auto;overflow-y:hidden;border-top:1px solid var(--line);margin:10px 0 0;padding-top:4px;flex:none;width:100%;user-select:none;scrollbar-width:thin}
+.cstrip{-webkit-touch-callout:none;touch-action:pan-x;overflow-x:auto;overflow-y:hidden;border-top:1px solid var(--line);margin:10px 0 0;padding-top:4px;flex:none;width:100%;user-select:none;scrollbar-width:thin}
 .cstrip svg{display:block}
 .ctools{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;padding:4px 16px 18px}
 #chelp{flex-basis:100%}
@@ -252,7 +252,7 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
   </div>
   <div class="cstrip" id="cstrip" aria-label="Tablatur-Verlauf"></div>
   <div class="cstripnote" id="cstripnote"></div>
-  <div class="ctools"><button class="chip" id="calign" style="display:none">An Zählzeiten ausrichten</button><button class="chip" id="cundo" style="display:none">↶ Rückgängig</button><button class="chip" id="credo" style="display:none">↷ Wiederholen</button><button class="chip" id="ccap" style="display:none"></button><span id="chelp"></span></div>
+  <div class="ctools"><button class="chip" id="czoom" style="display:none"></button><button class="chip" id="calign" style="display:none">An Zählzeiten ausrichten</button><button class="chip" id="cundo" style="display:none">↶ Rückgängig</button><button class="chip" id="credo" style="display:none">↷ Wiederholen</button><button class="chip" id="ccap" style="display:none"></button><span id="chelp"></span></div>
 </section>
 
 <section id="tuner" class="screen" aria-label="Stimmgerät">
@@ -327,6 +327,10 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
       <h3>Test</h3>
       <button class="row" id="capT"><span>Test-Mitschnitt: Akkorderkennung nimmt den Klang mit auf (zum Verbessern der Erkennung)</span><span class="toggle" aria-hidden="true"></span></button>
       <p>Im Akkord-Bildschirm erscheint dann unter dem Tab „Mitschnitt + Tab speichern“. Die WAV-Datei enthält Klang und erkannten Tab, bis 10 Minuten. Reset leert den Mitschnitt.</p>
+    </div>
+    <div class="group">
+      <h3>Akkorde · Anzeige</h3>
+      <button class="row" id="cfT"><span>Griffzahlen der Akkorde im Tab zeigen</span><span class="toggle" aria-hidden="true"></span></button>
     </div>
     <div class="group">
       <h3>Akkorde · Gelerntes</h3>
@@ -804,6 +808,7 @@ $('#aMinus').addEventListener('click',()=>setA4(S.a4-1));
 $('#aPlus').addEventListener('click',()=>setA4(S.a4+1));
 document.querySelectorAll('#aPre button').forEach(b=>b.addEventListener('click',()=>setA4(+b.dataset.v)));
 $('#hap').addEventListener('click',()=>{S.haptic=!S.haptic;save();refresh();});
+$('#cfT').addEventListener('click',()=>{S.chordFrets=S.chordFrets===false;save();refresh();CH.stripKey='';});
 $('#capT').addEventListener('click',()=>{S.capture=!S.capture;save();refresh();});
 $('#waveT').addEventListener('click',()=>{S.wave=!S.wave;save();refresh();});
 $('#sweetForce').addEventListener('click',()=>{S.sweetForce=!S.sweetForce;save();refresh();});
@@ -830,6 +835,7 @@ function refresh(){
   $('#aVal').textContent=S.a4+' Hz';
   document.querySelectorAll('#aPre button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.v===S.a4));
   $('#hap').setAttribute('aria-pressed',S.haptic);
+  $('#cfT').setAttribute('aria-pressed',S.chordFrets!==false);
   $('#capT').setAttribute('aria-pressed',!!S.capture); if(typeof capUI==='function') capUI();
   $('#sweetForce').setAttribute('aria-pressed',S.sweetForce);
   $('#waveT').setAttribute('aria-pressed',S.wave);
@@ -965,7 +971,10 @@ function makeNoteTracker(sr){
         const between=false; // Durchgangston-Regel verworfen: sie löschte auch echte Lauf-Töne (e d c b)
         if(!between) out(h); }
       T.hold=note; };
-    const emit=(j,t0,art,from)=>{ const pv=T.prevNote, m=M0+j; if(pv&&pv.m===m&&t0-pv.t<0.35) return;
+    const emit=(j,t0,art,from)=>{ const pv=T.prevNote; let m=M0+j;
+      // Sprung von ≥ 10 Halbtönen nach oben, und die tiefere Oktave klingt mit → meist ist die tiefere gemeint (d5 statt d4)
+      if(j>=12&&((pv&&t0-pv.t<1.2&&m-pv.m>=10&&P[j-12]>=0.2*P[j])||(m>=72&&P[j-12]>=0.25*P[j]))) m-=12;
+      if(pv&&pv.m===m&&t0-pv.t<0.35) return;
       const note={t:t0,m,art:art||'pick',from:from??null};
       // Griff-Ton bestätigt sich, wenn es gebunden weitergeht oder schrittweise (≤ 2 Halbtöne) als Linie weiterläuft
       if(T.pend&&(note.art!=='pick'||(Math.abs(note.m-T.pend.m)<=2&&note.m!==T.pend.m&&t0-T.pend.t<0.7))){ publish(T.pend); T.pend=null; }
@@ -1180,7 +1189,7 @@ function diagramSVG(v){
 
 const CH={running:false,raf:0,ctx:null,an:null,stream:null,T:null,eng:null,demoTimer:0,wake:null,hist:[],key:'',last:0,lastProc:0,micStart:0,run:0,mic:false,micMsg:'',ev:[],tNow:0,follow:true,stripKey:'',grids:[],tBase:0,ctxT0:0,met:null,count:0,counting:false,raw:null,RB:null};
 // Layout-Werte (in der Vorschau abgestimmt)
-const LAY={dig:20,lab:19,gap:12,str:22,px:88};
+const LAY={dig:20,lab:19,gap:12,str:22,px:88}; const PX0=88;
 
 function labelParts(l){
   if(l.type==='chord') return {root:rootName(l.r),suf:QUAL[l.qi].id};
@@ -1202,13 +1211,22 @@ function stripSVG(){
       o+=`<line x1="${x}" y1="${top-D*.62}" x2="${x}" y2="${top+5*C+D*.62}" stroke="${act?'var(--acc)':'var(--muted)'}" stroke-width="${act?2.6:1.4}" opacity=".85"/>`;
       if(k>0){ o+=`<rect x="${x-5}" y="${hY}" width="10" height="12" rx="3" fill="${act?'var(--acc)':'var(--muted)'}" opacity="${act?1:.45}"/>`;
         handles+=`<rect data-b="${gi},${k}" x="${x-16}" y="${hY-6}" width="32" height="28" fill="transparent"/>`; } }); });
+  // Anzeige-Positionen: Würden sich Zahlen überdecken, rückt die spätere nach rechts (die Zeit bleibt unverändert)
+  const XS=new Map(), endS=new Array(6).fill(-1e9); let endL=-1e9; const cw=D*.62, gp=5;
+  CH.ev.forEach(e=>{ let x=left+e.t*F+10;
+    if(e.type==='note'){ const w=cw*String(e.f).length; x=Math.max(x,endS[e.s]+gp+w/2); endS[e.s]=x+w/2; }
+    else { const fr=(S.chordFrets!==false&&e.f)?e.f:[]; let need=x; const lw=Lb*.62*(labelParts(e).root.length+labelParts(e).suf.length*.75);
+      fr.forEach((f,s)=>{ if(f>=0) need=Math.max(need,endS[s]+gp+cw*String(f).length/2); }); need=Math.max(need,endL+gp+lw/2); x=need;
+      fr.forEach((f,s)=>{ if(f>=0) endS[s]=x+cw*String(f).length/2; }); endL=x+lw/2; }
+    XS.set(e,x); });
+  const W2=Math.max(W,Math.max(...endS,endL)+60);
   CH.ev.forEach((e,i)=>{
-    const x=left+e.t*F+10;
+    const x=XS.get(e);
     if(e.type==='note'){ const y=top+(5-e.s)*C, n=String(e.f).length, sel=ED.ev===e||DR.ev===e;
       if(e.art&&e.art!=='pick'){ // Spieltechnik zwischen Vorgänger (gleiche Saite) und diesem Ton
         let pv=null; for(let k=i-1;k>=0;k--){const q=CH.ev[k]; if(q.type==='note'){ if(q.s===e.s&&e.t-q.t<1.5) pv=q; break; } }
         const up=pv?e.f>=pv.f:true, sym=e.art==='slide'?(up?'/':'\\'):e.art;
-        const mx=pv?(left+pv.t*F+10+x)/2:x-D*.95;
+        const mx=pv?(XS.get(pv)+x)/2:x-D*.95;
         o+=`<text x="${mx}" y="${y-D*.75}" text-anchor="middle" font-size="${Math.round(D*.62)}" font-style="${e.art==='slide'?'normal':'italic'}" fill="var(--acc)" opacity=".85">${sym}</text>`; }
       if(sel) o+=`<rect x="${x-D*.8}" y="${y-D*.9}" width="${D*1.6}" height="${D*1.8}" rx="7" fill="var(--acc)" opacity=".22"/>`;
       o+=`<rect x="${x-D*.42*n-1}" y="${y-D*.62}" width="${D*.84*n+2}" height="${D*1.15}" fill="${sel?'none':'var(--bg)'}"/><text x="${x}" y="${y+D*.36}" text-anchor="middle" font-size="${D}" font-weight="500" fill="var(--acc)">${e.f}</text>`;
@@ -1217,24 +1235,25 @@ function stripSVG(){
     const p=labelParts(e);
     if(ED.ev===e||DR.ev===e) o+=`<rect x="${x-Math.max(Lb,D)*1.1}" y="${cy-Lb*1.1}" width="${Math.max(Lb,D)*2.2}" height="${top+5*C+D*.7-cy+Lb*1.1}" rx="8" fill="var(--acc)" opacity=".18"/>`;
     o+=`<text x="${x}" y="${cy}" text-anchor="middle" font-size="${Lb}" font-weight="500" fill="var(--text)">${p.root}<tspan fill="var(--acc)" font-size="${Lb*.75}" dy="-${Lb*.18}">${p.suf}</tspan></text>`;
-    if(e.f) e.f.forEach((f,i)=>{ if(f<0) return; const y=top+(5-i)*C, n=String(f).length;
-      o+=`<rect x="${x-D*.42*n-1}" y="${y-D*.62}" width="${D*.84*n+2}" height="${D*1.15}" fill="${ED.ev===e||DR.ev===e?'none':'var(--bg)'}"/><text x="${x}" y="${y+D*.36}" text-anchor="middle" font-size="${D}" fill="var(--text)">${f}</text>`; });
+    if(e.f&&S.chordFrets!==false){ const D2=D*.82; e.f.forEach((f,i)=>{ if(f<0) return; const y=top+(5-i)*C, n=String(f).length;
+      o+=`<rect x="${x-D2*.42*n-1}" y="${y-D2*.62}" width="${D2*.84*n+2}" height="${D2*1.15}" fill="${ED.ev===e||DR.ev===e?'none':'var(--bg)'}"/><text x="${x}" y="${y+D2*.36}" text-anchor="middle" font-size="${D2}" fill="var(--muted)">${f}</text>`; }); }
     o+=`<rect data-i="${i}" x="${x-Math.max(Lb,D)*1.1}" y="0" width="${Math.max(Lb,D)*2.2}" height="${H}" fill="transparent" style="cursor:pointer"/>`;
   });
   if(DR.active&&DR.ev&&DR.snapTo!=null){ const sx=left+DR.snapTo*F+10; o+=`<line x1="${sx}" y1="${cy-Lb}" x2="${sx}" y2="${top+5*C+D*.62}" stroke="var(--acc)" stroke-width="2" stroke-dasharray="4 3"/>`; }
   o+=handles;
+  o=o.replace(`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"`,`<svg width="${W2}" height="${H}" viewBox="0 0 ${W2} ${H}"`);
   if(CH.mic){const nx=left+CH.tNow*F+10+F*.5; o+=`<line x1="${nx}" y1="${cy-Lb}" x2="${nx}" y2="${top+5*C+D*.7}" stroke="var(--acc)" stroke-width="1.5" stroke-dasharray="3 3" opacity=".7"/>`;}
   return o+'</svg>';
 }
 function renderStrip(){
-  const key=(ED.ev?CH.ev.indexOf(ED.ev):-1)+'#'+CH.ev.map(e=>e.key+'@'+e.t.toFixed(2)+(e.type==='note'?e.s+'/'+e.f+(e.art||''):(e.f?e.f.join(','):''))).join(';')+'|'+S.notation+'|'+CH.mic+'|'+Math.floor(CH.tNow*6)+'|'+CH.grids.map(g=>g.lines.map(x=>x.toFixed(2)).join(':')+(g.end==null?'':'/'+g.end.toFixed(2))).join(',')+'|'+(DR.active?1:0)+'|'+(DR.snapTo!=null?DR.snapTo.toFixed(2):'');
+  const key=(ED.ev?CH.ev.indexOf(ED.ev):-1)+'#'+CH.ev.map(e=>e.key+'@'+e.t.toFixed(2)+(e.type==='note'?e.s+'/'+e.f+(e.art||''):(e.f?e.f.join(','):''))).join(';')+'|'+S.notation+'|'+CH.mic+'|'+Math.floor(CH.tNow*6)+'|'+CH.grids.map(g=>g.lines.map(x=>x.toFixed(2)).join(':')+(g.end==null?'':'/'+g.end.toFixed(2))).join(',')+'|'+(DR.active?1:0)+'|'+LAY.px+'|'+(S.chordFrets!==false)+'|'+(DR.snapTo!=null?DR.snapTo.toFixed(2):'');
   if(key===CH.stripKey) return; CH.stripKey=key;
   const el=$('#cstrip'); el.innerHTML=stripSVG();
   if(!CH.follow&&CH.mic&&!ED.ev&&performance.now()-(CH.scrollT||0)>4000) CH.follow=true;
   if(CH.follow&&el.scrollLeft<el.scrollWidth-el.clientWidth-2){CH.progScroll=true; el.scrollLeft=el.scrollWidth;}
   $('#cstripnote').textContent=CH.ev.length?'':'Hier erscheint dein Verlauf als Tabelle, Akkorde oben drüber.';
-  $('#chelp').textContent=CH.ev.length?(CH.grids.length?'Antippen = bearbeiten · auf eine leere Saite tippen = Ton eintragen · lange drücken und ziehen = verschieben (auch die Griffe unter den Taktstrichen)':'Antippen = bearbeiten · auf eine leere Saite tippen = Ton eintragen · lange drücken und ziehen = verschieben'):'';
-  alignUI(); capUI(); undoUI();
+  $('#chelp').textContent=CH.ev.length?(CH.grids.length?'Antippen = bearbeiten · leere Saite antippen = Ton eintragen · lange drücken und ziehen = verschieben · zwei Finger = zoomen':'Antippen = bearbeiten · leere Saite antippen = Ton eintragen · lange drücken und ziehen = verschieben · zwei Finger = zoomen'):'';
+  alignUI(); capUI(); undoUI(); zoomUI();
 }
 function renderChord(now){
   const E=CH.eng, nameEl=$('#cname'), quiet=!E||CH.tNow-E.lastSound>1.5;
@@ -1292,12 +1311,15 @@ function onChordCommit(c){
   if(c.type!=='chord') return; // Powerchords und Einzeltöne werden nicht als Akkord eingetragen
   const last=lastChordEv();
   if(last&&last.key===c.key) return;
+  // A – B – A: War der Akkord davor (B) nur kurz und kommt jetzt wieder A, war B ein Lesefehler → B entfernen, A läuft weiter
+  if(last&&!last.edited&&CH.tNow-last.t<1.2){ let i=CH.ev.indexOf(last), a=null; for(let k=i-1;k>=0;k--) if(CH.ev[k].type!=='note'){a=CH.ev[k];break;}
+    if(a&&a.key===c.key){ logEv(last,'akkord-entfernt-zwischenlesung'); CH.ev.splice(i,1); return; } }
   const E=CH.eng; let t=(E&&CH.tNow-E.lastOn<1)?E.lastOn:CH.tNow-(E?E.candT:0); t=Math.max(t,CH.tBase,0);
   let cn=null;
   if(E){ let n=0; for(const x of E.chroma) n+=x*x; n=Math.sqrt(n)||1; cn=Array.from(E.chroma,x=>x/n); }
   // Töne, die nur zum Akkordanschlag gehören (z. B. das A beim Asus2), sind keine Lauf-Töne
   { const pcs=QUAL[c.qi].iv.map(i=>(c.r+i)%12);
-    for(let i=CH.ev.length-1;i>=0;i--){ const e=CH.ev[i]; if(e.t<t-0.12) break;
+    for(let i=CH.ev.length-1;i>=0;i--){ const e=CH.ev[i]; if(e.t<t-0.25) break;
       if(e.type==='note'&&!e.edited&&e.t<=t+0.45&&pcs.includes(e.m%12)){ logEv(e,'ton-entfernt-akkordanschlag'); CH.ev.splice(i,1); } } }
   const fields={r:c.r,qi:c.qi,type:'chord',key:c.key,orig:c.raw||c.key,learned:!!c.learned,f:null,cn,pf:E?Array.from(E.pf):null};
   // Gleicher Anschlag: Die App hat sich nur korrigiert (z. B. erst G7, dann G) → überschreiben, Zeitpunkt bleibt
@@ -1442,7 +1464,7 @@ function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) me
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
 // =================== Version ===================
-const APP_VERSION='2026-11-12.1822';
+const APP_VERSION='2026-11-12.1837';
 async function checkVersion(manual){
   const info=$('#verInfo'); if(info) info.textContent='Diese App: '+APP_VERSION;
   try{
@@ -1641,6 +1663,8 @@ function chordMicOff(msg){
 }
 $('#cstrip').addEventListener('scroll',e=>{const el=e.target; if(CH.progScroll){CH.progScroll=false;return;} CH.follow=el.scrollLeft+el.clientWidth>=el.scrollWidth-40; CH.scrollT=performance.now();});
 $('#cmic').addEventListener('click',()=>{CH.mic?chordMicOff():chordMicOn();});
+function zoomUI(){ const b=$('#czoom'); if(!b) return; const z=Math.round(LAY.px/PX0*100); b.style.display=Math.abs(z-100)>3?'':'none'; b.textContent=`Zoom ${z} % · zurücksetzen`; }
+$('#czoom').addEventListener('click',()=>{ LAY.px=PX0; S.px=PX0; save(); CH.stripKey=''; zoomUI(); });
 // =================== Rückgängig ===================
 const UNDO=[], REDO=[];
 function stateNow(){ return {ev:CH.ev.map(e=>Object.assign({},e,{f:Array.isArray(e.f)?e.f.slice():e.f})),grids:CH.grids.map(g=>Object.assign({},g,{lines:g.lines.slice()}))}; }
@@ -1690,6 +1714,14 @@ function pressEnd(){
   DR.ev=null; DR.b=null; DR.lines0=null; CH.stripKey='';
 }
 { const st=$('#cstrip');
+  if(S.px) LAY.px=S.px;
+  // Zoomen mit zwei Fingern (waagerecht), die Stelle zwischen den Fingern bleibt stehen
+  let Z=null;
+  st.addEventListener('touchstart',e=>{ if(e.touches.length===2){ clearTimeout(DR.timer); DR.timer=0; const a=e.touches[0],b=e.touches[1], r=st.getBoundingClientRect();
+    const mid=(a.clientX+b.clientX)/2-r.left; Z={d0:Math.abs(a.clientX-b.clientX)||1,px0:LAY.px,tm:(st.scrollLeft+mid-40)/LAY.px,mid}; } },{passive:true});
+  st.addEventListener('touchmove',e=>{ if(Z&&e.touches.length===2){ e.preventDefault(); const a=e.touches[0],b=e.touches[1];
+    LAY.px=clamp(Z.px0*(Math.abs(a.clientX-b.clientX)||1)/Z.d0,30,320); CH.follow=false; CH.stripKey=''; renderStrip(); st.scrollLeft=Z.tm*LAY.px+40-Z.mid; } },{passive:false});
+  st.addEventListener('touchend',e=>{ if(Z&&e.touches.length<2){ Z=null; S.px=Math.round(LAY.px); save(); zoomUI(); } });
   // Touch-Ereignisse hängen am berührten Element; der Tab wird beim Ziehen neu gezeichnet, deshalb die Zuhörer direkt dort anbringen
   const onMove=e=>{ const t=e.touches[0]; if(t&&pressMove(t.clientX,t.clientY)) e.preventDefault(); };
   const onEnd=e=>{ const el=e.currentTarget; el.removeEventListener('touchmove',onMove); el.removeEventListener('touchend',onEnd); el.removeEventListener('touchcancel',onEnd); pressEnd(); };
