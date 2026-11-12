@@ -126,6 +126,27 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 #mTap:active{background:color-mix(in oklab,var(--acc) 25%,var(--panel))}
 #mPrev.on{border-color:var(--acc);color:var(--acc)}
 .row:disabled{opacity:.4}
+#esheet{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.55);display:none;align-items:flex-end}
+#esheet.on{display:flex}
+#esheet .sheet{gap:18px}
+.ehead h2 #eName{font-size:26px;margin:0}
+.ehead h2 span{font-size:13px;font-weight:400;color:var(--muted);margin-left:8px}
+.echips{display:flex;flex-wrap:wrap;gap:8px}
+.echips button{height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line);font-size:15px}
+.echips button:active{background:color-mix(in oklab,var(--acc) 25%,var(--panel))}
+.egrid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.egrid.q{grid-template-columns:repeat(4,1fr)}
+.egrid button{height:42px;border-radius:10px;border:1px solid var(--line);font-size:14px;color:var(--muted)}
+.egrid button[aria-pressed="true"]{border-color:var(--acc);background:color-mix(in oklab,var(--acc) 20%,var(--panel));color:var(--text)}
+.ediag{display:flex;align-items:center;gap:14px}
+.ediag #eDiag{width:96px;aspect-ratio:180/210;flex:none;cursor:pointer}
+.ediag #eDiag svg{width:100%;height:100%;display:block}
+.ediag p{font-size:12px;color:var(--muted)}
+.eacts{display:flex;gap:10px}
+.eacts button{flex:1;height:50px;border-radius:12px;border:1px solid var(--line);font-size:15px}
+#eDel{color:#e08a8a;border-color:color-mix(in oklab,#e08a8a 45%,var(--line))}
+#eDone{border-color:var(--acc);color:var(--text);background:color-mix(in oklab,var(--acc) 18%,var(--panel))}
+.cname{cursor:pointer}
 #creset:active,#cmic:active{transform:scale(.95)}
 
 /* Settings sheet */
@@ -317,6 +338,19 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
       <input type="range" id="mVol" min="10" max="100" step="1" aria-label="Lautstärke">
       <p>Die Klicks sind hoch und werden aus der Erkennung herausgefiltert. Kopfhörer sind nicht nötig. Tempo und Taktart gelten ab der nächsten Aufnahme. Bei 6/8 zählt jedes Achtel als Klick.</p>
     </div>
+  </div>
+</div>
+<div id="esheet" role="dialog" aria-modal="true" aria-label="Akkord bearbeiten">
+  <div class="sheet">
+    <div class="sh-head ehead">
+      <h2><span id="eName">–</span><span id="eWhen"></span></h2>
+      <button class="iconbtn" id="eclose" aria-label="Bearbeiten schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="group"><h3>Ähnlich klingend</h3><div class="echips" id="eSim"></div></div>
+    <div class="group"><h3>Grundton</h3><div class="egrid" id="eRoot"></div></div>
+    <div class="group"><h3>Art</h3><div class="egrid q" id="eQual"></div></div>
+    <div class="group"><h3>Griff</h3><div class="ediag"><div id="eDiag" role="button" aria-label="Nächster Griff"></div><p id="eVoi"></p></div></div>
+    <div class="eacts"><button id="eDel">Entfernen</button><button id="eDone">Fertig</button></div>
   </div>
 </div>
 <script>
@@ -749,7 +783,7 @@ $('#sclose').addEventListener('click',closeSheet);
 $('#sheet').addEventListener('click',e=>{if(e.target.id==='sheet')closeSheet();});
 $('#launch').addEventListener('click',startTuner);
 $('#close').addEventListener('click',stopTuner);
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('#msheet').classList.contains('on')){$('#msheet').classList.remove('on');metPreview(false);}else if($('#sheet').classList.contains('on'))closeSheet();else if(running)stopTuner();else if(CH.running)stopChords();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('#esheet').classList.contains('on'))closeEdit();else if($('#msheet').classList.contains('on')){$('#msheet').classList.remove('on');metPreview(false);}else if($('#sheet').classList.contains('on'))closeSheet();else if(running)stopTuner();else if(CH.running)stopChords();}});
 
 function refresh(){
   root.classList.toggle('day',S.theme==='day');
@@ -1000,17 +1034,19 @@ function stripSVG(){
   CH.grids.forEach(g=>{ const end=g.end==null?CH.tNow:g.end;
     for(let k=Math.max(0,Math.ceil(-g.t/g.bar));g.t+k*g.bar<=end+1e-3;k++){ const x=left+(g.t+k*g.bar)*F+10;
       o+=`<line x1="${x}" y1="${top-D*.62}" x2="${x}" y2="${top+5*C+D*.62}" stroke="var(--muted)" stroke-width="1.4" opacity=".8"/>`; } });
-  CH.ev.forEach(e=>{
+  CH.ev.forEach((e,i)=>{
     const x=left+e.t*F+10, p=labelParts(e);
+    if(ED.ev===e) o+=`<rect x="${x-Math.max(Lb,D)*1.1}" y="${cy-Lb*1.1}" width="${Math.max(Lb,D)*2.2}" height="${top+5*C+D*.7-cy+Lb*1.1}" rx="8" fill="var(--acc)" opacity=".18"/>`;
     o+=`<text x="${x}" y="${cy}" text-anchor="middle" font-size="${Lb}" font-weight="500" fill="var(--text)">${p.root}<tspan fill="var(--acc)" font-size="${Lb*.75}" dy="-${Lb*.18}">${p.suf}</tspan></text>`;
     if(e.f) e.f.forEach((f,i)=>{ if(f<0) return; const y=top+(5-i)*C, n=String(f).length;
-      o+=`<rect x="${x-D*.42*n-1}" y="${y-D*.62}" width="${D*.84*n+2}" height="${D*1.15}" fill="var(--bg)"/><text x="${x}" y="${y+D*.36}" text-anchor="middle" font-size="${D}" fill="var(--text)">${f}</text>`; });
+      o+=`<rect x="${x-D*.42*n-1}" y="${y-D*.62}" width="${D*.84*n+2}" height="${D*1.15}" fill="${ED.ev===e?'none':'var(--bg)'}"/><text x="${x}" y="${y+D*.36}" text-anchor="middle" font-size="${D}" fill="var(--text)">${f}</text>`; });
+    o+=`<rect data-i="${i}" x="${x-Math.max(Lb,D)*1.1}" y="0" width="${Math.max(Lb,D)*2.2}" height="${H}" fill="transparent" style="cursor:pointer"/>`;
   });
   if(CH.mic){const nx=left+CH.tNow*F+10+F*.5; o+=`<line x1="${nx}" y1="${cy-Lb}" x2="${nx}" y2="${top+5*C+D*.7}" stroke="var(--acc)" stroke-width="1.5" stroke-dasharray="3 3" opacity=".7"/>`;}
   return o+'</svg>';
 }
 function renderStrip(){
-  const key=CH.ev.map(e=>e.key+'@'+e.t.toFixed(2)+(e.f?e.f.join(','):'')).join(';')+'|'+S.notation+'|'+CH.mic+'|'+Math.floor(CH.tNow*6)+'|'+CH.grids.map(g=>g.t.toFixed(2)+(g.end==null?'':'/'+g.end.toFixed(2))).join(',');
+  const key=(ED.ev?CH.ev.indexOf(ED.ev):-1)+'#'+CH.ev.map(e=>e.key+'@'+e.t.toFixed(2)+(e.f?e.f.join(','):'')).join(';')+'|'+S.notation+'|'+CH.mic+'|'+Math.floor(CH.tNow*6)+'|'+CH.grids.map(g=>g.t.toFixed(2)+(g.end==null?'':'/'+g.end.toFixed(2))).join(',');
   if(key===CH.stripKey) return; CH.stripKey=key;
   const el=$('#cstrip'); el.innerHTML=stripSVG();
   if(CH.follow) el.scrollLeft=el.scrollWidth;
@@ -1019,9 +1055,9 @@ function renderStrip(){
 function renderChord(now){
   const E=CH.eng, nameEl=$('#cname'), quiet=!E||CH.tNow-E.lastSound>1.5;
   const l=E&&E.cur, vo=E&&E.voicing();
-  const key=(l?l.key:'none')+'|'+CH.mic+'|'+(CH.counting?'c'+CH.count:'')+'|'+(vo?vo.v.id+'/'+vo.n+(E.vLock?'L':''):'')+'|'+S.notation;
+  const key=(l?l.key:'none')+'|'+CH.mic+'|'+(CH.counting?'c'+CH.count:'')+'|'+(vo?vo.v.id+'/'+vo.n+(E.vLock?'L':''):'')+'|'+S.notation+'|'+(CH.ev.length?CH.ev[CH.ev.length-1].key+(CH.ev[CH.ev.length-1].f||[]).join(''):'');
   const le=CH.ev[CH.ev.length-1];
-  if(le&&l&&le.key===l.key&&vo) le.f=vo.v.f;
+  if(le&&l&&le.key===l.key&&vo&&!le.edited) le.f=vo.v.f;
   renderStrip();
   nameEl.classList.toggle('idle',!l||quiet);
   $('#cdiag').classList.toggle('idle',!l||quiet);
@@ -1033,7 +1069,8 @@ function renderChord(now){
     const p=labelParts(l);
     nameEl.innerHTML=`<span>${p.root[0]}</span><span class="acc">${p.root.slice(1)}</span><span class="suf">${p.suf}</span>`;
     nameEl.classList.toggle('single',l.type==='note');
-    $('#cdiag').innerHTML=vo?diagramSVG(vo.v):'';
+    const lev=CH.ev[CH.ev.length-1], ed=lev&&lev.edited&&lev.key===l.key&&lev.f;
+    $('#cdiag').innerHTML=ed?diagramSVG({f:lev.f,b:(evVoicings(lev).find(v=>v.f.join()===lev.f.join())||{b:0}).b}):(vo?diagramSVG(vo.v):(l.type==='power'?diagramSVG({f:POWER(l.r),b:0}):''));
     $('#cvoi').textContent=vo&&vo.n>1?`Griff ${vo.i+1} von ${vo.n} · tippen zum Wechseln`:'';
     $('#chint').textContent=!CH.mic&&CH.micMsg?CH.micMsg:(l.type==='note'?'Einzelton':(l.type==='power'?'Powerchord':''));
   }
@@ -1065,12 +1102,16 @@ function chordFrame(now){
   CH.raf=requestAnimationFrame(chordFrame);
 }
 function onChordCommit(c){
-  if(c.type!=='chord') return;
+  if(c.type==='note') return;
   const last=CH.ev[CH.ev.length-1];
   if(last&&last.key===c.key) return;
   const E=CH.eng; let t=(E&&CH.tNow-E.lastOn<1)?E.lastOn:CH.tNow-(E?E.candT:0); t=Math.max(t,CH.tBase,0);
   if(last) t=Math.max(t,last.t+0.35);
-  CH.ev.push({t,r:c.r,qi:c.qi,type:'chord',key:c.key,f:null});
+  let cn=null;
+  if(E){ let n=0; for(const x of E.chroma) n+=x*x; n=Math.sqrt(n)||1; cn=Array.from(E.chroma,x=>x/n); }
+  const ev={t,r:c.r,qi:c.type==='chord'?c.qi:null,type:c.type,key:c.key,f:null,cn,pf:E?Array.from(E.pf):null};
+  if(c.type==='power') ev.f=POWER(c.r);
+  CH.ev.push(ev);
   if(CH.ev.length>400) CH.ev.shift();
 }
 
@@ -1098,7 +1139,7 @@ function startChords(){
   CH.running=true; cancelAnimationFrame(CH.raf); CH.raf=requestAnimationFrame(chordFrame);
 }
 function stopChords(){
-  chordMicOff(); metPreview(false); $('#msheet').classList.remove('on'); CH.running=false; cancelAnimationFrame(CH.raf); CH.eng=null;
+  closeEdit(); chordMicOff(); metPreview(false); $('#msheet').classList.remove('on'); CH.running=false; cancelAnimationFrame(CH.raf); CH.eng=null;
   $('#chords').classList.remove('on');
 }
 function setMicUI(){
@@ -1180,6 +1221,41 @@ function metUI(){
 function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) metPreview(true); }
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
+// =================== Bearbeiten ===================
+const ED={ev:null};
+const POWER=r=>{const rf=(r-4+12)%12; return rf<=7?[rf,rf+2,rf+2,-1,-1,-1]:[-1,(r-9+12)%12,(r-9+12)%12+2,(r-9+12)%12+2,-1,-1];};
+function evFrets(e){ return e.type==='power'?POWER(e.r):voicings(e.r,e.qi)[0].f; }
+function evVoicings(e){ return e.type==='power'?[{f:POWER(e.r),b:0,id:'p'}]:voicings(e.r,e.qi); }
+function evName(e){const p=labelParts(e);return p.root+p.suf;}
+// Ähnlich klingende Akkorde aus dem gespeicherten Klangbild
+function similar(e){
+  const cn=e.cn; if(!cn) return [];
+  const L=[]; for(const t of TPL){let d=0; for(let k=0;k<12;k++) d+=cn[k]*t.v[k]; L.push({r:t.r,qi:t.qi,sc:d*QUAL[t.qi].p});}
+  L.sort((a,b)=>b.sc-a.sc);
+  return L.filter(x=>!(e.type==='chord'&&x.r===e.r&&x.qi===e.qi)).slice(0,5);
+}
+function setEv(e,r,qi,type){
+  e.type=type; e.r=r; e.qi=type==='chord'?qi:null; e.key=type+'|'+r+'|'+(type==='chord'?qi:'');
+  e.f=evFrets(e); e.vi=0; e.edited=true;
+  const E=CH.eng; if(E&&CH.ev[CH.ev.length-1]===e){ E.cur={type,r,qi:e.qi,key:e.key,sc:1}; E.cand=null; E.vIdx=0; E.vLock=true; }
+}
+function openEdit(e){ if(!e) return; ED.ev=e; renderEdit(); $('#esheet').classList.add('on'); CH.stripKey=''; }
+function closeEdit(){ ED.ev=null; $('#esheet').classList.remove('on'); CH.stripKey=''; CH.key=''; }
+function renderEdit(){
+  const e=ED.ev; if(!e) return;
+  $('#eName').textContent=evName(e);
+  const m=Math.floor(e.t/60), sec=Math.floor(e.t%60);
+  $('#eWhen').textContent=`bei ${m}:${String(sec).padStart(2,'0')}`;
+  const sim=similar(e);
+  $('#eSim').innerHTML=sim.length?sim.map(x=>`<button data-r="${x.r}" data-q="${x.qi}">${rootName(x.r)}${QUAL[x.qi].id}</button>`).join(''):'<span>–</span>';
+  $('#eRoot').innerHTML=ROOTS.map((_,r)=>`<button data-v="${r}" aria-pressed="${e.r===r}">${rootName(r)}</button>`).join('');
+  const qs=QUAL.map((q,i)=>({v:String(i),t:q.id||'Dur'})).concat([{v:'p',t:'5'}]);
+  $('#eQual').innerHTML=qs.map(q=>`<button data-v="${q.v}" aria-pressed="${e.type==='power'?q.v==='p':String(e.qi)===q.v}">${q.t}</button>`).join('');
+  const L=evVoicings(e), vi=Math.min(e.vi||0,L.length-1), v={f:e.f||L[vi].f,b:(L[vi]&&L[vi].f===e.f)?L[vi].b:(L.find(x=>x.f.join()===(e.f||[]).join())||{b:0}).b};
+  $('#eDiag').innerHTML=diagramSVG(v);
+  $('#eVoi').textContent=L.length>1?`Griff ${(L.findIndex(x=>x.f.join()===(e.f||[]).join())+1)||1} von ${L.length} · tippen zum Wechseln`:'';
+}
+
 async function chordMicOn(){
   const run=++CH.run; CH.mic=true; CH.micMsg=''; setMicUI();
   let ctx=null, demo=true, stream=null;
@@ -1243,6 +1319,18 @@ function chordMicOff(msg){
 }
 $('#cstrip').addEventListener('scroll',e=>{const el=e.target; CH.follow=el.scrollLeft+el.clientWidth>=el.scrollWidth-40;});
 $('#cmic').addEventListener('click',()=>{CH.mic?chordMicOff():chordMicOn();});
+// Bearbeiten
+$('#cstrip').addEventListener('click',e=>{const h=e.target.closest('[data-i]'); if(h) openEdit(CH.ev[+h.dataset.i]);});
+$('#cname').addEventListener('click',()=>{ if(CH.ev.length) openEdit(CH.ev[CH.ev.length-1]); });
+$('#eclose').addEventListener('click',closeEdit); $('#eDone').addEventListener('click',closeEdit);
+$('#esheet').addEventListener('click',e=>{if(e.target.id==='esheet') closeEdit();});
+$('#eSim').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b||!ED.ev) return; setEv(ED.ev,+b.dataset.r,+b.dataset.q,'chord'); renderEdit(); CH.stripKey=''; CH.key='';});
+$('#eRoot').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b||!ED.ev) return; const x=ED.ev; setEv(x,+b.dataset.v,x.type==='chord'?x.qi:0,x.type==='power'?'power':'chord'); renderEdit(); CH.stripKey=''; CH.key='';});
+$('#eQual').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b||!ED.ev) return; const x=ED.ev; if(b.dataset.v==='p') setEv(x,x.r,null,'power'); else setEv(x,x.r,+b.dataset.v,'chord'); renderEdit(); CH.stripKey=''; CH.key='';});
+$('#eDiag').addEventListener('click',()=>{const x=ED.ev; if(!x) return; const L=evVoicings(x); let i=L.findIndex(v=>v.f.join()===(x.f||[]).join()); i=(i+1)%L.length; x.f=L[i].f; x.edited=true;
+  if(x.type==='chord'&&L.length>1){(S.voi||(S.voi={}))[x.r+'|'+QUAL[x.qi].id]=L[i].id; save(); if(CH.eng){CH.eng.pref=S.voi; if(CH.ev[CH.ev.length-1]===x){CH.eng.vIdx=i;CH.eng.vLock=true;}}}
+  renderEdit(); CH.stripKey=''; CH.key='';});
+$('#eDel').addEventListener('click',()=>{const x=ED.ev; if(!x) return; const i=CH.ev.indexOf(x); if(i>=0) CH.ev.splice(i,1); closeEdit();});
 // Metronom-Bedienfeld
 const mClose=()=>{$('#msheet').classList.remove('on'); metPreview(false);};
 $('#cmet').addEventListener('click',()=>{metUI(); $('#msheet').classList.add('on');});
@@ -1271,7 +1359,7 @@ $('#launchChords').addEventListener('click',startChords);
 $('#cclose').addEventListener('click',stopChords);
 $('#cchip').addEventListener('click',()=>openSheet());
 // Reset: Verlauf und angezeigten Akkord leeren (gemerkte Griffe bleiben)
-$('#creset').addEventListener('click',()=>{const d=CH.tNow; CH.tBase-=d; CH.tNow=0; CH.ev=[]; CH.grids=CH.met?[{t:CH.tBase,bar:CH.met.beat*CH.met.beats,end:null}]:[]; CH.stripKey=''; CH.follow=true; CH.key=''; if(CH.eng){const sr=CH.eng.sr,pref=CH.eng.pref; CH.eng=makeChordEngine(sr); CH.eng.pref=pref; CH.eng.onCommit=onChordCommit;}});
+$('#creset').addEventListener('click',()=>{closeEdit();const d=CH.tNow; CH.tBase-=d; CH.tNow=0; CH.ev=[]; CH.grids=CH.met?[{t:CH.tBase,bar:CH.met.beat*CH.met.beats,end:null}]:[]; CH.stripKey=''; CH.follow=true; CH.key=''; if(CH.eng){const sr=CH.eng.sr,pref=CH.eng.pref; CH.eng=makeChordEngine(sr); CH.eng.pref=pref; CH.eng.onCommit=onChordCommit;}});
 // Griffbild antippen: nächster Griff, wird für diesen Akkord gemerkt
 $('#cdiag').addEventListener('click',()=>{
   if(!CH.eng) return; const r=CH.eng.nextVoicing(); if(!r) return;
