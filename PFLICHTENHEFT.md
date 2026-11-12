@@ -29,6 +29,7 @@ Eine Web-App für Akustikgitarre, gedacht für zu Hause, optimiert für das Sams
   - Hellmodus: gedämpftes Hellgrau `#dde1e6`, Text `#2a3139`
   - Farben: Anzeige gedämpftes Stahlblau (Farbton 212, Sättigung 42 %), „Ton sitzt“ Eisblau (Farbton 200, Sättigung 95 %) mit fast weißem Kern. Über ein Farbrad (Farbton + Sättigung) änderbar.
 - **Bildschirm bleibt an**, solange ein Werkzeug aktiv ist (Wake Lock).
+- **Mikrofon nur bei Bedarf:** Im Menü ist es immer aus. Sobald die App nicht sichtbar ist (App-Wechsel, Bildschirm aus), wird es sofort freigegeben. Wird ein Werkzeug geschlossen, während das Mikro noch startet, wird es gleich wieder freigegeben.
 - **Mikrofon:** Rauschunterdrückung, Echo- und Pegelautomatik aus.
 - **Einstellungen werden lokal gespeichert** (localStorage).
 
@@ -52,6 +53,8 @@ Zwei runde Buttons untereinander: **Stimmgerät** und **Akkorde**. Darunter: akt
 ## 6. Modul Stimmgerät (fertig)
 
 ### Aufbau
+Mikro startet beim Öffnen. Im Hintergrund wird es freigegeben und beim Zurückkommen wieder eingeschaltet.
+
 Oben 15 breite Balken (große Fläche), darunter groß der Ton, darunter Saite und Bund. Keine Cent-/Hz-Anzeige, keine Textzeile, kein Strobe, kein Richtungsstreifen (bewusst entfernt).
 
 ### Zielbestimmung
@@ -102,6 +105,7 @@ Oben 15 breite Balken (große Fläche), darunter groß der Ton, darunter Saite u
   - Powerchord nur, wenn die Terz unter 15 % liegt. Einzelton nur, wenn eine Tonklasse klar alleine steht.
   - **Ruhe:** Ein Wechsel braucht 0,3 s Stabilität und 0,04 Vorsprung, und zwar nur bis 0,8 s nach einem Anschlag. Beim Ausklingen bleibt der Akkord stehen, außer ein anderer liegt um mehr als 0,12 vorne.
 - **Griffbild:** Pro Akkord mehrere gängige Griffe (z. B. G: 320003, 320033, 3x0003, 3x0033 und Barré-Formen). Die App wählt den Griff, dessen Tonhöhen (inkl. Obertönen) am besten zum Gehörten passen. Offene Griffe haben Vorrang. **Antippen** blättert zum nächsten Griff und hält ihn, bis der Akkord wechselt. Die Wahl wird gemerkt (Einstellungen, Schlüssel `voi`) und künftig bevorzugt.
+- **Mikro per Knopf:** Beim Öffnen ist das Mikro aus. Unten ein runder Knopf (Mikrofon-Symbol, leuchtet aktiv in der Akzentfarbe) mit Status „Start · Mikro aus“ / „Stopp · hört zu“. Nach **30 s Stille** schaltet es sich ab („Start · nach 30 s Stille aus“). Im Hintergrund wird es ausgeschaltet und nur per Knopf wieder gestartet. Der letzte Akkord bleibt beim Stoppen stehen. Kein Sprachbefehl, weil das Mikro dafür dauerhaft lauschen müsste.
 - Anzeige: Akkordname groß, Griffbild mit „Griff x von n · tippen zum Wechseln“, Verlauf der letzten 8 Akkorde, „Verlauf leeren“.
 - **Tests:** Zwei Aufnahmen von Manus Akustikgitarre (S24, Sprachrekorder). G (320033) 96 %, G (320003) 93 %, D 96 %, Em 95 %, Cmaj7 93 %, Asus2 79 % (Rest Esus4, wenn die A-Saite nicht mitklingt), jeweils mit dem richtigen Griff. Vorher wechselte die Anzeige je Akkord 5- bis 16-mal, jetzt einmal. Synthetischer Klang weiterhin 10/10.
 - Bekannt: Sprache wird manchmal als Akkord gelesen und landet im Verlauf.

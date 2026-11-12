@@ -102,6 +102,14 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .chist span{font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);opacity:.6}
 .chist span:last-child{border-color:var(--acc);opacity:1}
 #cclear{height:32px;font-size:11px;color:var(--muted)}
+.cmicwrap{display:flex;flex-direction:column;align-items:center;gap:8px;padding:4px 16px 26px}
+.cmic{width:84px;height:84px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;
+  background:radial-gradient(circle at 50% 38%,color-mix(in oklab,var(--acc) 10%,var(--panel)),var(--panel) 72%);transition:transform .2s,box-shadow .4s,border-color .4s;-webkit-tap-highlight-color:transparent}
+.cmic:active{transform:scale(.96)}
+.cmic svg{width:30px;height:30px;stroke:var(--muted);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:stroke .4s}
+.cmic.on{border-color:var(--acc);box-shadow:0 0 0 8px color-mix(in oklab,var(--acc) 10%,transparent),0 0 46px color-mix(in oklab,var(--acc) 26%,transparent)}
+.cmic.on svg{stroke:var(--acc)}
+.cmicst{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);min-height:14px;text-align:center}
 
 /* Settings sheet */
 #sheet{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.55);display:none;align-items:flex-end}
@@ -181,6 +189,12 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
       <div class="chist" id="chist"></div>
       <button class="chip" id="cclear">Verlauf leeren</button>
     </div>
+  </div>
+  <div class="cmicwrap">
+    <button class="cmic" id="cmic" aria-pressed="false" aria-label="Mikrofon starten">
+      <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/></svg>
+    </button>
+    <div class="cmicst" id="cmicst">Start · Mikro aus</div>
   </div>
 </section>
 
@@ -574,9 +588,15 @@ function frame(now){
 }
 
 async function getWake(){try{if('wakeLock' in navigator) wake=await navigator.wakeLock.request('screen');}catch(e){wake=null;}}
-document.addEventListener('visibilitychange',()=>{if(running&&document.visibilityState==='visible')getWake();});
+// Mikro freigeben, sobald die App nicht sichtbar ist; beim Zurückkommen ins Stimmgerät wieder einschalten
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'){ if($('#tuner').classList.contains('on')){stopTuner(); tunerResume=true;} }
+  else if(tunerResume) startTuner();
+});
 
+let tunerRun=0, tunerResume=false;
 async function startTuner(){
+  const run=++tunerRun; tunerResume=false;
   $('#tuner').classList.add('on');
   hist=[]; sig.lastSeen=-1e9; sig.level=0; view.noteKey=''; view.locked=false; view.lockAmt=0; view.pos=0; view.vel=0; view.idx=-1; A.lockLin=0; A.fullT=-1; A.midI=0;
   source='demo'; let ctx=null;
@@ -584,11 +604,13 @@ async function startTuner(){
   try{
     if(!ctx||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw 0;
     const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    if(run!==tunerRun){stream.getTracks().forEach(t=>t.stop()); try{ctx.close();}catch(_){} return;} // inzwischen geschlossen
     const src=ctx.createMediaStreamSource(stream), an=ctx.createAnalyser();
     an.fftSize=4096; src.connect(an);
     await ctx.resume();
     audio={ctx,an,stream,buf:new Float32Array(an.fftSize)}; source='mic';
   }catch(e){ if(ctx) try{ctx.close();}catch(_){}; audio=null; }
+  if(run!==tunerRun) return;
   const b=$('#banner');
   b.textContent='Vorschau mit simulierter Gitarre: In dieser Ansicht ist das Mikrofon gesperrt. So siehst du Anzeige, Dämpfung und Einrasten.';
   b.classList.toggle('on',source!=='mic');
@@ -596,7 +618,7 @@ async function startTuner(){
   running=true; last=performance.now(); cancelAnimationFrame(raf); raf=requestAnimationFrame(frame);
 }
 function stopTuner(){
-  running=false; cancelAnimationFrame(raf);
+  tunerRun++; running=false; cancelAnimationFrame(raf);
   if(audio){try{audio.stream.getTracks().forEach(t=>t.stop());audio.ctx.close();}catch(e){} audio=null;}
   if(wake){try{wake.release();}catch(e){} wake=null;}
   $('#tuner').classList.remove('on');
@@ -909,7 +931,7 @@ function diagramSVG(v){
   return s+'</svg>';
 }
 
-const CH={running:false,raf:0,ctx:null,an:null,stream:null,T:null,eng:null,demoTimer:0,wake:null,hist:[],key:'',last:0,lastProc:0};
+const CH={running:false,raf:0,ctx:null,an:null,stream:null,T:null,eng:null,demoTimer:0,wake:null,hist:[],key:'',last:0,lastProc:0,micStart:0,run:0,mic:false,micMsg:''};
 
 function labelParts(l){
   if(l.type==='chord') return {root:rootName(l.r),suf:QUAL[l.qi].id};
@@ -919,13 +941,13 @@ function labelParts(l){
 function renderChord(now){
   const E=CH.eng, nameEl=$('#cname'), quiet=!E||now/1000-E.lastSound>1.5;
   const l=E&&E.cur, vo=E&&E.voicing();
-  const key=(l?l.key:'none')+'|'+(vo?vo.v.id+'/'+vo.n+(E.vLock?'L':''):'')+'|'+S.notation+'|'+CH.hist.map(h=>h.key).join(',');
+  const key=(l?l.key:'none')+'|'+CH.mic+'|'+(vo?vo.v.id+'/'+vo.n+(E.vLock?'L':''):'')+'|'+S.notation+'|'+CH.hist.map(h=>h.key).join(',');
   nameEl.classList.toggle('idle',!l||quiet);
   $('#cdiag').classList.toggle('idle',!l||quiet);
   $('#cvoi').classList.toggle('idle',!l||quiet);
   if(key===CH.key) return;
   CH.key=key;
-  if(!l){nameEl.innerHTML='<span>–</span>';$('#cdiag').innerHTML='';$('#cvoi').textContent='';$('#chint').textContent='Spiel einen Akkord';}
+  if(!l){nameEl.innerHTML='<span>–</span>';$('#cdiag').innerHTML='';$('#cvoi').textContent='';$('#chint').textContent=CH.mic?'Spiel einen Akkord':'Tippe unten auf Start';}
   else{
     const p=labelParts(l);
     nameEl.innerHTML=`<span>${p.root[0]}</span><span class="acc">${p.root.slice(1)}</span><span class="suf">${p.suf}</span>`;
@@ -939,10 +961,11 @@ function renderChord(now){
 
 function chordFrame(now){
   if(!CH.running) return;
-  if(now-CH.lastProc>=30){ // Analyse etwa 30-mal pro Sekunde
+  if(CH.mic&&CH.an&&now-CH.lastProc>=30){ // Analyse etwa 30-mal pro Sekunde
     const dt=Math.min(0.1,(now-CH.lastProc)/1000||0.033); CH.lastProc=now;
     CH.an.getFloatTimeDomainData(CH.T);
     CH.eng.process(CH.T,dt,now/1000,S.a4);
+    if(now/1000-Math.max(CH.eng.lastSound,CH.micStart)>30) chordMicOff('Start · nach 30 s Stille aus');
   }
   renderChord(now);
   CH.raf=requestAnimationFrame(chordFrame);
@@ -968,39 +991,68 @@ function demoStrum(ctx,dest,r,qi,t0){
   });
 }
 
-async function startChords(){
+// Bildschirm öffnen: Mikro bleibt aus, bis „Start“ gedrückt wird
+function startChords(){
   $('#chords').classList.add('on');
-  CH.hist=[]; CH.key='';
-  let ctx=null, demo=true;
+  CH.hist=[]; CH.key=''; CH.eng=null; CH.micMsg='';
+  $('#cbanner').classList.remove('on');
+  setMicUI();
+  CH.running=true; cancelAnimationFrame(CH.raf); CH.raf=requestAnimationFrame(chordFrame);
+}
+function stopChords(){
+  chordMicOff(); CH.running=false; cancelAnimationFrame(CH.raf); CH.eng=null;
+  $('#chords').classList.remove('on');
+}
+function setMicUI(){
+  const b=$('#cmic'); b.classList.toggle('on',CH.mic); b.setAttribute('aria-pressed',CH.mic);
+  b.setAttribute('aria-label',CH.mic?'Mikrofon stoppen':'Mikrofon starten');
+  $('#cmicst').textContent=CH.mic?'Stopp · hört zu':(CH.micMsg||'Start · Mikro aus');
+}
+async function chordMicOn(){
+  const run=++CH.run; CH.mic=true; CH.micMsg=''; setMicUI();
+  let ctx=null, demo=true, stream=null;
   try{ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}
-  if(!ctx){$('#cbanner').textContent='Audio wird von diesem Browser nicht unterstützt.';$('#cbanner').classList.add('on');return;}
+  if(!ctx){$('#cbanner').textContent='Audio wird von diesem Browser nicht unterstützt.';$('#cbanner').classList.add('on');CH.mic=false;setMicUI();return;}
   const an=ctx.createAnalyser(); an.fftSize=16384; an.smoothingTimeConstant=0;
   try{
     if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw 0;
-    const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
-    ctx.createMediaStreamSource(stream).connect(an); CH.stream=stream; demo=false;
-  }catch(e){
+    stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    demo=false;
+  }catch(e){}
+  if(run!==CH.run){ // inzwischen gestoppt oder geschlossen
+    try{if(stream) stream.getTracks().forEach(t=>t.stop());}catch(e){} try{ctx.close();}catch(e){} return;
+  }
+  if(!demo){ ctx.createMediaStreamSource(stream).connect(an); CH.stream=stream; }
+  else{
     const mute=ctx.createGain(); mute.gain.value=0; an.connect(mute); mute.connect(ctx.destination);
     let i=0; const play=()=>{const [r,qi]=DEMO_SEQ[i%DEMO_SEQ.length]; demoStrum(ctx,an,r,qi,ctx.currentTime+0.05); i++;};
     play(); CH.demoTimer=setInterval(play,2400);
   }
+  CH.ctx=ctx;
   try{await ctx.resume();}catch(e){}
-  CH.ctx=ctx; CH.an=an; CH.T=new Float32Array(an.fftSize);
-  CH.eng=makeChordEngine(ctx.sampleRate); CH.eng.pref=S.voi||(S.voi={}); CH.eng.onCommit=onChordCommit;
+  if(run!==CH.run) return; // chordMicOff hat bereits aufgeräumt
+  CH.an=an; CH.T=new Float32Array(an.fftSize);
+  if(!CH.eng||CH.eng.sr!==ctx.sampleRate){ // letzten Akkord stehen lassen, wenn möglich
+    const old=CH.eng; CH.eng=makeChordEngine(ctx.sampleRate); if(old){CH.eng.cur=old.cur; CH.eng.vIdx=old.vIdx;}
+  }
+  CH.eng.pref=S.voi||(S.voi={}); CH.eng.onCommit=onChordCommit;
+  CH.micStart=performance.now()/1000; CH.lastProc=0;
   $('#cbanner').textContent='Vorschau mit simulierter Gitarre: In dieser Ansicht ist das Mikrofon gesperrt. Die Akkorde werden aus einem künstlichen Gitarrenklang erkannt.';
   $('#cbanner').classList.toggle('on',demo);
-  try{if('wakeLock' in navigator) CH.wake=await navigator.wakeLock.request('screen');}catch(e){}
-  CH.running=true; CH.lastProc=0; cancelAnimationFrame(CH.raf); CH.raf=requestAnimationFrame(chordFrame);
+  let w=null; try{if('wakeLock' in navigator) w=await navigator.wakeLock.request('screen');}catch(e){}
+  if(run!==CH.run){try{if(w) w.release();}catch(e){}} else CH.wake=w;
 }
-function stopChords(){
-  CH.running=false; cancelAnimationFrame(CH.raf); clearInterval(CH.demoTimer);
+function chordMicOff(msg){
+  CH.run++; CH.mic=false; CH.micMsg=msg||''; clearInterval(CH.demoTimer);
   try{if(CH.stream) CH.stream.getTracks().forEach(t=>t.stop());}catch(e){}
   try{if(CH.ctx) CH.ctx.close();}catch(e){}
   try{if(CH.wake) CH.wake.release();}catch(e){}
-  CH.stream=null; CH.ctx=null; CH.wake=null; CH.eng=null;
-  $('#chords').classList.remove('on');
+  CH.stream=null; CH.ctx=null; CH.an=null; CH.wake=null;
+  setMicUI();
 }
-document.addEventListener('visibilitychange',async()=>{if(CH.running&&document.visibilityState==='visible'){try{CH.wake=await navigator.wakeLock.request('screen');}catch(e){}}});
+$('#cmic').addEventListener('click',()=>{CH.mic?chordMicOff():chordMicOn();});
+// App im Hintergrund: Mikro sofort freigeben (Neustart nur per Knopf)
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&CH.mic) chordMicOff();});
 $('#launchChords').addEventListener('click',startChords);
 $('#cclose').addEventListener('click',stopChords);
 $('#cchip').addEventListener('click',()=>openSheet());
