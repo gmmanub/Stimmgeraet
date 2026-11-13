@@ -264,8 +264,15 @@ Stand: 13.11.2026, abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Que
 ### A · Läuft gerade (Akkord-Chat, Plan „Ordnung“)
 1. ✅ Takterkennung nach dem Stoppen, Blatt-Ansicht, erster Akkord auf der Eins, Verschieben im Blatt, Spielweise in drei Stufen.
 2. ✅ Akkorde pro Schlag aus der Aufnahme, D/F♯ und add9, Akkorde eintragen, Bass, Tempo ÷2/×2, Lernen (auch Löschen), Namensvorliebe, Griffe wählbar, Wortschatz der Sitzung, feste Zeilen, Rückgängig oben, Durchklicken, Ton davor/danach, Zoomen im Blatt, Datensicherung, Prüfsatz.
-3. ▶ **Version 1:** Sprache (feste Befehle), Zählzeichen, Sechzehntel, Abgleich mit den gehörten Anschlägen, Kopieren/Verschieben, Takte auswählen, „auf alle ähnlichen“ (Details in Abschnitt 7).
-4. **Version 2:** Ablauf vorgeben (Strophe/Refrain), Erkennung richtet sich danach.
+3. ▶ **Version 1** (gebaut, Version 2026-11-14.0100; Handytest läuft, danach abhaken): Sprache (feste Befehle), Zählzeichen, Sechzehntel, Abgleich mit den gehörten Anschlägen, Kopieren/Verschieben, Takte auswählen, „auf alle ähnlichen“ (Details in Abschnitt 7).
+4. **Version 2:** Ablauf vorgeben (Strophe/Refrain), Erkennung richtet sich danach. **Zusammen mit Befehlsblöcken** (gleiche Befehlssprache, ein Eingabeweg):
+   - **Befehlsblöcke aus dem Chat (Idee Manu, 14.11.):** Manu beschreibt im Claude-Chat frei, was er spielt; Claude schreibt einen Block in der festen Befehlssprache (eine Zeile pro Befehl), Manu fügt ihn in die App ein, die App führt aus. Das Verstehen passiert im Chat, die App bleibt ohne KI.
+   - **Grundlage für den Chat:** Manu lädt seine gespeicherte Mitschnitt-/Session-Datei im Chat hoch (kein extra „Blatt als Text“). Der Chat liest daraus Takte, Akkorde, Töne und Anschläge und **prüft den Block vor der Übergabe an genau dieser Aufnahme im Test-Browser**. Später, nur falls nötig: Speichern „ohne Audio“ für kleinere Dateien.
+   - **Befehlssprache als eigene Datei** `BEFEHLE.md` im Repo, mit Versionsnummer; jeder Chat liest nur diese Datei. Blöcke tragen die Version, die App meldet „Block für Befehle vX, App kann vY“. Nötige Erweiterungen: bestimmter Griff („Griff x57765“), mehrere Töne gleichzeitig („zusammen“), evtl. Griff halten und einzelne Saiten anschlagen.
+   - **Knopf „Text“** unten in der Leiste an der Stelle des heutigen Speichern-Knopfs; **Speichern wandert in die obere Leiste** zu den anderen Symbolen (nicht direkt neben das X). Mikro bleibt unverändert. Watchout: obere Leiste wird voller – bei 380 px prüfen, notfalls Vollbild ins ⋯-Menü.
+   - **Ablauf beim Tippen auf „Text“:** Feld von unten, die App liest **sofort die Zwischenablage** (Einfügen ist der Normalfall, nicht Tippen; Chrome fragt beim ersten Mal nach Erlaubnis, sonst Textfeld mit „Einfügen“). Vorschau als Liste, jede Zeile ✓/✗ mit kurzem Grund, ✗-Zeile antippen = korrigieren (erst dann Tastatur). Unten „Ausführen (12)“ / „Abbrechen“. Ausführen = ein Rückgängig-Schritt, Statuszeile „12 Befehle ausgeführt · Rückgängig“.
+   - **Markierung „bitte drüberschauen“:** gedämpftes Bernstein (kein Signalorange, sonst nirgends benutzt), gleiche Farbe wie die unsicheren Stellen beim Abgleich. Betroffene Takte werden markiert; Antippen bzw. Bearbeiten eines Takts gilt als „angeschaut“ und nimmt seine Markierung weg; „Markierungen weg“ entfernt alle.
+   - Vorher als Vorschau zum Anschauen bauen.
 5. Abspielen mit mitlaufendem Balken (erster Teil von Record/Playback). Dazu (angelehnt an Ultimate Guitar, 13.11.): **Loop** für markierte Takte („Takt 3 bis 5 markieren“ → „Loop“, auch per Finger) und **langsamer abspielen ohne Tonhöhenänderung** (Zeitdehnung, kostenlose Bibliothek, z. B. SoundTouch; einfaches Langsamer-Stellen im Browser senkt den Ton). Blatt scrollt beim Abspielen automatisch mit.
 6. Nachklang-Doppler beim Zupfen entfernen; Zupf-Akkorde aus den Basic-Pitch-Tönen bestimmen; „Takt beginnt hier“, Taktart wählbar.
 - **Regel fürs Layout (ab Version 1):** nichts fest auf Handybreite bauen (Größen relativ, Takte pro Zeile nach Breite), damit eine spätere Laptop-Ansicht ohne Umbau möglich ist.
@@ -279,6 +286,7 @@ Stand: 13.11.2026, abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Que
 3. **Kapo-Umschalter** für eigene Blätter: Kapo-Bund einstellen, Ansicht „Griff“ (z. B. G bei Kapo 3) ↔ „klingend“ (B♭). Reine Umrechnung, die Erkennung bleibt unberührt.
 3a. **Ansicht „Nur Akkorde“ (Lagerfeuer-Version):** Akkordnamen (wahlweise mit Griffbildern) ohne Tab, bei vorhandenem Liedtext Akkorde über dem Text an der richtigen Silbe; Kapo-Umschalter gilt auch hier. Gleiche Grundlage wie das Akkordschema.
 4. **Akkordschema für den Bassisten als PDF:** Takte mit den klingenden Akkordnamen, kein Tab, kein Notenblatt. Teilen über das Handy.
+4b. Vorstufe vorgezogen (Akkord-Chat): **„Mitschnitt laden“**, Datei schon als Lied → Spuren mit Kennung, Besitzer und Änderungsstand, dazu Sprachprotokoll. Neu im BPM-Fenster: Metronom für die nächste Aufnahme; aus = folgt dem erkannten Tempo.
 5. ✅ **Datensicherung** (Datei über „Teilen“, seit 13.11. 17:45). Später optional: automatisch ins private Repo (GitHub-Zugangsschlüssel nur für dieses Repo).
 
 ### C · Timeline-Bearbeitung
