@@ -354,6 +354,14 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
       <button class="row" id="lrnClear"><span>Alle gelernten Korrekturen vergessen</span><span aria-hidden="true">↺</span></button>
     </div>
     <div class="group">
+      <h3>Datensicherung</h3>
+      <p id="bakInfo"></p>
+      <button class="row" id="bakSave"><span>Sicherung erstellen (Datei teilen oder speichern)</span><span aria-hidden="true">⇪</span></button>
+      <button class="row" id="bakLoad"><span>Sicherung laden (ersetzt die Daten auf diesem Gerät)</span><span aria-hidden="true">⇩</span></button>
+      <input type="file" id="bakFile" accept=".json,application/json" hidden>
+      <p>Gesichert werden Einstellungen, Griff-, Namens- und Saitenvorlieben und alle gelernten Korrekturen (Akkorde und Töne). Aufnahmen nicht.</p>
+    </div>
+    <div class="group">
       <h3>Version</h3>
       <p id="verInfo"></p>
       <button class="row" id="verCheck"><span>Nach neuer Version suchen</span><span aria-hidden="true">↻</span></button>
@@ -845,7 +853,7 @@ $('#launch').addEventListener('click',startTuner);
 $('#close').addEventListener('click',stopTuner);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('#esheet').classList.contains('on'))closeEdit();else if($('#msheet').classList.contains('on')){$('#msheet').classList.remove('on');metPreview(false);}else if($('#sheet').classList.contains('on'))closeSheet();else if(running)stopTuner();else if(CH.running)stopChords();}});
 
-function refresh(){
+function refresh(){ if(typeof bakUI==='function') try{ bakUI(); }catch(_){}
   root.classList.toggle('day',S.theme==='day');
   applyColors();
   setSeg('#themeSeg',S.theme); setSeg('#sweetSeg',S.sweet);
@@ -1503,7 +1511,7 @@ function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) me
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
 // =================== Version ===================
-const APP_VERSION='2026-11-13.1730';
+const APP_VERSION='2026-11-13.1745';
 async function checkVersion(manual){
   const info=$('#verInfo'); if(info) info.textContent='Diese App: '+APP_VERSION;
   try{
@@ -1514,6 +1522,31 @@ async function checkVersion(manual){
   }catch(e){ if(manual&&info) info.textContent='Diese App: '+APP_VERSION+' · Prüfung gerade nicht möglich (offline?).'; }
 }
 $('#newver').addEventListener('click',()=>location.replace(location.pathname+'?v='+Date.now()));
+// =================== Datensicherung: eine Datei mit Einstellungen und Gelerntem ===================
+function bakCount(){ return (LEARN?LEARN.length:0)+(typeof NLEARN!=='undefined'&&NLEARN?NLEARN.length:0); }
+function bakUI(){ const el=$('#bakInfo'); if(!el) return; const b=S.bak||{}; const n=bakCount()-(b.n||0);
+  el.textContent=b.t?`Letzte Sicherung: ${new Date(b.t).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})} · seitdem ${Math.max(0,n)} neue Korrekturen`:`Noch keine Sicherung · ${bakCount()} gelernte Korrekturen`; }
+async function bakSave(){
+  const data={app:'gitarre',format:1,version:APP_VERSION,date:new Date().toISOString(),store:{}};
+  [KEY,LKEY,NKEY].forEach(k=>{ const v=localStorage.getItem(k); if(v!=null) data.store[k]=v; });
+  const d0=new Date(), z=n=>String(n).padStart(2,'0'), name=`gitarre-sicherung-${d0.getFullYear()}${z(d0.getMonth()+1)}${z(d0.getDate())}-${z(d0.getHours())}${z(d0.getMinutes())}.json`;
+  const blob=new Blob([JSON.stringify(data)],{type:'application/json'}), file=new File([blob],name,{type:'application/json'});
+  let ok=false;
+  try{ if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:'Gitarre: Sicherung'}); ok=true; } }catch(e){ if(e&&e.name==='AbortError') return; }
+  if(!ok){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1000); }
+  S.bak={t:Date.now(),n:bakCount()}; save(); bakUI(); }
+$('#bakSave').addEventListener('click',bakSave);
+$('#bakLoad').addEventListener('click',()=>$('#bakFile').click());
+$('#bakFile').addEventListener('change',async e=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(!f) return;
+  try{ const d=JSON.parse(await f.text()); if(d.app!=='gitarre'||!d.store) throw new Error('keine Sicherung dieser App');
+    const when=d.date?new Date(d.date).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'}):'?';
+    if(!confirm(`Sicherung vom ${when} laden? Die Einstellungen und das Gelernte auf diesem Gerät werden ersetzt.`)) return;
+    Object.entries(d.store).forEach(([k,v])=>{ if([KEY,LKEY,NKEY].includes(k)) localStorage.setItem(k,v); });
+    location.replace(location.pathname+'?v='+Date.now()); }
+  catch(err){ alert('Sicherung konnte nicht geladen werden: '+(err.message||err)); } });
+// Erinnerung: nach 15 neuen Korrekturen seit der letzten Sicherung (höchstens einmal am Tag)
+function bakRemind(){ const b=S.bak||{}; const n=bakCount()-(b.n||0); if(n<15) return; const today=new Date().toDateString(); if(S.bakAsked===today) return;
+  S.bakAsked=today; save(); bpBanner(`${n} neue Korrekturen seit der letzten Sicherung – Einstellungen → Datensicherung`,6000); }
 $('#verCheck').addEventListener('click',()=>checkVersion(true));
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') checkVersion(false); });
 setInterval(()=>checkVersion(false),60*1000);
@@ -1900,6 +1933,7 @@ async function beatAnalyze(job){
   const n=quantizeEvents(g,evs2);
   CH.view='sheet'; CH.zoomPer=0; CH.barScale=1; CH.stripKey=''; CH.key=''; undoUI(); alignUI(); checkVersion(false);
   bpBanner(`≈ ${Math.round(g.bpm)} BPM · ${g.beats}/4${nc?' · '+nc+' Akkordwechsel':''} · ${n} Stellen auf Zählzeiten gesetzt`,4000);
+  setTimeout(bakRemind,4500);
 }
 // Schlagzeiten eines Rasters (Taktstriche gleichmäßig geteilt)
 function gridBeats(g){ const L=g.lines.slice(); gridExtend(g); if(g.end!=null) while(L[L.length-1]<g.end-1e-3) L.push(L[L.length-1]+g.bar); L.push(L[L.length-1]+g.bar);
