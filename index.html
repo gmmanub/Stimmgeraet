@@ -161,6 +161,10 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .egrid button{height:42px;border-radius:10px;border:1px solid var(--line);font-size:14px;color:var(--muted)}
 .egrid button[aria-pressed="true"]{border-color:var(--acc);background:color-mix(in oklab,var(--acc) 20%,var(--panel));color:var(--text)}
 .ediag{display:flex;align-items:center;gap:14px}
+.evois{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.evois button{flex:none;width:84px;padding:6px;border-radius:12px;border:1px solid var(--line);background:var(--panel)}
+.evois button[aria-pressed="true"]{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc) inset}
+.evois svg{width:100%;height:auto;display:block}
 .ediag #eDiag{width:96px;aspect-ratio:180/210;flex:none;cursor:pointer}
 .ediag #eDiag svg{width:100%;height:100%;display:block}
 .ediag p{font-size:12px;color:var(--muted)}
@@ -399,10 +403,10 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
     <p class="elrn" id="eLrn"></p>
     <div class="group" id="gNote"><h3>Ton</h3><div class="echips" id="eNoteStep"><button data-d="-1">½ tiefer</button><button data-d="1">½ höher</button></div><div class="echips" id="eIns" style="margin-top:8px"><button data-d="-1">＋ Ton davor</button><button data-d="1">＋ Ton danach</button></div><h3 style="margin-top:6px">Bund</h3><div class="egrid" id="eFret"></div><h3 style="margin-top:6px">Saite · Bund</h3><div class="echips" id="eStr"></div><h3 style="margin-top:6px">Spieltechnik</h3><div class="echips" id="eArt"><button data-a="pick">Anschlag</button><button data-a="slide">Slide</button><button data-a="h">Hammer-on</button><button data-a="p">Pull-off</button></div></div>
     <div class="group gChord"><h3>Ähnlich klingend · ein Tipp genügt</h3><div class="echips" id="eSim"></div></div>
+    <div class="group gChord"><h3>Griff · antippen, die App merkt ihn sich</h3><div class="evois" id="eVois"></div></div>
     <div class="group gChord"><h3>Grundton</h3><div class="egrid" id="eRoot"></div></div>
     <div class="group gChord"><h3>Art</h3><div class="egrid q" id="eQual"></div></div>
     <div class="group gChord"><h3>Bass (z. B. D/F♯)</h3><div class="egrid" id="eBass"></div></div>
-    <div class="group gChord"><h3>Griff</h3><div class="ediag"><div id="eDiag" role="button" aria-label="Nächster Griff"></div><p id="eVoi"></p></div></div>
     <div class="eacts"><button id="eDel">Entfernen</button><button id="eDone">Fertig</button></div>
   </div>
 </div>
@@ -868,7 +872,7 @@ function refresh(){
 // ==CHORD-CORE-START== (reine Analyse ohne DOM, wird auch im Test genutzt)
 const QUAL=[
   {id:'',iv:[0,4,7],p:1},{id:'m',iv:[0,3,7],p:1},
-  {id:'7',iv:[0,4,7,10],p:.965},{id:'maj7',iv:[0,4,7,11],p:.955},{id:'m7',iv:[0,3,7,10],p:.955},
+  {id:'7',iv:[0,4,7,10],p:.965},{id:'maj7',iv:[0,4,7,11],p:.92},{id:'m7',iv:[0,3,7,10],p:.9},
   {id:'sus2',iv:[0,2,7],p:.95},{id:'sus4',iv:[0,5,7],p:.95},
   {id:'add9',iv:[0,4,7,2],p:.88}
 ];
@@ -1499,7 +1503,7 @@ function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) me
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
 // =================== Version ===================
-const APP_VERSION='2026-11-13.1615';
+const APP_VERSION='2026-11-13.1730';
 async function checkVersion(manual){
   const info=$('#verInfo'); if(info) info.textContent='Diese App: '+APP_VERSION;
   try{
@@ -1563,7 +1567,7 @@ lrnUI();
 // =================== Bearbeiten ===================
 const ED={ev:null};
 const POWER=r=>{const rf=(r-4+12)%12; return rf<=7?[rf,rf+2,rf+2,-1,-1,-1]:[-1,(r-9+12)%12,(r-9+12)%12+2,(r-9+12)%12+2,-1,-1];};
-function evFrets(e){ return evVoicings(e)[0].f; }
+function evFrets(e){ const L=evVoicings(e); if(e.type==='chord'&&e.bass==null&&S.voi){ const id=S.voi[e.r+'|'+QUAL[e.qi].id]; const v=id&&L.find(x=>x.id===id); if(v) return v.f; } return L[0].f; }
 function evVoicings(e){ if(e.type==='power') return [{f:POWER(e.r),b:0,id:'p'}]; return e.bass!=null&&e.bass!==e.r?slashVoicings(e.r,e.qi,e.bass):voicings(e.r,e.qi); }
 // Griffe mit anderem Basston (D/F♯ = 2x0232, G/B = x20003, C/E = 032010): passende vorhandene Griffe, sonst Basston auf E-, A- oder D-Saite setzen
 function slashVoicings(r,qi,b){ const base=voicings(r,qi), out=[], seen=new Set(), add=f=>{ const id=f.join(); if(seen.has(id)) return; seen.add(id); out.push({f,b:0,id}); };
@@ -1624,8 +1628,8 @@ function renderEdit(){
   $('#eBass').innerHTML=[{v:'',t:'–'}].concat(ROOTS.map((_,r)=>({v:String(r),t:rootName(r)}))).map(b=>`<button data-v="${b.v}" aria-pressed="${b.v===''?e.bass==null:String(e.bass)===b.v}">${b.t}</button>`).join('');
   $('#eQual').innerHTML=qs.map(q=>`<button data-v="${q.v}" aria-pressed="${e.type==='power'?q.v==='p':String(e.qi)===q.v}">${q.t}</button>`).join('');
   const L=evVoicings(e), vi=Math.min(e.vi||0,L.length-1), v={f:e.f||L[vi].f,b:(L[vi]&&L[vi].f===e.f)?L[vi].b:(L.find(x=>x.f.join()===(e.f||[]).join())||{b:0}).b};
-  $('#eDiag').innerHTML=diagramSVG(v);
-  $('#eVoi').textContent=L.length>1?`Griff ${(L.findIndex(x=>x.f.join()===(e.f||[]).join())+1)||1} von ${L.length} · tippen zum Wechseln`:'';
+  const cur=(e.f||[]).join();
+  $('#eVois').innerHTML=L.slice(0,8).map((w,i)=>`<button data-i="${i}" aria-pressed="${w.f.join()===cur}" aria-label="Griff ${w.id}">${diagramSVG(w)}</button>`).join('');
 }
 
 // =================== Test-Mitschnitt ===================
@@ -1808,6 +1812,7 @@ function chordsPerBeat(x,sr,beats,opt){
     let vf=0; for(const vp of c.vp){ let s=0; for(let j=0;j<PN;j++) s+=P[i][j]*vp[j]; vf=Math.max(vf,s); }
     let sc=d+0.15*vf; if(bassPc[i]!=null&&bassPc[i]===c.r) sc+=0.05;
     if(QUAL[c.qi].iv.every(k=>scale.includes((c.r+k)%12))) sc+=0.04;
+    if(opt.vocab){ const vb=opt.vocab[c.r+'|'+c.qi]; sc+=vb!=null?vb:(opt.vocabOther||0); }
     return sc; };
   // Viterbi über die Schläge; Wechsel kosten etwas, auf betonten Zählzeiten weniger
   const S=cands.length, E=[]; for(let i=0;i<nB;i++){ const row=new Float32Array(S); const quiet=energy[i]<emax*0.002; for(let s=0;s<S;s++) row[s]=quiet?0:em(s,i); E.push(row); }
@@ -1852,7 +1857,7 @@ async function beatAnalyze(job){
     const M=+(metCfg().sig)||4;
     // Strummen: Akkorde pro Schlag direkt aus der Aufnahme (auf den erkannten Schlägen), daraus auch die Eins
     if(playMode()!=='pick'){ try{ const times=B.map(b=>b-job.t0); times.push(times[times.length-1]+P);
-      const res=chordsPerBeat(jobSamples(job),job.sr,times,{a4:S.a4,tune:CH.eng?CH.eng.tune:0});
+      const res=chordsPerBeat(jobSamples(job),job.sr,times,Object.assign({a4:S.a4,tune:CH.eng?CH.eng.tune:0},sessionVocab(job)));
       pbRes={times:B.slice(),chords:res.chords}; }catch(e){ pbRes=null; } }
     // Akkordwechsel gehören auf den Schlag: liegt das Raster systematisch dazwischen (z. B. auf den „und“), Schläge dorthin schieben
     if(!pbRes){ let sx=0,sy=0,n=0; evs.forEach(e=>{ if(e.type==='note') return; let k=0; while(k+1<B.length&&B[k+1]<=e.t) k++; const len=(B[k+1]??B[k]+P)-B[k], fr=(e.t-B[k])/len; if(fr<0||fr>1) return; sx+=Math.cos(2*Math.PI*fr); sy+=Math.sin(2*Math.PI*fr); n++; });
@@ -1903,12 +1908,17 @@ function beatChords(job,g,evs){
   const tA=job.t0, tB=job.t0+job.n/job.sr, bt=gridBeats(g).filter(b=>b.t>=tA&&b.t<tB-0.2);
   if(bt.length<4) return 0;
   const times=bt.map(b=>b.t-job.t0); times.push(Math.min(job.n/job.sr,times[times.length-1]+(times[1]-times[0])));
-  const res=chordsPerBeat(jobSamples(job),job.sr,times,{a4:S.a4,tune:CH.eng?CH.eng.tune:0,strong:i=>bt[i]&&(bt[i].j===0||bt[i].j===g.beats/2)});
+  const res=chordsPerBeat(jobSamples(job),job.sr,times,{...sessionVocab(job),a4:S.a4,tune:CH.eng?CH.eng.tune:0,strong:i=>bt[i]&&(bt[i].j===0||bt[i].j===g.beats/2)});
   return applyBeatChords(job,evs,bt.map(b=>b.t),res.chords);
 }
 // Melodie-Töne je Schlag (nur bei „Strummen + Melodie“): diese Töne zählen nicht für den Akkord
 function melodyMask(evs,T){ if(playMode()!=='melody') return null; const ns=evs.filter(e=>e.type==='note');
   return i=>{ const a=T[i]-0.05, b=T[i+1]??T[i]+0.5; return ns.filter(e=>e.t>=a&&e.t<b&&e.s>=3).map(e=>e.m); }; }
+// Akkord-Wortschatz der Sitzung: Hat Manu einen früheren Durchgang korrigiert, sind dessen Akkorde wahrscheinlicher, andere unwahrscheinlicher
+function sessionVocab(job){ const prev=CH.ev.filter(e=>e.t<job.tBase-0.1);
+  if(!prev.some(e=>e.edited||e.added)) return {};
+  const vocab={}; prev.forEach(e=>{ if(e.type==='chord'&&e.qi!=null) vocab[e.r+'|'+e.qi]=0.05; });
+  return Object.keys(vocab).length>=2?{vocab,vocabOther:-0.05}:{}; }
 function applyBeatChords(job,evs,T,chords){
   // bisherige (nicht von Hand bearbeitete) Akkorde dieses Abschnitts ersetzen
   const keep=evs.filter(e=>e.type!=='note'&&(e.edited||e.added));
@@ -2326,7 +2336,9 @@ $('#eRoot').addEventListener('click',e=>{const b=e.target.closest('button'); if(
 $('#eQual').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b||!ED.ev) return; const x=ED.ev; if(b.dataset.v==='p') setEv(x,x.r,null,'power'); else setEv(x,x.r,+b.dataset.v,'chord'); renderEdit(); CH.stripKey=''; CH.key='';});
 $('#eBass').addEventListener('click',e=>{const b=e.target.closest('button'); const x=ED.ev; if(!b||!x||x.type!=='chord') return; snap(); const v=b.dataset.v;
   x.bass=v===''||+v===x.r?null:+v; x.f=evFrets(x); x.edited=true; renderEdit(); CH.stripKey=''; CH.key='';});
-$('#eDiag').addEventListener('click',()=>{const x=ED.ev; if(!x) return; snap(); const L=evVoicings(x); let i=L.findIndex(v=>v.f.join()===(x.f||[]).join()); i=(i+1)%L.length; x.f=L[i].f; x.edited=true;
+$('#eVois').addEventListener('click',e=>{const b=e.target.closest('button'), x=ED.ev; if(!b||!x) return; snap(); const L=evVoicings(x); const i=+b.dataset.i; if(!L[i]) return; x.f=L[i].f; x.edited=true;
+  // derselbe Akkord überall im Tab mit diesem Griff (nur wo nicht einzeln anders gewählt)
+  if(x.type==='chord'&&x.bass==null) CH.ev.forEach(y=>{ if(y!==x&&y.type==='chord'&&y.r===x.r&&y.qi===x.qi&&y.bass==null&&!y.voiSet) y.f=L[i].f; }); x.voiSet=true;
   if(x.type==='chord'&&L.length>1){(S.voi||(S.voi={}))[x.r+'|'+QUAL[x.qi].id]=L[i].id; save(); if(CH.eng){CH.eng.pref=S.voi; if(lastChordEv()===x){CH.eng.vIdx=i;CH.eng.vLock=true;}}}
   renderEdit(); CH.stripKey=''; CH.key='';});
 $('#eDel2').addEventListener('click',()=>$('#eDel').click());
