@@ -198,7 +198,7 @@ Stand: 13.11.2026, abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Que
 - Parallel: neue Ton-Erkennung (Basic Pitch) abstimmen, Rechenzeit auf dem S24 messen, prüfen ob fast live geht; Slide/Hammer-on/Pull-off aus den Tonhöhen-Kurven; offene Fehler: Pull-off-Ton vor dem Em, c#4.
 
 ### B · Danach
-1. **Sessions speichern** (Aufnahmen-Bereich auf dem Startbildschirm): Name, Datum, Tempo, Taktart, Kapo; wieder öffnen, weiter aufnehmen oder neu starten. Heute geht beim Schließen alles verloren.
+1. **Sessions speichern** (Aufnahmen-Bereich auf dem Startbildschirm): Name, Datum, Tempo, Taktart, Kapo; wieder öffnen, weiter aufnehmen oder neu starten. Heute geht beim Schließen alles verloren. **Speicher von Anfang an mit Spuren** (jede Session hat eine Liste von Spuren mit Audio und Ereignissen), auch wenn die Spuren-Bedienung erst später kommt – so muss nichts umgebaut werden.
 2. **Eigenes Blatt schreiben:** leeres Blatt ohne Aufnahme (Tempo, Taktart, Anzahl Takte), Akkorde und Töne von Hand eintragen. Eine Session kann aufgenommen, geschrieben oder beides sein. Offen: nur Akkordnamen über den Takten, volle Griffe im Tab oder wahlweise.
 3. **Kapo-Umschalter** für eigene Blätter: Kapo-Bund einstellen, Ansicht „Griff“ (z. B. G bei Kapo 3) ↔ „klingend“ (B♭). Reine Umrechnung, die Erkennung bleibt unberührt.
 4. **Akkordschema für den Bassisten als PDF:** Takte mit den klingenden Akkordnamen, kein Tab, kein Notenblatt. Teilen über das Handy.
@@ -214,7 +214,12 @@ Stand: 13.11.2026, abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Que
 - Record/Playback ausbauen: zur Aufnahme Melodien erfinden, die mitgeschrieben werden. Offen: ohne Kopfhörer würde die Wiedergabe mit erkannt (herausrechnen oder Echo-Unterdrückung testen).
 - Akkorde Stufe 2: Slash-Akkorde (D/B), add9 und weitere.
 - Kapo bei der Erkennung (Mikro, Lernen nach klingendem Ton, Bundzahlen ab Kapo).
-- Mehrspur / Play-Along: Spuren aufnehmen, stumm/laut schalten, löschen, hinzufügen.
+- **Spuren (Rhythmus, Melodie, Gesang …) in der App:** alle zusammen abspielen mit Balken, stumm/solo, Lautstärke je Spur, Spuren hinzufügen, löschen, neu einspielen; im Tab/Blatt Spuren ein- und ausblenden. **Kein Abmischen** (keine Effekte, kein EQ, kein Audioschnitt, kein Panorama) – dafür Export.
+  - Einspielen nur mit Kopfhörern (sonst hört das Mikro die anderen Spuren). Manus In-Ears: Sony WF-1000XM5 (Bluetooth, ca. 150–300 ms Verzögerung). **Kalibrierung:** App spielt Klicks über die Kopfhörer, Manu schlägt im Takt mit, App misst den Gesamtversatz und rechnet ihn heraus. Tipp: in der Sony-App „Stabile Verbindung“ statt „Klangqualität“.
+  - **Handymikro erzwingen**, wenn Bluetooth-Kopfhörer verbunden sind (sonst Telefonmodus mit schlechtem Klang); warnen, falls das nicht klappt.
+- **Ausgabe pro Spur:** Tab für alle Spuren oder einzelne, dazu das Akkordschema (PDF).
+- **Gesang:** Liedtext eintippen, die App legt die Wörter unter Takte und Akkorde, verschiebbar wie Akkorde. Später optional automatische Texterkennung (Whisper, lokal im Browser) als Vorschlag. Gesangsmelodie als Noten (Basic Pitch erkennt auch Stimme) erst danach.
+- **Export:** MusicXML (Notenblatt z. B. in MuseScore), MIDI, WAV pro Spur.
 - Alternative Voicings für eine zweite Gitarre, optional in anderen Stimmungen.
 - Schlagzeug-Gestalter (Kick, Snare, HiHat, Muster), Export als WAV.
 - Songwriting-Assistent (regelbasiert in der App; kreative Vorschläge im Chat).
