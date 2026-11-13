@@ -179,6 +179,27 @@ Oben 15 breite Balken (große Fläche), darunter groß der Ton, darunter Saite u
 - **Laptop:** Die App läuft auch in Chrome/Edge am Laptop (Klick statt Tippen, Ziehen mit gedrückter Maustaste; Zwei-Finger-Zoom nur per Touchpad; gelernte Korrekturen je Browser getrennt).
 - **Nächste Schritte:** 2. Abspielen mit mitlaufendem Balken. 3. Akkorde auf Zählzeiten bestimmen (mehrere pro Takt möglich, Vorliebe Taktanfang/-mitte, mindestens ein Schlag), Strummen = Akkorde + optional Melodie, Nachklang-Doppler beim Zupfen entfernen. 4. „Takt beginnt hier“ zum Korrigieren der Eins, Taktart wählbar.
 
+### Prüfsatz und Testdaten (seit 13.11.)
+- Privates Repo **gmmanub/stimmgeraet-tests** (privat, weil Manus Song hörbar ist): `aufnahmen/JJJJMMTT-HHMM/` (FLAC + Mitschnitt-JSON), `sicherungen/` (Datensicherungen aus der App), `tests/soll.json` (Soll-Folgen), `tests/pruefsatz.js` (misst die Akkorderkennung direkt aus `index.html`), `tests/app-lauf.js` (spielt eine Aufnahme als Mikrofon in die echte App, Chrome ohne Bildschirm). Ein neuer Chat muss das Repo per „Repo hinzufügen“ einbinden; Manu hat den Claude-Zugriff dafür freigegeben.
+- **Regel:** Jede Änderung an der Erkennung wird vor dem Hochladen mit `node tests/pruefsatz.js ../stimmgeraet/index.html` gemessen; nur was insgesamt besser ist, kommt in die App. Stand 13.11. 17:45: **27,25 Fehler** (kleiner ist besser).
+- Neue Aufnahmen von Manu (WAV-Mitschnitte) dort als FLAC ablegen; Soll-Folgen in `soll.json` ergänzen, wenn Manu sie nennt.
+
+### Version 1 – Sprache, Kopieren, Auswählen (mit Manu beschlossen 13.11., noch nicht gebaut)
+- **Zählzeichen** in jedem Takt der Blatt-Ansicht: 1 + 2 + 3 + 4 + (dezent). Feinere Stellen müssen gehen: **Sechzehntel** („1 e + a“) und Triolen lassen sich eintragen, ansagen und antippen; angezeigt werden nur die Achtel-Zeichen, damit es ruhig bleibt.
+- **Anzeige der Tabs wie besprochen:** Blatt mit festen Zeilen (Takte pro Zeile einmal festgelegt, springt nicht), Akkordname über der Stelle, graue Griffzahlen beim Strummen, Taktnummern, BPM oben, Zoomen mit zwei Fingern, „‹ voriges / nächstes ›“ im Bearbeiten-Feld.
+- **Sprech-Knopf** (gedrückt halten, sprechen, loslassen) neben den Ansichts-Knöpfen; Chrome-Spracherkennung (de-DE, kostenlos, braucht Internet, Google). **Nur feste Befehle, keine KI im Hintergrund (Manu: darf nichts kosten).** Nach jedem Befehl Anzeige „Verstanden: …“ + Rückgängig; jeder Befehl ist ein Rückgängig-Schritt; mehrere Befehle mit „und dann“. Unbekanntes: gehörten Text zeigen.
+- **Positionen:** „Takt 4“, „Takt 4, 2“, „Takt 4, 2 und“, „Takt 4, 2 e“ / „2 a“ (Sechzehntel), „Takt 4, 2 bis 5“ (bis zum nächsten Takt), „Takt 1 bis 3“, „Takt 1 und 2“, „die ersten zwei Takte“, „danach“, „nächster Ton“, „der markierte“ (angetippt). Füllwörter („bitte“, „mir“, „mal“) überhören.
+- **Befehle:** löschen („Takt 4 löschen“, „Takt 4, 2 bis 3 löschen“, „Takt 4 Töne löschen“ = alle Einzeltöne außer den Akkorden, „Ton löschen“); Töne setzen („Takt 3, 2 und, B-Saite Bund 3“; Folgen „B-Saite: 3, Slide 5, 3, 1, Pull-off 0“); nach Antippen: „Bund 5“, „G-Saite“, „Slide“, „Hammer-on“, „Pull-off“, „Anschlag“; Akkorde („Takt 5, 3, E-Moll“, „D über Fis“ = D/F♯, „A sus 2“, „Takt 5, 3 bis 6, 1 E-Moll“ = Akkord gilt dort, andere fallen weg); kopieren/verschieben („Takt 4 bis 8 kopieren nach Takt 16“, „Takt 1 und 2 nach 5 und 6“, „… auf alle ähnlichen“); „Rückgängig“, „Wiederholen“.
+- **Begriffe:** Hammer-on, Pull-off, Slide englisch (Manu sagt keine deutschen Wörter dafür). **Verhörer-Liste** (z. B. „Pullover“ → Pull-off, „Hammer an“ → Hammer-on, „Beseite“/„H-Saite“ → B-Saite, „Fis“/„F sharp“), Zahlwörter und Ordnungszahlen („fünften Bund“), Saiten per Name oder Nummer. Hammer-on/Pull-off ergibt sich auch aus der Richtung (gebunden aufwärts = Hammer-on, abwärts = Pull-off); gelernte Vorlieben (`artPref`) nutzen.
+- **Abgleich (Kern):** Eingesprochene Töne/Folgen ohne genaue Zeit („B-Saite: 3, Slide 5, 3, 1, Pull-off 0“ ab einer Stelle) werden auf die **gehörten Anschläge** der Aufnahme gelegt (Basic-Pitch-Onsets bzw. Anschlagskurve), nicht stur auf ein Raster; danach auf Zählzeiten einrasten. Passt die Anzahl nicht, unsichere Stellen markieren; wo kein Anschlag passt, Achtel. Dasselbe gilt für eingesprochene Akkorde: Wechsel an den gehörten Akkordwechsel/Anschlag in der Nähe schieben.
+- **Kopieren per Finger:** lange auf eine Taktnummer drücken = Auswahl, weitere Taktnummern antippen, „Kopieren nach…“ / „Verschieben nach…“. Kopie überschreibt das Ziel, von Hand korrigierte Stellen nur mit „überschreiben“. (Ersetzt „kein Copy-Paste“ aus der Timeline-Liste.)
+- **„Auf alle ähnlichen“:** Takte am **Klang** vergleichen (Klangbild pro Schlag, nicht die Erkennung), auch um einen halben Takt versetzt suchen; Schwelle eher streng; **Vorschlag statt Automatik** („4 ähnliche Stellen: Takt 5–6, 9–10 … übernehmen?“, im Blatt markiert, einzeln abwählbar); abweichende Takte (z. B. letzte Strophe mit Lauf) werden nicht vorgeschlagen bzw. markiert.
+
+### Version 2 – Ablauf vorgeben (beschlossen, nach Version 1)
+- Song-Grundstruktur gesprochen oder getippt: „Strophe: G 6, E-Moll 2, mal 3. Refrain: A sus 2 4, D über Fis 4, G 2, D 2, E-Moll 4, mal 2.“ Teile werden gemerkt; später reicht „Strophe, Refrain, Strophe“.
+- Die Erkennung nutzt den Ablauf: nicht mehr „welcher Akkord“, nur noch „wann gewechselt“ (Ausrichtung an der Aufnahme, Abweichungen wie ein Durchgang mehr erlaubt). „Auf alle Strophen“ kopiert dann exakt.
+- Vor dem Hochladen am Prüfsatz messen.
+
 ### Metronom (in der Akkorderkennung)
 - **Knopf oben rechts** (zwischen Reset und Mikro): öffnet das Bedienfeld. Leuchtet in der Akzentfarbe, wenn das Metronom bei der Aufnahme mitläuft, und blinkt im Takt (Eins stärker).
 - **Bedienfeld:** „Bei Aufnahme mitlaufen“ an/aus · Tempo 30–240 BPM mit −/+ (Gedrückthalten wiederholt), Regler und Tap-Tempo (Mittel der letzten bis zu 5 Taps, Pause > 2 s beginnt neu) · Probehören · Taktart 2/4, 3/4, 4/4, 6/8 (bei 6/8 ist jedes Achtel ein Klick, Betonung auf 1 und 4) · „Und“ leise (nicht bei 6/8) · Einzähler 1 Takt (Standard an) · Lautstärke. Gespeichert in den Einstellungen (`met`).
@@ -200,9 +221,11 @@ Stand: 13.11.2026, abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Que
 
 ### A · Läuft gerade (Akkord-Chat, Plan „Ordnung“)
 1. ✅ Takterkennung nach dem Stoppen, Blatt-Ansicht, erster Akkord auf der Eins, Verschieben im Blatt, Spielweise in drei Stufen.
-2. ▶ Abspielen mit mitlaufendem Balken (erster Teil von Record/Playback).
-3. Akkorde auf Zählzeiten bestimmen, Nachklang-Doppler beim Zupfen entfernen.
-4. „Takt beginnt hier“ zum Korrigieren der Eins, Taktart wählbar.
+2. ✅ Akkorde pro Schlag aus der Aufnahme, D/F♯ und add9, Akkorde eintragen, Bass, Tempo ÷2/×2, Lernen (auch Löschen), Namensvorliebe, Griffe wählbar, Wortschatz der Sitzung, feste Zeilen, Rückgängig oben, Durchklicken, Ton davor/danach, Zoomen im Blatt, Datensicherung, Prüfsatz.
+3. ▶ **Version 1:** Sprache (feste Befehle), Zählzeichen, Sechzehntel, Abgleich mit den gehörten Anschlägen, Kopieren/Verschieben, Takte auswählen, „auf alle ähnlichen“ (Details in Abschnitt 7).
+4. **Version 2:** Ablauf vorgeben (Strophe/Refrain), Erkennung richtet sich danach.
+5. Abspielen mit mitlaufendem Balken (erster Teil von Record/Playback).
+6. Nachklang-Doppler beim Zupfen entfernen; Zupf-Akkorde aus den Basic-Pitch-Tönen bestimmen; „Takt beginnt hier“, Taktart wählbar.
 - Parallel: neue Ton-Erkennung (Basic Pitch) abstimmen, Rechenzeit auf dem S24 messen, prüfen ob fast live geht; Slide/Hammer-on/Pull-off aus den Tonhöhen-Kurven; offene Fehler: Pull-off-Ton vor dem Em, c#4.
 
 ### B · Danach
@@ -210,17 +233,17 @@ Stand: 13.11.2026, abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Que
 2. **Eigenes Blatt schreiben:** leeres Blatt ohne Aufnahme (Tempo, Taktart, Anzahl Takte), Akkorde und Töne von Hand eintragen. Eine Session kann aufgenommen, geschrieben oder beides sein. Offen: nur Akkordnamen über den Takten, volle Griffe im Tab oder wahlweise.
 3. **Kapo-Umschalter** für eigene Blätter: Kapo-Bund einstellen, Ansicht „Griff“ (z. B. G bei Kapo 3) ↔ „klingend“ (B♭). Reine Umrechnung, die Erkennung bleibt unberührt.
 4. **Akkordschema für den Bassisten als PDF:** Takte mit den klingenden Akkordnamen, kein Tab, kein Notenblatt. Teilen über das Handy.
-5. **Datensicherung:** Einstellungen und gelernte Korrekturen exportieren/importieren (liegen sonst nur im Browser).
+5. ✅ **Datensicherung** (Datei über „Teilen“, seit 13.11. 17:45). Später optional: automatisch ins private Repo (GitHub-Zugangsschlüssel nur für dieses Repo).
 
 ### C · Timeline-Bearbeitung
 - Akkorde als feste Anker; Einzeltöne dazwischen werden beim Verschieben proportional gestaucht/gedehnt und rasten ein. Absicherungen: Originalpositionen merken, Akkord stoppt am Nachbarakkord, Notenlängen mitskalieren, von Hand korrigierte Töne bleiben fix, Vorschau beim Ziehen.
-- Mehrfachauswahl (z. B. zum Löschen; Vorschlag: lange drücken + Rahmen aufziehen), kein Copy-Paste.
+- Mehrfachauswahl und Kopieren: jetzt über Takte (Version 1: lange auf die Taktnummer, „Kopieren nach…“, „auf alle ähnlichen“, auch per Sprache). Das frühere „kein Copy-Paste“ ist überholt (Manu, 13.11.).
 - Prüfen, ob „Akkord auf dem Taktstrich lässt sich nicht greifen“ noch besteht.
 - Grundsatz: Bearbeitung schlank halten, die Erkennung hat Vorrang.
 
 ### D · Später
 - Record/Playback ausbauen: zur Aufnahme Melodien erfinden, die mitgeschrieben werden. Offen: ohne Kopfhörer würde die Wiedergabe mit erkannt (herausrechnen oder Echo-Unterdrückung testen).
-- Akkorde Stufe 2: Slash-Akkorde (D/B), add9 und weitere.
+- Akkorde Stufe 2: ✅ D/F♯ und andere Schrägstrich-Akkorde mit der Terz im Bass, ✅ add9. 6, dim, aug bewusst nicht (Manu spielt sie kaum).
 - Kapo bei der Erkennung (Mikro, Lernen nach klingendem Ton, Bundzahlen ab Kapo).
 - **Spuren (Rhythmus, Melodie, Gesang …) in der App:** alle zusammen abspielen mit Balken, stumm/solo, Lautstärke je Spur, Spuren hinzufügen, löschen, neu einspielen; im Tab/Blatt Spuren ein- und ausblenden. **Kein Abmischen** (keine Effekte, kein EQ, kein Audioschnitt, kein Panorama) – dafür Export.
   - Einspielen nur mit Kopfhörern (sonst hört das Mikro die anderen Spuren). Manus In-Ears: Sony WF-1000XM5 (Bluetooth, ca. 150–300 ms Verzögerung). **Kalibrierung:** App spielt Klicks über die Kopfhörer, Manu schlägt im Takt mit, App misst den Gesamtversatz und rechnet ihn heraus. Tipp: in der Sony-App „Stabile Verbindung“ statt „Klangqualität“.
