@@ -105,6 +105,7 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .cstrip{-webkit-touch-callout:none;touch-action:pan-x;overflow-x:auto;overflow-y:hidden;border-top:1px solid var(--line);margin:10px 0 0;padding-top:4px;flex:none;width:100%;user-select:none;scrollbar-width:thin}
 .cstrip svg{display:block}
 .cstrip.blatt{overflow-x:hidden;overflow-y:visible;touch-action:pan-y}
+.cstrip.blatt.wide{overflow-x:auto;touch-action:pan-x pan-y}
 .ctools{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;padding:4px 16px 18px}
 #chelp{flex-basis:100%}
 #chelp{font-size:11px;color:var(--muted);text-align:center}
@@ -396,7 +397,7 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
     <div class="etop"><button id="eDel2">Entfernen</button><button id="eLeft" aria-label="Einen Rasterschritt früher">←</button><button id="eRight" aria-label="Einen Rasterschritt später">→</button>
       <div class="seg" id="eGrid"><button data-v="8">1/8</button><button data-v="16">1/16</button><button data-v="12">Triole</button></div></div>
     <p class="elrn" id="eLrn"></p>
-    <div class="group" id="gNote"><h3>Ton</h3><div class="echips" id="eNoteStep"><button data-d="-1">½ tiefer</button><button data-d="1">½ höher</button></div><h3 style="margin-top:6px">Bund</h3><div class="egrid" id="eFret"></div><h3 style="margin-top:6px">Saite · Bund</h3><div class="echips" id="eStr"></div><h3 style="margin-top:6px">Spieltechnik</h3><div class="echips" id="eArt"><button data-a="pick">Anschlag</button><button data-a="slide">Slide</button><button data-a="h">Hammer-on</button><button data-a="p">Pull-off</button></div></div>
+    <div class="group" id="gNote"><h3>Ton</h3><div class="echips" id="eNoteStep"><button data-d="-1">½ tiefer</button><button data-d="1">½ höher</button></div><div class="echips" id="eIns" style="margin-top:8px"><button data-d="-1">＋ Ton davor</button><button data-d="1">＋ Ton danach</button></div><h3 style="margin-top:6px">Bund</h3><div class="egrid" id="eFret"></div><h3 style="margin-top:6px">Saite · Bund</h3><div class="echips" id="eStr"></div><h3 style="margin-top:6px">Spieltechnik</h3><div class="echips" id="eArt"><button data-a="pick">Anschlag</button><button data-a="slide">Slide</button><button data-a="h">Hammer-on</button><button data-a="p">Pull-off</button></div></div>
     <div class="group gChord"><h3>Ähnlich klingend · ein Tipp genügt</h3><div class="echips" id="eSim"></div></div>
     <div class="group gChord"><h3>Grundton</h3><div class="egrid" id="eRoot"></div></div>
     <div class="group gChord"><h3>Art</h3><div class="egrid q" id="eQual"></div></div>
@@ -869,7 +870,7 @@ const QUAL=[
   {id:'',iv:[0,4,7],p:1},{id:'m',iv:[0,3,7],p:1},
   {id:'7',iv:[0,4,7,10],p:.965},{id:'maj7',iv:[0,4,7,11],p:.955},{id:'m7',iv:[0,3,7,10],p:.955},
   {id:'sus2',iv:[0,2,7],p:.95},{id:'sus4',iv:[0,5,7],p:.95},
-  {id:'add9',iv:[0,4,7,2],p:.93}
+  {id:'add9',iv:[0,4,7,2],p:.88}
 ];
 // Muster je Akkord inkl. typischer Obertöne einer Gitarrensaite (Oktaven, Quinte, große Terz)
 const TPL=[];
@@ -1341,6 +1342,7 @@ function onChordCommit(c){
   { const pcs=QUAL[c.qi].iv.map(i=>(c.r+i)%12);
     for(let i=CH.ev.length-1;i>=0;i--){ const e=CH.ev[i]; if(e.t<t-0.25) break;
       if(e.type==='note'&&!e.edited&&e.t<=t+0.45&&pcs.includes(e.m%12)){ logEv(e,'ton-entfernt-akkordanschlag'); CH.ev.splice(i,1); } } }
+  { const pc=preferName({type:'chord',r:c.r,qi:c.qi,key:c.key}); if(pc.key!==c.key){ c=Object.assign({},c,{r:pc.r,qi:pc.qi,key:pc.key}); if(last&&last.key===c.key) return; } }
   const fields={r:c.r,qi:c.qi,type:'chord',key:c.key,orig:c.raw||c.key,learned:!!c.learned,f:null,cn,pf:E?Array.from(E.pf):null};
   // Gleicher Anschlag: Die App hat sich nur korrigiert (z. B. erst G7, dann G) → überschreiben, Zeitpunkt bleibt
   const strumSince=E?E.NT.lastStrum:0;
@@ -1383,7 +1385,7 @@ function onNoteDetected(n){
   const les=pf?noteLesson(n.m,chordKey,prevO,pf,'old'):null;
   if(les&&les.kind==='drop'){ logEv({t:n.t,type:'note',m:n.m,s:p.s,f:p.f,art:n.art},'ton-gelernt-weggelassen'); return; }
   if(les&&les.kind==='map'){ n.m=les.to; const q=placeNote(n.m); if(q) p=q; }
-  if(playMode()==='melody'&&ringingChordTone(n.m,p,E&&E.cur)) return;
+  if(playMode()==='melody'&&(ringingChordTone(n.m,p,E&&E.cur)||p.s<=1)) return;
   const ev={t:Math.max(n.t-0.06,CH.tBase),type:'note',m:n.m,s:p.s,f:p.f,key:'note|'+n.m,art:n.art||'pick',origM,prevM:prevO,chordKey,pf,learned:!!les};
   n.ev=ev; CH.ev.push(ev); logEv(ev,les?'ton-gelernt':'ton'); if(CH.ev.length>600) CH.ev.shift();
 }
@@ -1406,7 +1408,7 @@ function demoStrum(ctx,dest,r,qi,t0){
 }
 
 // Bildschirm öffnen: Mikro bleibt aus, bis „Start“ gedrückt wird
-function startChords(){
+function startChords(){ checkVersion(false);
   $('#chords').classList.add('on');
   capClear(); BPB.gen++; UNDO.length=0; CH.ev=[]; CH.tNow=0; CH.tBase=0; CH.grids=[]; CH.stripKey=''; CH.follow=true; CH.key=''; CH.eng=null; CH.micMsg=''; metUI();
   $('#cbanner').classList.remove('on');
@@ -1497,7 +1499,7 @@ function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) me
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
 // =================== Version ===================
-const APP_VERSION='2026-11-13.1530';
+const APP_VERSION='2026-11-13.1615';
 async function checkVersion(manual){
   const info=$('#verInfo'); if(info) info.textContent='Diese App: '+APP_VERSION;
   try{
@@ -1507,10 +1509,10 @@ async function checkVersion(manual){
     else if(manual&&info) info.textContent='Diese App: '+APP_VERSION+' · das ist die neueste Version.';
   }catch(e){ if(manual&&info) info.textContent='Diese App: '+APP_VERSION+' · Prüfung gerade nicht möglich (offline?).'; }
 }
-$('#newver').addEventListener('click',()=>location.reload());
+$('#newver').addEventListener('click',()=>location.replace(location.pathname+'?v='+Date.now()));
 $('#verCheck').addEventListener('click',()=>checkVersion(true));
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') checkVersion(false); });
-setInterval(()=>checkVersion(false),5*60*1000);
+setInterval(()=>checkVersion(false),60*1000);
 setTimeout(()=>checkVersion(false),1500);
 
 // =================== Lernen ===================
@@ -1584,7 +1586,11 @@ function similar(e){
   L.sort((a,b)=>b.sc-a.sc);
   return L.filter(x=>!(e.type==='chord'&&x.r===e.r&&x.qi===e.qi)).slice(0,5);
 }
+// Namensvorliebe: gleiche Töne, anderer Name (Esus4 = Asus2, Em7 = G6 …). Einmal umbenannt gilt immer.
+const pcsKey=(r,qi)=>QUAL[qi].iv.map(k=>(r+k)%12).sort((a,b)=>a-b).join(',');
+function preferName(c){ if(!c||c.type!=='chord'||c.qi==null) return c; const p=(S.alias||{})[pcsKey(c.r,c.qi)]; if(p&&(p.r!==c.r||p.qi!==c.qi)){ c.r=p.r; c.qi=p.qi; c.key='chord|'+p.r+'|'+p.qi; if(c.bass===c.r) c.bass=null; } return c; }
 function setEv(e,r,qi,type){
+  if(type==='chord'&&e.type==='chord'&&e.qi!=null&&qi!=null&&pcsKey(e.r,e.qi)===pcsKey(r,qi)&&(e.r!==r||e.qi!==qi)){ S.alias=Object.assign({},S.alias||{},{[pcsKey(r,qi)]:{r,qi}}); save(); }
   snap();
   e.type=type; e.r=r; e.qi=type==='chord'?qi:null; e.key=type+'|'+r+'|'+(type==='chord'?qi:''); if(type!=='chord'||e.bass===r) e.bass=null;
   e.f=evFrets(e); e.vi=0; e.edited=true; learnFrom(e);
@@ -1805,7 +1811,7 @@ function chordsPerBeat(x,sr,beats,opt){
     return sc; };
   // Viterbi über die Schläge; Wechsel kosten etwas, auf betonten Zählzeiten weniger
   const S=cands.length, E=[]; for(let i=0;i<nB;i++){ const row=new Float32Array(S); const quiet=energy[i]<emax*0.002; for(let s=0;s<S;s++) row[s]=quiet?0:em(s,i); E.push(row); }
-  const lam=opt.lam||0.14; let V=E[0].slice(), back=[];
+  const lam=opt.lam||0.17; let V=E[0].slice(), back=[];
   for(let i=1;i<nB;i++){ let bi=0; for(let s=1;s<S;s++) if(V[s]>V[bi]) bi=s; const pen=lam*(opt.strong&&opt.strong(i)?0.7:1.2);
     const nv=new Float32Array(S), bk=new Int32Array(S);
     for(let s=0;s<S;s++){ const stay=V[s], sw=V[bi]-pen; if(stay>=sw){ nv[s]=stay+E[i][s]; bk[s]=s; } else { nv[s]=sw+E[i][s]; bk[s]=bi; } }
@@ -1846,7 +1852,7 @@ async function beatAnalyze(job){
     const M=+(metCfg().sig)||4;
     // Strummen: Akkorde pro Schlag direkt aus der Aufnahme (auf den erkannten Schlägen), daraus auch die Eins
     if(playMode()!=='pick'){ try{ const times=B.map(b=>b-job.t0); times.push(times[times.length-1]+P);
-      const res=chordsPerBeat(jobSamples(job),job.sr,times,{a4:S.a4,tune:CH.eng?CH.eng.tune:0,mask:melodyMask(evs,times.map(x=>x+job.t0))});
+      const res=chordsPerBeat(jobSamples(job),job.sr,times,{a4:S.a4,tune:CH.eng?CH.eng.tune:0});
       pbRes={times:B.slice(),chords:res.chords}; }catch(e){ pbRes=null; } }
     // Akkordwechsel gehören auf den Schlag: liegt das Raster systematisch dazwischen (z. B. auf den „und“), Schläge dorthin schieben
     if(!pbRes){ let sx=0,sy=0,n=0; evs.forEach(e=>{ if(e.type==='note') return; let k=0; while(k+1<B.length&&B[k+1]<=e.t) k++; const len=(B[k+1]??B[k]+P)-B[k], fr=(e.t-B[k])/len; if(fr<0||fr>1) return; sx+=Math.cos(2*Math.PI*fr); sy+=Math.sin(2*Math.PI*fr); n++; });
@@ -1887,7 +1893,7 @@ async function beatAnalyze(job){
   let nc=0; if(playMode()!=='pick'){ try{ nc=pbRes?applyBeatChords(job,evs,pbRes.times,pbRes.chords):beatChords(job,g,evs); }catch(e){} }
   const evs2=CH.ev.filter(e=>e.t>=tA&&e.t<=tB);
   const n=quantizeEvents(g,evs2);
-  CH.view='sheet'; CH.stripKey=''; CH.key=''; undoUI(); alignUI();
+  CH.view='sheet'; CH.zoomPer=0; CH.barScale=1; CH.stripKey=''; CH.key=''; undoUI(); alignUI(); checkVersion(false);
   bpBanner(`≈ ${Math.round(g.bpm)} BPM · ${g.beats}/4${nc?' · '+nc+' Akkordwechsel':''} · ${n} Stellen auf Zählzeiten gesetzt`,4000);
 }
 // Schlagzeiten eines Rasters (Taktstriche gleichmäßig geteilt)
@@ -1897,7 +1903,7 @@ function beatChords(job,g,evs){
   const tA=job.t0, tB=job.t0+job.n/job.sr, bt=gridBeats(g).filter(b=>b.t>=tA&&b.t<tB-0.2);
   if(bt.length<4) return 0;
   const times=bt.map(b=>b.t-job.t0); times.push(Math.min(job.n/job.sr,times[times.length-1]+(times[1]-times[0])));
-  const res=chordsPerBeat(jobSamples(job),job.sr,times,{a4:S.a4,tune:CH.eng?CH.eng.tune:0,mask:melodyMask(evs,times.map(x=>x+job.t0)),strong:i=>bt[i]&&(bt[i].j===0||bt[i].j===g.beats/2)});
+  const res=chordsPerBeat(jobSamples(job),job.sr,times,{a4:S.a4,tune:CH.eng?CH.eng.tune:0,strong:i=>bt[i]&&(bt[i].j===0||bt[i].j===g.beats/2)});
   return applyBeatChords(job,evs,bt.map(b=>b.t),res.chords);
 }
 // Melodie-Töne je Schlag (nur bei „Strummen + Melodie“): diese Töne zählen nicht für den Akkord
@@ -1913,8 +1919,9 @@ function applyBeatChords(job,evs,T,chords){
     const key='chord|'+c.r+'|'+c.qi, e={t,tr:t,type:'chord',r:c.r,qi:c.qi,key,orig:key,bass:c.bass,learned:false,cn:c.chroma,pf,beat:true};
     // aus Manus Korrekturen an Pro-Schlag-Akkorden gelernt
     if(pf){ let bx=null,bs=0; for(const x of LEARN){ if(x.src!=='beat'||x.from!==key) continue; const sm=learnSim(c.chroma,pf,x); if(sm>bs){bs=sm;bx=x;} }
+      if(bx&&bs>=LEARN_T&&bx.to.type==='drop'){ logEv(e,'akkord-schlag-gelernt-weggelassen'); return; }
       if(bx&&bs>=LEARN_T&&bx.to.type==='chord'){ e.r=bx.to.r; e.qi=bx.to.qi; e.key='chord|'+e.r+'|'+e.qi; e.learned=true; if(e.bass===e.r) e.bass=null; } }
-    e.f=evFrets(e); let k=CH.ev.length; while(k>0&&CH.ev[k-1].t>t) k--; CH.ev.splice(k,0,e); logEv(e,e.learned?'akkord-schlag-gelernt':'akkord-schlag'); n++; });
+    preferName(e); e.f=evFrets(e); let k=CH.ev.length; while(k>0&&CH.ev[k-1].t>t) k--; CH.ev.splice(k,0,e); logEv(e,e.learned?'akkord-schlag-gelernt':'akkord-schlag'); n++; });
   return n;
 }
 // Tempo halbieren/verdoppeln: Taktstriche zusammenlegen bzw. teilen
@@ -1982,15 +1989,17 @@ function sheetSVG(){
   const sig=CH.grids.map(g=>g.lines.length+':'+g.lines[0].toFixed(2)+':'+g.bar.toFixed(3)).join(',')+'|'+avail;
   if(!CH.rowPlan||CH.rowPlan.sig!==sig){ const plan=[]; for(let i=0;i<bars.length;){ let k=Math.min(4,bars.length-i); while(k>1&&bars.slice(i,i+k).some(bb=>bb.need*0.85>avail/k)) k--; plan.push(k); i+=k; }
     CH.rowPlan={sig,plan}; }
-  const rows=[]; { const pl=CH.rowPlan.plan; let ri=0; for(let i=0;i<bars.length;){ const k=Math.max(1,pl[Math.min(ri,pl.length-1)]); rows.push(bars.slice(i,i+k)); i+=k; ri++; } }
+  const rows=[]; { const pl=CH.rowPlan.plan; let ri=0; for(let i=0;i<bars.length;){ const k=CH.zoomPer?CH.zoomPer:Math.max(1,pl[Math.min(ri,pl.length-1)]); rows.push(bars.slice(i,i+k)); i+=k; ri++; } }
   // gleiche Taktbreite innerhalb der Zeile; die letzte Zeile nimmt die Breite der vorigen, wenn sie weniger Takte hat
-  rows.forEach((rw,ri)=>{ const per=ri===rows.length-1&&ri>0?Math.max(rw.length,rows[ri-1].length):rw.length; rw.forEach(bb=>bb.need=avail/per); });
+  const zs=CH.zoomPer===1?(CH.barScale||1):1; // ein Takt pro Zeile darf breiter als der Bildschirm werden (seitlich schieben)
+  rows.forEach((rw,ri)=>{ const per=CH.zoomPer||(ri===rows.length-1&&ri>0?Math.max(rw.length,rows[ri-1].length):rw.length); rw.forEach(bb=>bb.need=avail/per*zs); });
+  const SW=Math.round(vw+avail*(zs-1));
   const top0=Lb+G+D*.62+8, rowH=Math.round(top0+5*C+D*.7+18), head=26, H=head+rows.length*rowH;
   const bpm=CH.grids.map(g=>g.bpm||60*g.beats/g.bar).filter(Boolean), g0=CH.grids[0];
-  let o=`<svg width="${vw}" height="${H}" viewBox="0 0 ${vw} ${H}" role="img" aria-label="Tablatur als Blatt">`;
+  let o=`<svg width="${SW}" height="${H}" viewBox="0 0 ${SW} ${H}" role="img" aria-label="Tablatur als Blatt">`;
   o+=`<text x="${left}" y="17" font-size="13" fill="var(--muted)">≈ ${Math.round(bpm.reduce((a,b)=>a+b,0)/bpm.length)} BPM · ${g0.beats}/4${CH.grids.some(g=>g.auto)?' · Takt automatisch erkannt':''}</text>`;
   let barNo=0; const pos=new Map(); // Ereignis -> {x,y0}
-  SHEET.geo=[]; SHEET.w=vw;
+  SHEET.geo=[]; SHEET.w=SW; $('#cstrip').classList.toggle('wide',SW>vw);
   rows.forEach((rw,ri)=>{ const y0=head+ri*rowH, top=y0+top0;
     const tot=rw.reduce((a,bb)=>a+bb.need,0), sc=1;
     for(let i=0;i<6;i++) o+=`<line x1="${left}" y1="${top+i*C}" x2="${left+tot*sc}" y2="${top+i*C}" stroke="var(--line)" stroke-width="1.2"/>`;
@@ -2030,6 +2039,10 @@ function sheetSVG(){
   return o+'</svg>';
 }
 const SHEET={geo:[],w:0};
+function sheetZoom(d){ const cur=CH.zoomPer||Math.max(...((CH.rowPlan&&CH.rowPlan.plan)||[2])); const sc=CH.barScale||1;
+  if(d>0){ if(cur>1){ CH.zoomPer=cur>=4?2:1; CH.barScale=1; } else { CH.zoomPer=1; CH.barScale=Math.min(3,sc*1.5); } }
+  else { if(cur===1&&sc>1){ CH.barScale=Math.max(1,sc/1.5); if(CH.barScale<1.2) CH.barScale=1; } else CH.zoomPer=cur>=2?4:2; }
+  CH.stripKey=''; renderStrip(); }
 // Fingerposition (Bildschirm) → Zeit in der Blatt-Ansicht; bleibt in der Zeile, in der der Finger ist
 function sheetTimeAt(cx,cy){ const svg=$('#cstrip svg'); if(!svg||!SHEET.geo.length) return null; const r=svg.getBoundingClientRect(), k=SHEET.w/r.width, x=(cx-r.left)*k, y=(cy-r.top)*k;
   let row=SHEET.geo.filter(g=>y>=g.y0&&y<g.y1); if(!row.length){ let bd=1e9,y0=null; SHEET.geo.forEach(g=>{ const d=Math.min(Math.abs(y-g.y0),Math.abs(y-g.y1)); if(d<bd){bd=d;y0=g.y0;} }); row=SHEET.geo.filter(g=>g.y0===y0); }
@@ -2115,7 +2128,7 @@ function bpToTab(raw,job){
         if(!same){ const e1=Object.assign({t:x.t,m:x.m,s:p.s,f:p.f,key:'note|'+x.m,art:'pick',learned:false},base,{origM:x.m}); add(e1); }
         const ev=Object.assign({t:same?x.t:x.slideT,m:x.slideTo,s:p.s,f:f2,key:'note|'+x.slideTo,art:'slide',learned:false},base); x.ev=ev; add(ev); continue; } }
     const p=place(x.m,x,chordKey); if(!p) continue;
-    if(job.melody&&ringingChordTone(x.m,p,c&&c.type==='chord'?c:null)) continue;
+    if(job.melody&&(ringingChordTone(x.m,p,c&&c.type==='chord'?c:null)||p.s<=1)) continue; // Strummen + Melodie: keine Basssaiten (E, A)
     const ev=Object.assign({t:x.t,m:x.m,s:p.s,f:p.f,key:'note|'+x.m,art:'pick',learned:false},base); x.ev=ev; add(ev);
   }
   CH.stripKey=''; CH.key=''; undoUI();
@@ -2250,6 +2263,11 @@ function pressEnd(){
   st.addEventListener('touchmove',e=>{ if(Z&&e.touches.length===2){ e.preventDefault(); const a=e.touches[0],b=e.touches[1];
     LAY.px=clamp(Z.px0*Math.max(30,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY))/Z.d0,30,320); CH.follow=false; CH.stripKey=''; renderStrip(); st.scrollLeft=Z.tm*LAY.px+40-Z.mid; } },{passive:false});
   st.addEventListener('touchend',e=>{ if(Z&&e.touches.length<2){ Z=null; S.px=Math.round(LAY.px); save(); zoomUI(); } });
+  // Blatt: zwei Finger auseinander = weniger Takte pro Zeile (4 → 2 → 1, dann breiter); zusammen = zurück
+  let ZS=null; const inSheet=()=>CH.view==='sheet'&&!CH.mic&&CH.grids.length>0;
+  st.addEventListener('touchstart',e=>{ if(e.touches.length===2&&inSheet()){ clearTimeout(DR.timer); DR.timer=0; const a=e.touches[0],b=e.touches[1]; ZS={d0:Math.max(30,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),r:1}; } },{passive:true});
+  st.addEventListener('touchmove',e=>{ if(ZS&&e.touches.length===2){ e.preventDefault(); const a=e.touches[0],b=e.touches[1]; ZS.r=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)/ZS.d0; } },{passive:false});
+  st.addEventListener('touchend',e=>{ if(ZS&&e.touches.length<2){ const r=ZS.r; ZS=null; if(r>1.2) sheetZoom(1); else if(r<0.83) sheetZoom(-1); } });
   // Touch-Ereignisse hängen am berührten Element; der Tab wird beim Ziehen neu gezeichnet, deshalb die Zuhörer direkt dort anbringen
   const onMove=e=>{ const t=e.touches[0]; if(t&&pressMove(t.clientX,t.clientY)) e.preventDefault(); };
   const onEnd=e=>{ const el=e.currentTarget; el.removeEventListener('touchmove',onMove); el.removeEventListener('touchend',onEnd); el.removeEventListener('touchcancel',onEnd); pressEnd(); };
@@ -2320,15 +2338,22 @@ function showSel(){ const e=ED.ev; if(!e) return; renderStrip(); const el=$(`#cs
   if(r.top<top||r.bottom>bottom) sc.scrollBy({top:r.top-top-Math.max(0,(bottom-top-r.height)/3),behavior:'smooth'});
   const st=$('#cstrip'); if(!st.classList.contains('blatt')){ const sr=st.getBoundingClientRect(); if(r.left<sr.left+20||r.right>sr.right-20) st.scrollBy({left:r.left-sr.left-sr.width/2,behavior:'smooth'}); } }
 $('#ePrev').addEventListener('click',()=>editStep(-1)); $('#eNext').addEventListener('click',()=>editStep(1));
+// Nächste Rasterstelle vor/nach t (gleiches Raster wie die Pfeile)
+function gridStepT(t,d){ if(!CH.grids.length) return Math.max(0,t+d*0.25); const a=snapT(t,gridDiv()); let b=snapT(a+d*0.02+d*0.0001,gridDiv()); let k=0; while(Math.abs(b-a)<1e-4&&k++<200) b=snapT(a+d*0.01*(k+2),gridDiv()); return Math.max(0,b); }
+$('#eIns').addEventListener('click',e=>{ const b=e.target.closest('button'), x=ED.ev; if(!b||!x||x.type!=='note') return; snap(); const d=+b.dataset.d;
+  const ev={t:gridStepT(x.t,d),type:'note',s:x.s,f:x.f,m:x.m,key:'note|'+x.m,art:'pick',edited:true,added:true,bp:!!x.bp};
+  CH.ev.push(ev); CH.ev.sort((a,b2)=>a.t-b2.t); CH.stripKey=''; openEdit(ev); });
 function stepEv(d){ const x=ED.ev; if(!x) return; snap(); const g=CH.grids.length?null:0.25;
   if(g) x.t=Math.max(0,x.t+d*g); else { const a=snapT(x.t,gridDiv()); let b=snapT(a+d*0.02+d*0.0001,gridDiv()); let k=0; while(Math.abs(b-a)<1e-4&&k++<200) b=snapT(a+d*0.01*(k+2),gridDiv()); x.t=Math.max(0,b); }
   CH.ev.sort((p,q)=>p.t-q.t); renderEdit(); CH.stripKey=''; }
 $('#eLeft').addEventListener('click',()=>stepEv(-1)); $('#eRight').addEventListener('click',()=>stepEv(1));
 $('#eGrid').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b) return; S.grid=b.dataset.v; save(); renderEdit();});
 $('#eDel').addEventListener('click',()=>{const x=ED.ev; if(!x) return; snap(); if(x.type==='note') learnNote(x,'drop'); const i=CH.ev.indexOf(x);
+  // Pro-Schlag-Akkord gelöscht: merken, dass dieser Klang kein eigener Akkordwechsel ist (der vorige Akkord klingt weiter)
+  if(x.type==='chord'&&x.beat&&x.cn&&x.pf&&!x.added){ LEARN.push({id:'l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),from:x.orig||x.key,to:{type:'drop'},cn:x.cn.map(v=>+v.toFixed(4)),pf:x.pf.map(v=>+v.toFixed(4)),d:Date.now(),src:'beat'}); saveLearn(); }
   if(i>=0){ CH.ev.splice(i,1);
-    // Der nächste Akkord desselben Anschlags rückt auf den Platz des gelöschten
-    if(x.type!=='note') for(let k=i;k<CH.ev.length;k++){const y=CH.ev[k]; if(y.type==='note') continue; if(y.t-x.t<1.0) y.t=x.t; break;} }
+    // Der nächste Akkord desselben Anschlags rückt auf den Platz des gelöschten (nicht bei Pro-Schlag-Akkorden: dort klingt der vorige weiter)
+    if(x.type!=='note'&&!x.beat) for(let k=i;k<CH.ev.length;k++){const y=CH.ev[k]; if(y.type==='note') continue; if(y.t-x.t<1.0) y.t=x.t; break;} }
   closeEdit();});
 $('#eArt').addEventListener('click',e=>{const b=e.target.closest('button'); const x=ED.ev; if(!b||!x) return; snap(); x.art=b.dataset.a;
   // merken: gebundene Spieltechnik je Abstand zum vorigen Ton auf derselben Saite
