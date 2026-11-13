@@ -121,6 +121,10 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .cpop button{min-height:40px;border-radius:8px;border:1px solid var(--line);font-size:14px;color:var(--soft)}
 .cpg2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .cpinfo{font-size:13px;color:var(--soft);padding:2px 4px}
+.cpsep{height:1px;background:var(--line);margin:4px 0}
+.cpmet{display:flex;align-items:center;gap:8px}.cplab{flex:1;font-size:12px;color:var(--soft2)}
+.cpop .cpsw{min-height:32px;padding:0 14px;font-size:13px}.cpop .cpsw[aria-pressed="true"]{border-color:color-mix(in oklab,var(--acc) 65%,var(--line));color:var(--text)}
+.cpop .cpst{width:48px;height:44px;font-size:20px;flex:none}.cpbpm{flex:1;text-align:center;font-size:13px;color:var(--soft2)}.cpbpm b{font-size:26px;font-weight:500;color:var(--text)}
 .cplayPop{margin:0 12px 6px}
 .cpop .opt{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;text-align:left;padding:6px 12px;gap:1px}
 .cpop .opt small{font-size:11px;color:var(--soft2)}
@@ -352,6 +356,9 @@ html.crec #newver,html.ced #newver{display:none!important}
       <p class="cpinfo" id="ctempoInfo"></p>
       <div class="cpg2"><button id="chalf">Tempo ÷2</button><button id="cdouble">Tempo ×2</button></div>
       <div class="cpg2"><button class="soon" data-soon="Taktart ändern">Taktart</button><button class="soon" data-soon="Takt beginnt hier">Takt beginnt hier</button></div>
+      <div class="cpsep"></div>
+      <div class="cpmet"><span class="cplab">Metronom · nächste Aufnahme</span><button id="cmOn" class="cpsw" aria-pressed="false">aus</button></div>
+      <div class="cpmet"><button id="cmMinus" class="cpst" aria-label="1 BPM langsamer">−</button><div class="cpbpm"><b id="cmBpm">80</b> BPM</div><button id="cmPlus" class="cpst" aria-label="1 BPM schneller">+</button></div>
     </div>
     <div class="cstrip" id="cstrip" aria-label="Tablatur"></div>
     <div class="cstripnote" id="cstripnote"></div>
@@ -1663,12 +1670,15 @@ function metUI(){
   setSeg('#mSig',String(c.sig));
   $('#mPrev').textContent=MET.prev?'Stopp':'Probehören';
   $('#mPrev').classList.toggle('on',!!MET.prev);
+  const cb=$('#cmBpm'); if(cb){ cb.textContent=c.bpm; $('#cmOn').textContent=c.on?'an':'aus'; $('#cmOn').setAttribute('aria-pressed',!!c.on); }
 }
+// Ist das Metronom aus, folgt es still dem erkannten Tempo (Manu: dann steht dort schon das Tempo des Stücks, umstellen nur bei Bedarf)
+function metFollowGrid(){ const c=metCfg(), g=CH.grids[0]; if(c.on||!g) return; const b=Math.round(g.bpm||60*g.beats/g.bar); if(b>=30&&b<=240){ c.bpm=b; if([2,3,4,6].includes(g.beats)) c.sig=g.beats; save(); metUI(); } }
 function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) metPreview(true); }
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
 // =================== Version ===================
-const APP_VERSION='2026-11-14.0010'; let NEWVER=null, NEWVER_X=false;
+const APP_VERSION='2026-11-14.0020'; let NEWVER=null, NEWVER_X=false;
 async function checkVersion(manual){
   const info=$('#verInfo'); if(info) info.textContent='Diese App: '+APP_VERSION;
   try{
@@ -1906,7 +1916,7 @@ async function capLoad(file){ if(CH.mic) return cMsg('Erst die Aufnahme stoppen'
     if(js.play&&!tr) {} if(tr&&tr.play){ S.play=tr.play; save(); playUI(); }
     const tEnd=Math.max(0,...CH.ev.map(e=>e.t),...CH.grids.map(g=>g.end||0)); CH.tNow=tEnd+0.5; CH.tBase=CH.tNow;
     capClear(); if(pcm){ CAP.sr=sr; CAP.chunks=[pcm]; CAP.n=pcm.length; CAP.segs=js.segments||[]; } LOG.length=0; (js.live||[]).forEach(x=>LOG.push(x));
-    UNDO.length=0; REDO.length=0; CH.rowPlan=null; CH.view='sheet'; CH.stripKey=''; CH.key=''; CH.listKey=''; CH.bigK=null; undoUI(); capUI(); chordsUI();
+    UNDO.length=0; REDO.length=0; CH.rowPlan=null; CH.view='sheet'; metFollowGrid(); CH.stripKey=''; CH.key=''; CH.listKey=''; CH.bigK=null; undoUI(); capUI(); chordsUI();
     const nT=CH.ev.filter(e=>e.type==='note').length, nA=CH.ev.length-nT; cMsg(`Mitschnitt geladen: ${nA} Akkorde, ${nT} Töne${CH.grids[0]?' · ≈ '+gridBpm()+' BPM':''}`);
   }catch(e){ cMsg('Laden ging nicht: '+(e&&e.message||e)); } }
 function capSave(){
@@ -2146,7 +2156,7 @@ async function beatAnalyze(job){
   const evs2=CH.ev.filter(e=>e.t>=tA&&e.t<=tB);
   const n=quantizeEvents(g,evs2);
   CH.view='sheet'; CH.stripKey=''; CH.key=''; undoUI(); alignUI(); checkVersion(false);
-  bpBanner(`≈ ${Math.round(g.bpm)} BPM · ${g.beats}/4${nc?' · '+nc+' Akkordwechsel':''} · ${n} Stellen auf Zählzeiten gesetzt`,4000);
+  metFollowGrid(); bpBanner(`≈ ${Math.round(g.bpm)} BPM · ${g.beats}/4${nc?' · '+nc+' Akkordwechsel':''} · ${n} Stellen auf Zählzeiten gesetzt`,4000);
   setTimeout(bakRemind,4500);
 }
 // Schlagzeiten eines Rasters (Taktstriche gleichmäßig geteilt)
@@ -2343,7 +2353,7 @@ function viewUI(){}
 // Tempo halbieren / verdoppeln (z. B. 124 → 62 BPM, wenn Manu den Puls halb so schnell zählt); die App merkt sich die Wahl
 function tempoBtn(f){ if(!CH.grids.length) return; snap(); CH.grids.forEach(g=>tempoScale(g,f));
   const pref=S.tempoPref||null; S.tempoPref=f<1?(pref==='double'?null:'half'):(pref==='half'?null:'double'); save();
-  CH.stripKey=''; bpBanner(`≈ ${Math.round(CH.grids[0].bpm)} BPM`,2500); }
+  metFollowGrid(); CH.stripKey=''; bpBanner(`≈ ${Math.round(CH.grids[0].bpm)} BPM`,2500); }
 $('#chalf').addEventListener('click',()=>{ if(!CH.grids.length) return cMsg('Erst nach einer Aufnahme mit erkanntem Takt'); tempoBtn(0.5); closeCPops(); chordsUI(); }); $('#cdouble').addEventListener('click',()=>{ if(!CH.grids.length) return cMsg('Erst nach einer Aufnahme mit erkanntem Takt'); tempoBtn(2); closeCPops(); chordsUI(); });
 
 function bpBanner(txt,hide){ const b=$('#cbanner'); b.textContent=txt; b.classList.add('on'); clearTimeout(BPB.bt); if(hide) BPB.bt=setTimeout(()=>b.classList.remove('on'),hide); }
@@ -2712,7 +2722,9 @@ function statusUI(){
 }
 $('#cchips').addEventListener('click',e=>{ const b=e.target.closest('.cchip'); if(!b) return; CH.bigK=CH.bigK===b.dataset.k?null:b.dataset.k; CH.listKey=''; chordsUI(); });
 $('#cbig').addEventListener('click',e=>{ if(e.target.id==='cbigX'){ CH.bigK=null; CH.listKey=''; chordsUI(); } });
-$('#ctempo').addEventListener('click',()=>toggleCPop('#ctempoPop','#ctempo'));
+$('#ctempo').addEventListener('click',()=>{ metUI(); toggleCPop('#ctempoPop','#ctempo'); });
+$('#cmOn').addEventListener('click',()=>{ metSet('on',!metCfg().on); cMsg(metCfg().on?'Metronom läuft bei der nächsten Aufnahme mit ('+metCfg().bpm+' BPM)':'Kein Metronom · Tempo wird erkannt'); });
+$('#cmMinus').addEventListener('click',()=>metBpm(metCfg().bpm-1)); $('#cmPlus').addEventListener('click',()=>metBpm(metCfg().bpm+1));
 $('#cedit').addEventListener('click',()=>setEditMode(!CH.edm));
 $('#cedDone').addEventListener('click',()=>setEditMode(false));
 // Platzhalter: Knopf steht schon da, Funktion folgt
