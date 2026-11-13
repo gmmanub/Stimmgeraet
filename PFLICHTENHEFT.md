@@ -266,7 +266,7 @@ Stand: 13.11.2026, abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Que
 2. ✅ Akkorde pro Schlag aus der Aufnahme, D/F♯ und add9, Akkorde eintragen, Bass, Tempo ÷2/×2, Lernen (auch Löschen), Namensvorliebe, Griffe wählbar, Wortschatz der Sitzung, feste Zeilen, Rückgängig oben, Durchklicken, Ton davor/danach, Zoomen im Blatt, Datensicherung, Prüfsatz.
 3. ▶ **Version 1:** Sprache (feste Befehle), Zählzeichen, Sechzehntel, Abgleich mit den gehörten Anschlägen, Kopieren/Verschieben, Takte auswählen, „auf alle ähnlichen“ (Details in Abschnitt 7).
 4. **Version 2:** Ablauf vorgeben (Strophe/Refrain), Erkennung richtet sich danach.
-5. Abspielen mit mitlaufendem Balken (erster Teil von Record/Playback).
+5. Abspielen mit mitlaufendem Balken (erster Teil von Record/Playback). Dazu (angelehnt an Ultimate Guitar, 13.11.): **Loop** für markierte Takte („Takt 3 bis 5 markieren“ → „Loop“, auch per Finger) und **langsamer abspielen ohne Tonhöhenänderung** (Zeitdehnung, kostenlose Bibliothek, z. B. SoundTouch; einfaches Langsamer-Stellen im Browser senkt den Ton). Blatt scrollt beim Abspielen automatisch mit.
 6. Nachklang-Doppler beim Zupfen entfernen; Zupf-Akkorde aus den Basic-Pitch-Tönen bestimmen; „Takt beginnt hier“, Taktart wählbar.
 - **Regel fürs Layout (ab Version 1):** nichts fest auf Handybreite bauen (Größen relativ, Takte pro Zeile nach Breite), damit eine spätere Laptop-Ansicht ohne Umbau möglich ist.
 - Parallel: neue Ton-Erkennung (Basic Pitch) abstimmen, Rechenzeit auf dem S24 messen, prüfen ob fast live geht; Slide/Hammer-on/Pull-off aus den Tonhöhen-Kurven; offene Fehler: Pull-off-Ton vor dem Em, c#4.
@@ -277,6 +277,7 @@ Stand: 13.11.2026, abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Que
 1a. **Sessions zwischen Handy und Laptop übertragen:** Handy und Laptop haben getrennte Speicher. Zuerst Session-Datei (inkl. Aufnahmen) über „Teilen“ bzw. Herunterladen und am anderen Gerät laden; später automatisch über das private Repo. Realistischer Ablauf: am Handy aufnehmen (besseres Mikro, Laptop-Mikros werden von Windows oft stark gefiltert), am Laptop bearbeiten.
 1b. **Laptop-Ansicht:** breites Layout (mehr Takte pro Zeile, größerer Tab, Bearbeiten als Seitenleiste statt von unten), Maus und Tastatur statt Gesten (Klicken+Ziehen statt langem Drücken, Strg+Mausrad statt zwei Finger, Scrollen statt Wischen), Tastenkürzel (Leertaste = Abspielen, Strg+Z/Strg+Y). Sinnvoll nach „Sessions speichern“ und „Abspielen“, spätestens mit den Spuren.
 3. **Kapo-Umschalter** für eigene Blätter: Kapo-Bund einstellen, Ansicht „Griff“ (z. B. G bei Kapo 3) ↔ „klingend“ (B♭). Reine Umrechnung, die Erkennung bleibt unberührt.
+3a. **Ansicht „Nur Akkorde“ (Lagerfeuer-Version):** Akkordnamen (wahlweise mit Griffbildern) ohne Tab, bei vorhandenem Liedtext Akkorde über dem Text an der richtigen Silbe; Kapo-Umschalter gilt auch hier. Gleiche Grundlage wie das Akkordschema.
 4. **Akkordschema für den Bassisten als PDF:** Takte mit den klingenden Akkordnamen, kein Tab, kein Notenblatt. Teilen über das Handy.
 5. ✅ **Datensicherung** (Datei über „Teilen“, seit 13.11. 17:45). Später optional: automatisch ins private Repo (GitHub-Zugangsschlüssel nur für dieses Repo).
 
@@ -300,6 +301,8 @@ Stand: 13.11.2026, abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Que
 - **Bass-Modus:** 4 oder 5 Saiten, tieferer Bereich (E1/B0; Erkennung und Basic-Pitch-Filter beginnen heute bei E2), Bass-Tab mit 4/5 Linien, Stimmgerät für Bass.
 - **Samsung-Browser: Darstellung im Blatt kaputt (Manu, 13.11. 23:12, Priorität niedrig – Manu nutzt Chrome):** Im Samsung-Browser haben die Ziffern im Tab graue/helle Kästchen (die dunklen Hintergrundfelder hinter den Zahlen werden hell), Bundzahlen wirken wie Klötze. Vermutete Ursache: der eigene Dunkelmodus des Samsung-Browsers färbt Seitenfarben um. Lösungsideen: `color-scheme`-Angabe, Ziffern ohne Hintergrundfeld (Linien unter den Zahlen aussparen), im Samsung-Dunkelmodus testen. „Mitschnitt laden“ funktioniert dort.
 - **iPhone/Safari:** testen und anpassen (Mikro, Teilen, Basic Pitch), wenn die App rund läuft.
+- **Notation wählbar: Tab / Noten / Tab + Noten** (wie Ultimate Guitar). Vorher **alphaTab** prüfen (kostenlose Bibliothek für Tab und Notenschrift mit Cursor, Mixer, Loop) – offen, ob sie mit unseren echten Aufnahmen statt Synthesizer-Klang zusammengeht.
+- Vielleicht: Tempo-Trainer (wird mit jedem Loop etwas schneller). **Nicht:** Griffbrett-Ansicht statt Tab (Manu will Tabs lesen lernen), Song-Bibliothek, Kurse, „Simplify“, Effekte.
 - Alternative Voicings für eine zweite Gitarre, optional in anderen Stimmungen.
 - Schlagzeug-Gestalter (Kick, Snare, HiHat, Muster), Export als WAV.
 - Songwriting-Assistent (regelbasiert in der App; kreative Vorschläge im Chat).
