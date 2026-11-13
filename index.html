@@ -157,10 +157,17 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 #chords.rec #cundo,#chords.rec #credo,#chords.rec .cfields,#chords.rec .clist,#chords.rec .cpop{display:none}
 .cedbar{display:none;flex:none;flex-direction:column;gap:6px;padding:8px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--bg)}
 #chords.edm .cedbar{display:flex}#chords.edm .cbot,#chords.edm .cplayPop{display:none}
-.cedbar .clab{text-align:center;font-size:12px}
+.cedbar .clab{font-size:12px}
+.cedtop{display:flex;align-items:center;gap:6px}.cedtop .clab{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cedar{width:52px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-size:18px;color:var(--soft)}
+.cedg button.dim{opacity:.42}
+.cedtgt{display:none;align-items:center;gap:8px}.cedtgt .clab{flex:1;font-size:14px;color:var(--soft)}
+.cedtgt button{min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-size:14px;color:var(--soft)}
+#cedbar.tgt .cedtgt{display:flex}#cedbar.tgt .cedrow,#cedbar.tgt .cedtop{display:none}
+.cedrow{display:flex;align-items:flex-end;gap:6px}.cedrow .cedg{flex:1;min-width:0}
 .cedg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
-.cedg button{min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-size:14px;color:var(--soft);padding:0 4px}
-.cedg .fin{grid-column:span 2}
+.cedg button{min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-size:13px;color:var(--soft);padding:0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cedg .fin1{border-color:color-mix(in oklab,var(--acc) 55%,var(--line))}
 .cstrip.blatt svg{transform-origin:0 0}
 .cstrip{-webkit-touch-callout:none;touch-action:pan-x;overflow-x:auto;overflow-y:hidden;border-top:1px solid var(--line);margin:10px 0 0;padding-top:4px;flex:none;width:100%;user-select:none;scrollbar-width:thin}
 .cstrip svg{display:block}
@@ -363,9 +370,12 @@ html.crec #newver,html.ced #newver{display:none!important}
     <button class="rb lg rec" id="cmic" aria-pressed="false" aria-label="Aufnahme starten"><span class="dot"></span></button>
   </div>
   <div class="cedbar" id="cedbar">
-    <div class="clab" id="cedInfo">Edit an · Takte antippen</div>
-    <div class="cedg"><button class="soon" data-soon="Kopieren nach">Kopieren…</button><button class="soon" data-soon="Verschieben nach">Verschieben…</button><button id="calign">Ausrichten</button>
-      <button class="soon dng" data-soon="Takte löschen">Löschen</button><button id="cedDone" class="fin">Fertig</button></div>
+    <div class="cedtop"><span class="clab" id="cedInfo">Edit an · antippen zum Auswählen</span>
+      <button class="cedar" id="cedL" aria-label="Auswahl einen Rasterschritt früher">↤</button><button class="cedar" id="cedR" aria-label="Auswahl einen Rasterschritt später">↦</button></div>
+    <div class="cedrow"><button class="rb lg say soon" id="csay2" data-soon="Sprechen" aria-label="Sprechen"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/></svg></button>
+    <div class="cedg" id="cedMain"><button id="cedCopy">Kopieren</button><button id="cedPaste">Einfügen</button><button id="cedMove">Verschieben</button>
+      <button id="calign">Ausrichten</button><button id="cedDel" class="dng">Löschen</button><button id="cedDone" class="fin1">Fertig</button></div></div>
+    <div class="cedtgt" id="cedTgt"><span class="clab" id="cedTgtTxt">Ziel im Blatt antippen</span><button id="cedCancel">Abbrechen</button></div>
   </div>
 </section>
 
@@ -1345,7 +1355,7 @@ function diagramSVG(v){
   return s+'</svg>';
 }
 
-const CH={running:false,raf:0,ctx:null,an:null,stream:null,T:null,eng:null,demoTimer:0,wake:null,hist:[],key:'',last:0,lastProc:0,micStart:0,run:0,mic:false,micMsg:'',ev:[],tNow:0,follow:true,stripKey:'',grids:[],tBase:0,ctxT0:0,met:null,count:0,counting:false,raw:null,RB:null};
+const CH={running:false,raf:0,ctx:null,an:null,stream:null,T:null,eng:null,demoTimer:0,wake:null,hist:[],key:'',last:0,lastProc:0,micStart:0,run:0,mic:false,micMsg:'',ev:[],tNow:0,follow:true,stripKey:'',grids:[],tBase:0,ctxT0:0,met:null,count:0,counting:false,raw:null,RB:null,sel:new Set(),selBars:new Set(),edm:false};
 // Layout-Werte (in der Vorschau abgestimmt)
 const LAY={dig:20,lab:19,gap:12,str:22,px:88}; const PX0=88;
 
@@ -1641,7 +1651,7 @@ function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) me
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
 // =================== Version ===================
-const APP_VERSION='2026-11-13.2215'; let NEWVER=null, NEWVER_X=false;
+const APP_VERSION='2026-11-13.2245'; let NEWVER=null, NEWVER_X=false;
 async function checkVersion(manual){
   const info=$('#verInfo'); if(info) info.textContent='Diese App: '+APP_VERSION;
   try{
@@ -2172,7 +2182,10 @@ function sheetBars(){ const bars=[];
 }
 function sheetSVG(){
   // Zoom im Blatt (CH.sz): Schrift, Saitenabstand und Mindestabstand der Töne wachsen mit; Takte pro Zeile ergeben sich daraus
-  const z=sheetZ(), D=LAY.dig*z, Lb=LAY.lab*z, G=LAY.gap*z, C=LAY.str*z, cw=D*.62, gp=6*z, left=24, padL=17*z, padR=8*z;
+  // Schrift nur bis 72 % verkleinern (bleibt lesbar), Abstände folgen dem Zoom voll; die Takte pro Zeile ergeben sich so, dass nichts überdeckt
+  const z=sheetZ(), fz=Math.max(z,0.72), D=LAY.dig*fz, Lb=LAY.lab*fz, G=LAY.gap*fz, C=LAY.str*fz, cw=D*.62, gp=Math.max(4,6*z), left=24, padL=17*z, padR=8*z;
+  // Zeilenaufteilung während der Geste erst bei ≥ 10 % Zoomänderung neu (weniger Zucken), beim Loslassen genau
+  let zp=CH.zp; if(zp==null||!CH.pinching||Math.abs(z/zp-1)>0.1) zp=CH.zp=z;
   const vw=($('#cstrip').clientWidth||360)-4, avail=vw-left-4;
   const CF=S.chordFrets!==false&&playMode()!=='pick'; const bars=sheetBars(); if(!bars.length) return '<svg width="10" height="10"></svg>';
   // benötigte Breite je Takt (nichts darf sich überdecken)
@@ -2186,8 +2199,8 @@ function sheetSVG(){
   // Takte auf Zeilen verteilen
   // gleich breite Takte wie im Notenblatt: so viele pro Zeile, wie der dichteste hineinpasst (Obergrenze nach verfügbarer Breite: Handy 4, breiter Bildschirm mehr)
   // Zeilen einmal festlegen und dann stehen lassen (Bearbeiten verschiebt das Layout nicht); neu nur bei neuem Raster/Tempo/Breite
-  const sig=sheetGrids().map(g=>g.lines.length+':'+g.lines[0].toFixed(2)+':'+g.bar.toFixed(3)).join(',')+'|'+avail+'|'+z.toFixed(3);
-  if(!CH.rowPlan||CH.rowPlan.sig!==sig){ const plan=[]; for(let i=0;i<bars.length;){ let k=Math.min(maxPerRow(avail,z),bars.length-i); while(k>1&&bars.slice(i,i+k).some(bb=>bb.need*0.85>avail/k)) k--; plan.push(k); i+=k; }
+  const sig=sheetGrids().map(g=>g.lines.length+':'+g.lines[0].toFixed(2)+':'+g.bar.toFixed(3)).join(',')+'|'+avail+'|'+zp.toFixed(3);
+  if(!CH.rowPlan||CH.rowPlan.sig!==sig){ const plan=[]; for(let i=0;i<bars.length;){ let k=Math.min(maxPerRow(avail,zp),bars.length-i); while(k>1&&bars.slice(i,i+k).some(bb=>bb.need*(zp<1?1:0.85)>avail/k)) k--; plan.push(k); i+=k; }
     CH.rowPlan={sig,plan}; }
   const rows=[]; { const pl=CH.rowPlan.plan; let ri=0; for(let i=0;i<bars.length;){ const k=Math.max(1,pl[Math.min(ri,pl.length-1)]); rows.push(bars.slice(i,i+k)); i+=k; ri++; } }
   // gleiche Taktbreite innerhalb der Zeile; die letzte Zeile nimmt die Breite der vorigen, wenn sie weniger Takte hat.
@@ -2208,8 +2221,9 @@ function sheetSVG(){
     let x0=left;
     rw.forEach(bb=>{ const w=bb.need, len=bb.b-bb.a; barNo++;
       o+=`<line x1="${x0}" y1="${top}" x2="${x0}" y2="${top+5*C}" stroke="var(--muted)" stroke-width="1.3"/>`;
-      o+=`<text x="${x0+2}" y="${top-D*.62-G-Lb*.9}" font-size="${Math.max(8,10*Math.sqrt(z))}" fill="var(--muted)">${barNo}</text>`;
+      o+=`<text x="${x0+2}" y="${top-D*.62-G-Lb*.9}" font-size="${Math.max(8,10*Math.sqrt(z))}" fill="${CH.edm&&CH.selBars.has(bb.a.toFixed(3))?'var(--acc)':'var(--muted)'}">${barNo}</text>`;
       SHEET.geo.push({a:bb.a,b:bb.b,x0:x0+padL,w:w-padL-padR,xl:x0,xr:x0+w,y0,y1:y0+rowH});
+      if(CH.edm&&CH.selBars.has(bb.a.toFixed(3))) o+=`<rect x="${x0}" y="${y0+4}" width="${w}" height="${top+5*C-y0}" fill="var(--acc)" opacity=".13"/>`;
       o+=`<rect data-clane="1" data-bar="${bars.indexOf(bb)}" data-x0="${x0+padL}" data-w="${w-padL-padR}" x="${x0}" y="${y0+12}" width="${w}" height="${top-y0-12-C/2}" fill="transparent"/>`;
       for(let s=0;s<6;s++) o+=`<rect data-str="${s}" data-bar="${bars.indexOf(bb)}" data-x0="${x0+padL}" data-w="${w-padL-padR}" x="${x0}" y="${top+(5-s)*C-C/2}" width="${w}" height="${C}" fill="transparent"/>`;
       // Anzeige-Positionen: würde sich etwas überdecken, rückt das Spätere nach rechts (Zeit bleibt gleich)
@@ -2221,7 +2235,7 @@ function sheetSVG(){
         XS.set(e,x); });
       const X=e=>XS.get(e);
       const cy=top-D*.62-G;
-      bb.ev.forEach(e=>{ const i=CH.ev.indexOf(e), x=X(e), sel=ED.ev===e;
+      bb.ev.forEach(e=>{ const i=CH.ev.indexOf(e), x=X(e), sel=ED.ev===e||(CH.edm&&CH.sel.has(e));
         if(e.type==='note'){ const y=top+(5-e.s)*C, n=String(e.f).length; pos.set(e,{x,y});
           if(e.art&&e.art!=='pick'){ let pv=null; for(let k=i-1;k>=0;k--){const q=CH.ev[k]; if(q.type==='note'){ if(q.s===e.s&&e.t-q.t<1.5) pv=q; break; } }
             const up=pv?e.f>=pv.f:true, sym=e.art==='slide'?(up?'/':'\\'):e.art, pp=pv&&pos.get(pv), mx=pp&&pp.y===y?(pp.x+x)/2:x-D*.8;
@@ -2235,6 +2249,8 @@ function sheetSVG(){
         if(e.f&&CF){ const D2=D*.82; e.f.forEach((f,s)=>{ if(f<0) return; const y=top+(5-s)*C, n=String(f).length;
           o+=`<rect x="${x-D2*.42*n-1}" y="${y-D2*.62}" width="${D2*.84*n+2}" height="${D2*1.15}" fill="${sel?'none':'var(--bg)'}"/><text x="${x}" y="${y+D2*.36}" text-anchor="middle" font-size="${D2}" fill="var(--muted)">${f}</text>`; }); }
         o+=`<rect data-i="${i}" x="${x-Math.max(Lb,D)*1.1}" y="${y0}" width="${Math.max(Lb,D)*2.2}" height="${rowH-6}" fill="transparent" style="cursor:pointer"/>`; });
+      // Taktnummer zuletzt: liegt über dem Akkord-Trefferfeld (antippen im Edit-Modus, lange drücken = Edit + Takt wählen)
+      { const ny=top-D*.62-G-Lb*.9; o+=`<rect data-barno="${bars.indexOf(bb)}" x="${x0-2}" y="${ny-14*Math.max(1,z)}" width="${Math.min(w*.4,26)}" height="${18*Math.max(1,z)}" fill="transparent" style="cursor:pointer"/>`; }
       x0+=w; });
     o+=`<line x1="${x0}" y1="${top}" x2="${x0}" y2="${top+5*C}" stroke="var(--muted)" stroke-width="1.3"/>`; });
   return o+'</svg>';
@@ -2245,15 +2261,17 @@ function maxPerRow(avail,z){ return clamp(Math.floor((avail||($('#cstrip').clien
 const SZ_MIN=0.4, SZ_MAX=1.9;
 function sheetZ(){ return clamp(CH.sz||S.sz||1,SZ_MIN,SZ_MAX); }
 // Saitenstärke: hohe e (oben, i=0) dünn, tiefe E (unten) etwas kräftiger – dezent
-function strW(i,z){ return +((1+i*0.13)*Math.min(1.3,Math.sqrt(z||1))).toFixed(2); }
+function strW(i,z){ return +((0.9+i*0.24)*Math.min(1.3,Math.sqrt(Math.max(z||1,0.72)))).toFixed(2); }
 // Zoom im Blatt setzen; die Stelle unter (cy) bleibt möglichst an ihrem Platz
 // Während der Geste die berührten Elemente im Dokument halten (sonst kommen nach dem Neuzeichnen keine Fingerbewegungen mehr an)
 function keepTouched(list){ let h=$('#touchKeep'); if(!h){ h=document.createElement('div'); h.id='touchKeep'; h.hidden=true; document.body.appendChild(h); }
   let svg=null; (list||[]).forEach(n=>{ if(n&&n.ownerSVGElement&&$('#cstrip').contains(n)){ if(!svg){ svg=document.createElementNS('http://www.w3.org/2000/svg','svg'); h.appendChild(svg); } svg.appendChild(n); } else if(n&&n.tagName==='svg'&&$('#cstrip').contains(n)) h.appendChild(n); }); }
-function setSheetZ(z,cy,tg){ z=clamp(z,SZ_MIN,SZ_MAX); if(Math.abs(z-sheetZ())<1e-3) return; const sc=$('#cbody'), svg=$('#cstrip svg'); if(tg) keepTouched(tg);
-  let fr=null; if(svg&&cy!=null){ const r=svg.getBoundingClientRect(); fr=(cy-r.top)/Math.max(1,r.height); }
+function setSheetZ(z,cy,tg){ z=clamp(z,SZ_MIN,SZ_MAX); if(Math.abs(z-sheetZ())<1e-3&&CH.pinching) return; const sc=$('#cbody'), svg=$('#cstrip svg'); if(tg) keepTouched(tg);
+  // Anker: der Takt unter den Fingern bleibt an seiner Stelle
+  let an=null; if(svg&&cy!=null&&SHEET.geo.length){ const r=svg.getBoundingClientRect(), k=SHEET.w/Math.max(1,r.width), y=(cy-r.top)*k;
+    let i=SHEET.geo.findIndex(g=>y>=g.y0&&y<g.y1); if(i<0) i=y<SHEET.geo[0].y0?0:SHEET.geo.length-1; const g=SHEET.geo[i]; an={i,rel:(y-g.y0)/Math.max(1,g.y1-g.y0)}; }
   CH.sz=z; CH.stripKey=''; renderStrip();
-  if(fr!=null){ const n=$('#cstrip svg'); if(n){ const r=n.getBoundingClientRect(); sc.scrollTop+=r.top+fr*r.height-cy; } } }
+  if(an){ const n=$('#cstrip svg'), g=SHEET.geo[an.i]; if(n&&g){ const r=n.getBoundingClientRect(), k=SHEET.w/Math.max(1,r.width); sc.scrollTop+=r.top+(g.y0+an.rel*(g.y1-g.y0))/k-cy; } } }
 // Fingerposition (Bildschirm) → Zeit in der Blatt-Ansicht; bleibt in der Zeile, in der der Finger ist
 function sheetTimeAt(cx,cy){ const svg=$('#cstrip svg'); if(!svg||!SHEET.geo.length) return null; const r=svg.getBoundingClientRect(), k=SHEET.w/r.width, x=(cx-r.left)*k, y=(cy-r.top)*k;
   let row=SHEET.geo.filter(g=>y>=g.y0&&y<g.y1); if(!row.length){ let bd=1e9,y0=null; SHEET.geo.forEach(g=>{ const d=Math.min(Math.abs(y-g.y0),Math.abs(y-g.y1)); if(d<bd){bd=d;y0=g.y0;} }); row=SHEET.geo.filter(g=>g.y0===y0); }
@@ -2418,8 +2436,8 @@ function stateNow(){ return {ev:CH.ev.map(e=>Object.assign({},e,{f:Array.isArray
 function snap(){ if(CH.mic) return; UNDO.push(stateNow()); if(UNDO.length>40) UNDO.shift(); REDO.length=0; undoUI(); }
 function undoUI(){ const b=$('#cundo'), r=$('#credo'); if(b) b.classList.toggle('off',!(UNDO.length&&!CH.mic)); if(r) r.classList.toggle('off',!(REDO.length&&!CH.mic)); }
 function flashBtn(b){ b.classList.add('flash'); setTimeout(()=>b.classList.remove('flash'),450); }
-$('#credo').addEventListener('click',()=>{ const u=REDO.pop(); if(!u) return; flashBtn($('#credo')); UNDO.push(stateNow()); closeEdit(); CH.ev=u.ev; CH.grids=u.grids; CH.stripKey=''; CH.key=''; undoUI(); alignUI(); });
-$('#cundo').addEventListener('click',()=>{ const u=UNDO.pop(); if(!u) return; flashBtn($('#cundo')); REDO.push(stateNow()); closeEdit(); CH.ev=u.ev; CH.grids=u.grids; ALIGN_UNDO=null; CH.stripKey=''; CH.key=''; undoUI(); alignUI(); });
+$('#credo').addEventListener('click',()=>{ const u=REDO.pop(); if(!u) return; flashBtn($('#credo')); UNDO.push(stateNow()); closeEdit(); CH.ev=u.ev; CH.grids=u.grids; CH.sel.clear(); CH.selBars.clear(); edUI(); CH.stripKey=''; CH.key=''; undoUI(); alignUI(); });
+$('#cundo').addEventListener('click',()=>{ const u=UNDO.pop(); if(!u) return; flashBtn($('#cundo')); REDO.push(stateNow()); closeEdit(); CH.ev=u.ev; CH.grids=u.grids; CH.sel.clear(); CH.selBars.clear(); edUI(); ALIGN_UNDO=null; CH.stripKey=''; CH.key=''; undoUI(); alignUI(); });
 
 // =================== Takte und Verschieben ===================
 function newGrid(t0,bar,beats){ return {t:t0,bar,beats,lines:[t0],end:null}; }
@@ -2437,6 +2455,11 @@ function snapT(t,div){
 }
 const DR={timer:0,active:false,ev:null,b:null,x0:0,t0:0,lines0:null,justDragged:false,sx:0,sy:0};
 function pressStart(x,y,target){
+  // lange auf eine Taktnummer drücken = Edit-Modus an und diesen Takt wählen (Abkürzung am Handy)
+  const bn=target.closest&&target.closest('[data-barno]');
+  if(bn&&!CH.edm&&!CH.mic){ DR.sx=x; DR.sy=y; clearTimeout(DR.timer); DR.timer=setTimeout(()=>{ DR.timer=0; setEditMode(true); barToggle(+bn.dataset.barno); DR.justDragged=true; setTimeout(()=>DR.justDragged=false,400);
+    try{navigator.vibrate&&S.haptic&&navigator.vibrate(12);}catch(_){} },430); return; }
+  if(CH.edm) return; // im Edit-Modus wird ausgewählt, nicht gezogen
   const sheet=inSheetView();
   if(sheet&&!(target.closest&&target.closest('[data-i]'))) return;
   const h=target.closest&&(target.closest('[data-b]')||target.closest('[data-i]')); if(!h) return;
@@ -2478,12 +2501,12 @@ function pressEnd(){
   // Das Blatt wird dabei laufend neu gezeichnet (höchstens einmal pro Bild), die Stelle zwischen den Fingern bleibt stehen.
   let ZS=null, zRaf=0; const inSheet=inSheetView;
   st.addEventListener('touchstart',e=>{ if(e.touches.length===2&&inSheet()){ clearTimeout(DR.timer); DR.timer=0; clearTimeout(TAP.timer); TAP.timer=0; const a=e.touches[0],b=e.touches[1];
-    ZS={d0:Math.max(30,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),z0:sheetZ(),z:sheetZ(),cy:(a.clientY+b.clientY)/2,tg:[a.target,b.target]}; } },{passive:true});
+    ZS={d0:Math.max(30,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),z0:sheetZ(),z:sheetZ(),cy:(a.clientY+b.clientY)/2,tg:[a.target,b.target]}; CH.pinching=true; } },{passive:true});
   // Bewegung/Ende am Fenster abhören: das berührte Element wird beim Neuzeichnen ersetzt und meldet dann nichts mehr
   window.addEventListener('touchmove',e=>{ if(ZS&&e.touches.length===2){ e.preventDefault(); const a=e.touches[0],b=e.touches[1];
     ZS.z=clamp(ZS.z0*Math.pow(Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)/ZS.d0,0.6),SZ_MIN,SZ_MAX); ZS.cy=(a.clientY+b.clientY)/2;
     if(!zRaf) zRaf=requestAnimationFrame(()=>{ zRaf=0; if(ZS) setSheetZ(ZS.z,ZS.cy,ZS.tg); }); } },{passive:false});
-  const zsEnd=()=>{ if(!ZS) return; setSheetZ(ZS.z,ZS.cy); ZS=null; S.sz=sheetZ(); save(); TAP.noTapUntil=performance.now()+400; setTimeout(()=>{ const h=$('#touchKeep'); if(h) h.innerHTML=''; },0); };
+  const zsEnd=()=>{ if(!ZS) return; CH.pinching=false; CH.stripKey=''; setSheetZ(ZS.z,ZS.cy); ZS=null; S.sz=sheetZ(); save(); TAP.noTapUntil=performance.now()+400; setTimeout(()=>{ const h=$('#touchKeep'); if(h) h.innerHTML=''; },0); };
   window.addEventListener('touchend',e=>{ if(ZS&&e.touches.length<2) zsEnd(); });
   window.addEventListener('touchcancel',zsEnd);
   // Touch-Ereignisse hängen am berührten Element; der Tab wird beim Ziehen neu gezeichnet, deshalb die Zuhörer direkt dort anbringen
@@ -2510,18 +2533,86 @@ function playUI(){ const b=$('#cplay'); if(!b) return; const m=playMode(); b.tex
 $('#cplay').addEventListener('click',()=>toggleCPop('#cplayPop','#cplay'));
 $('#cplayPop').addEventListener('click',e=>{ const o=e.target.closest('.opt'); if(!o) return; S.play=o.dataset.v; save(); playUI(); closeCPops(); cMsg('Spielweise gilt ab der nächsten Aufnahme'); });
 playUI();
+// Ausrichten: mit Auswahl nur das Gewählte, sonst das ganze Stück
 $('#calign').addEventListener('click',()=>{ if(!(CH.grids.length&&CH.ev.length)){ cMsg('Ausrichten geht erst, wenn ein Takt erkannt ist'); return; }
-  { snap(); CH.ev.forEach(e=>e.t=snapT(e.t,e.type==='note'?gridDiv():1));
-    // gleiche Stelle: Reihenfolge erhalten, Töne nicht übereinanderlegen
-    CH.ev.sort((a,b)=>a.t-b.t); }
-  CH.stripKey=''; alignUI(); });
+  const L=CH.sel.size?[...CH.sel]:CH.ev; snap(); L.forEach(e=>e.t=snapT(e.t,e.type==='note'?gridDiv():1));
+  CH.ev.sort((a,b)=>a.t-b.t); if(CH.sel.size) resolveSel(); CH.stripKey=''; alignUI(); edUI(); cMsg(CH.sel.size?'Gewähltes an Zählzeiten ausgerichtet':'Ganzes Stück an Zählzeiten ausgerichtet'); });
 
 // =================== Akkord-Ansicht: Felder, Menü, Auswahlfenster, Akkordliste, Edit-Modus ===================
 function cMsg(t){ bpBanner(t,3500); }
 function closeCPops(){ document.querySelectorAll('#chords .cpop.on').forEach(p=>p.classList.remove('on')); document.querySelectorAll('#chords .fld.open,#cplay.open').forEach(b=>b.classList.remove('open')); }
 function toggleCPop(pop,btn){ const on=!$(pop).classList.contains('on'); closeCPops(); closeCMenu(); if(on){ $(pop).classList.add('on'); $(btn).classList.add('open'); } }
 function closeCMenu(){ $('#cmenu').classList.remove('on'); $('#cmenuB').setAttribute('aria-expanded','false'); }
-function setEditMode(on){ CH.edm=!!on; $('#chords').classList.toggle('edm',CH.edm); $('#cedit').setAttribute('aria-pressed',CH.edm); if(on) closeCPops(); alignUI(); }
+function setEditMode(on){ on=!!on; if(!on&&CH.edm){ resolveSel(); CH.sel.clear(); CH.selBars.clear(); ED.tgt=null; }
+  CH.edm=on; $('#chords').classList.toggle('edm',on); $('#cedit').setAttribute('aria-pressed',on); if(on){ closeCPops(); closeEdit(); } CH.stripKey=''; alignUI(); edUI(); }
+// =================== Edit-Modus: Auswählen, Kopieren/Einfügen, Verschieben, Schieben, Löschen ===================
+// Musikalische Position: Zählzeiten seit dem ersten Takt (so bleiben Abstände in Schlägen erhalten, auch wenn Takte leicht unterschiedlich lang sind)
+function posOf(t){ const B=sheetBars(); if(!B.length) return t*2; const nb=B[0].g.beats;
+  let k=B.findIndex(bb=>t<bb.b-1e-6); if(k<0) k=B.length-1; const bb=B[k], len=bb.b-bb.a; if(t<B[0].a) return (t-B[0].a)/len*nb; return k*nb+(t-bb.a)/len*nb; }
+function timeOf(p){ const B=sheetBars(); if(!B.length) return Math.max(0,p/2); const nb=B[0].g.beats; let k=Math.floor(p/nb);
+  if(k<0){ const len=B[0].b-B[0].a; return Math.max(0,B[0].a+p/nb*len); }
+  if(k>=B.length){ const L=B[B.length-1], len=L.b-L.a; return L.b+(p-B.length*nb)/nb*len; } const bb=B[k]; return bb.a+(p-k*nb)/nb*(bb.b-bb.a); }
+const CLIP={items:null,bars:false};
+function selList(){ return CH.ev.filter(e=>CH.sel.has(e)); }
+// Doppelungen auflösen: Gewähltes verdrängt, was auf derselben Saite (Töne) bzw. an derselben Stelle (Akkorde) liegt
+function resolveSel(){ if(!CH.sel.size) return 0; const S0=selList(); let n=0;
+  CH.ev=CH.ev.filter(o=>{ if(CH.sel.has(o)) return true; const hit=S0.some(e=>Math.abs(e.t-o.t)<0.03&&(e.type==='note'?o.type==='note'&&o.s===e.s:o.type!=='note'));
+    if(hit) n++; return !hit; }); return n; }
+function edUI(){ const L=selList(); let t=0,a=0; L.forEach(e=>e.type==='note'?t++:a++); const p=[]; if(t) p.push(t+(t>1?' Töne':' Ton')); if(a) p.push(a+(a>1?' Akkorde':' Akkord'));
+  if(CH.selBars.size) p.push(CH.selBars.size+(CH.selBars.size>1?' Takte':' Takt'));
+  $('#cedInfo').textContent=p.length?p.join(' · ')+' gewählt':'Edit an · antippen zum Auswählen';
+  ['#cedCopy','#cedMove','#cedDel','#cedL','#cedR'].forEach(id=>$(id).classList.toggle('dim',!L.length)); $('#cedPaste').classList.toggle('dim',!CLIP.items);
+  $('#cedbar').classList.toggle('tgt',!!ED.tgt); }
+function barToggle(k){ const bb=sheetBars()[k]; if(!bb) return; const key=bb.a.toFixed(3), on=!CH.selBars.has(key);
+  if(on) CH.selBars.add(key); else CH.selBars.delete(key); bb.ev.forEach(e=>on?CH.sel.add(e):CH.sel.delete(e)); CH.stripKey=''; edUI(); }
+// Zielstelle aus dem Antippen: die Stelle im Takt bleibt erhalten (was auf „2+“ begann, landet auf einem „+“); ganze Takte beginnen auf der Eins
+function targetPos(t,anchor,bars){ const B=sheetBars(); if(!B.length) return posOf(snapT(t,gridDiv())); const nb=B[0].g.beats, p=posOf(t);
+  if(bars){ let k=Math.floor(p/nb), fr=p-k*nb; if(fr>nb-0.5) k++; return Math.max(0,k)*nb; }
+  const sub=anchor-Math.floor(anchor+1e-6); return Math.max(0,Math.round(p-sub)+sub); }
+function startTarget(kind){ if(kind==='move'&&!CH.sel.size) return cMsg('Erst etwas antippen'); if(kind==='paste'&&!CLIP.items) return cMsg('Erst etwas kopieren');
+  ED.tgt=kind; $('#cedTgtTxt').textContent=(kind==='move'?'Verschieben':'Einfügen')+': Ziel im Blatt antippen'; edUI(); }
+function placeAt(t){ const kind=ED.tgt; ED.tgt=null; let items, bars;
+  if(kind==='move'){ const L=selList(); const a0=CH.selBars.size&&L.every(e=>CH.selBars.has(sheetBarKey(e.t)))?posOf(barStartOf(L[0].t)):posOf(L[0].t);
+    bars=CH.selBars.size>0&&L.every(e=>CH.selBars.has(sheetBarKey(e.t))); items=L.map(e=>({e,off:posOf(e.t)-a0})); 
+    const tp=targetPos(t,a0,bars); snap(); items.forEach(it=>{ it.e.t=Math.max(0,timeOf(tp+it.off)); it.e.edited=true; });
+    CH.selBars.clear(); }
+  else { bars=CLIP.bars; const tp=targetPos(t,CLIP.anchor,bars); snap(); const add=CLIP.items.map(it=>{ const e=JSON.parse(JSON.stringify(it.e)); e.t=Math.max(0,timeOf(tp+it.off)); e.edited=true; e.added=true; delete e.learned; return e; });
+    CH.sel.clear(); CH.selBars.clear(); add.forEach(e=>{ CH.ev.push(e); CH.sel.add(e); }); }
+  CH.ev.sort((a,b)=>a.t-b.t);
+  // am Ziel: Gewähltes verdrängt Gleiches auf derselben Saite/Stelle; von Hand korrigierte Stellen nur nach Rückfrage
+  // ganze Takte: die Zieltakte werden komplett ersetzt
+  let span=null; if(bars){ const nb=(sheetBars()[0]||{g:{beats:4}}).g.beats, offs=(kind==='move'?items:CLIP.items).map(i=>i.off), nBar=Math.max(1,Math.floor(Math.max(...offs)/nb)+1), tp=targetPos(t,0,true); span=[timeOf(tp)-0.02,timeOf(tp+nBar*nb)-0.02]; }
+  const S0=selList(), victim=o=>!CH.sel.has(o)&&((span&&o.t>=span[0]&&o.t<span[1])||S0.some(e=>Math.abs(e.t-o.t)<0.03&&(e.type==='note'?o.type==='note'&&o.s===e.s:o.type!=='note')));
+  const hand=CH.ev.filter(o=>victim(o)&&o.edited&&!o.added);
+  if(hand.length&&!confirm(hand.length+(hand.length>1?' von Hand korrigierte Stellen':' von Hand korrigierte Stelle')+' am Ziel überschreiben?')){ const u=UNDO.pop(); if(u){ CH.ev=u.ev; CH.grids=u.grids; } CH.sel.clear(); CH.stripKey=''; edUI(); undoUI(); return cMsg('Nichts geändert'); }
+  CH.ev=CH.ev.filter(o=>!victim(o)); const p0=posOf(selList()[0].t), lab=countLabel(timeOf(p0));
+  cMsg((kind==='move'?'Verschoben':'Eingefügt')+(lab?' nach '+lab:'')+' · Rückgängig oben'); CH.stripKey=''; CH.key=''; edUI(); undoUI(); }
+function sheetBarKey(t){ const bb=sheetBars().find(b=>t>=b.a-1e-3&&t<b.b-1e-3); return bb?bb.a.toFixed(3):''; }
+function barStartOf(t){ const bb=sheetBars().find(b=>t>=b.a-1e-3&&t<b.b-1e-3); return bb?bb.a:t; }
+$('#cedCopy').addEventListener('click',()=>{ const L=selList(); if(!L.length) return cMsg('Erst etwas antippen');
+  const bars=CH.selBars.size>0&&L.every(e=>CH.selBars.has(sheetBarKey(e.t))), a0=bars?posOf(barStartOf(L[0].t)):posOf(L[0].t);
+  CLIP.items=L.map(e=>({e:JSON.parse(JSON.stringify(e)),off:posOf(e.t)-a0})); CLIP.bars=bars; CLIP.anchor=a0; edUI();
+  cMsg((L.length>1?L.length+' Elemente':'1 Element')+' kopiert · jetzt „Einfügen“'); });
+$('#cedPaste').addEventListener('click',()=>startTarget('paste'));
+$('#cedMove').addEventListener('click',()=>startTarget('move'));
+$('#cedCancel').addEventListener('click',()=>{ ED.tgt=null; edUI(); cMsg('Abgebrochen'); });
+$('#cedDel').addEventListener('click',()=>{ const L=selList(); if(!L.length) return cMsg('Erst etwas antippen'); snap();
+  // einzeln gewählte Töne lehren „weglassen“ (Erkennungsfehler); ganze Takte nicht
+  L.forEach(e=>{ if(e.type==='note'&&!CH.selBars.has(sheetBarKey(e.t))&&!e.added) learnNote(e,'drop'); });
+  CH.ev=CH.ev.filter(e=>!CH.sel.has(e)); const n=L.length; CH.sel.clear(); CH.selBars.clear(); CH.stripKey=''; CH.key=''; edUI(); undoUI(); cMsg(n+(n>1?' Elemente':' Element')+' gelöscht · Rückgängig oben'); });
+// Schiebepfeile: Auswahl um einen Rasterschritt, auch über anderes hinweg (verdrängt wird erst beim Abwählen oder „Fertig“)
+function nudgeSel(d){ const L=selList(); if(!L.length) return cMsg('Erst etwas antippen'); const st=1/gridDiv(); snap();
+  L.forEach(e=>{ e.t=Math.max(0,timeOf(posOf(e.t)+d*st)); e.edited=true; }); CH.selBars.clear(); CH.ev.sort((a,b)=>a.t-b.t); CH.stripKey=''; edUI();
+  const lab=countLabel(L[0].t); if(lab) cMsg(lab); }
+$('#cedL').addEventListener('click',()=>nudgeSel(-1)); $('#cedR').addEventListener('click',()=>nudgeSel(1));
+// Antippen im Edit-Modus: auswählen statt bearbeiten; im Ziel-Modus: Ziel setzen
+function editTap(e){ if(ED.tgt){ const t=sheetTimeAt(e.clientX,e.clientY); if(t!=null) placeAt(t); return; }
+  const bn=e.target.closest('[data-barno]'); if(bn){ barToggle(+bn.dataset.barno); return; }
+  let h=e.target.closest('[data-i]');
+  if(!h){ const svg=e.target.ownerSVGElement||e.target.closest('svg'); if(svg){ const r=svg.getBoundingClientRect(), k=svg.viewBox.baseVal.width/r.width, px=(e.clientX-r.left)*k, py=(e.clientY-r.top)*k; let bd=1e9;
+    svg.querySelectorAll('[data-i]').forEach(q=>{ const b=q.getBBox(), d=Math.hypot(Math.max(0,Math.abs(px-(b.x+b.width/2))-b.width/2),Math.max(0,Math.abs(py-(b.y+b.height/2))-b.height/2)); if(d<bd){bd=d;h=q;} }); if(bd>LAY.str*sheetZ()*1.2) h=null; } }
+  if(!h) return; const ev=CH.ev[+h.dataset.i]; if(!ev) return;
+  if(CH.sel.has(ev)){ resolveSel(); CH.sel.delete(ev); } else CH.sel.add(ev); CH.stripKey=''; edUI(); }
 function gridBpm(){ const g=CH.grids[0]; return g?Math.round(g.bpm||60*g.beats/g.bar):null; }
 // Akkorde, die im Stück wirklich vorkommen (Reihenfolge des ersten Auftretens; je Name der meistgespielte Griff).
 // Hat Manu an einer Stelle selbst einen anderen Griff gewählt (voiSet), steht dieser Griff zusätzlich als eigener Eintrag da.
@@ -2550,7 +2641,7 @@ function chordsUI(){
 function statusUI(){
   let t='';
   if(CH.mic) t=CH.counting?(CH.count?'Einzählen · '+CH.count:'Einzählen …'):'Aufnahme läuft';
-  else if(CH.edm) t='Edit an · Takte auswählen folgt im nächsten Schritt';
+  else if(CH.edm) t=ED.tgt?'Ziel im Blatt antippen':'Edit an';
   else if(CH.micMsg) t=CH.micMsg;
   else if(!CH.ev.length) t='Bereit';
   const el=$('#cstat'); if(el.textContent!==t) el.textContent=t;
@@ -2586,11 +2677,17 @@ $('#hsheet').addEventListener('click',e=>{ if(e.target.id==='hsheet') $('#hsheet
 
 // Bearbeiten
 // Doppeltipp auf eine leere Stelle = Zoom zurücksetzen; deshalb trägt ein einzelner Tipp auf eine leere Stelle erst nach 0,3 s etwas ein.
-const TAP={timer:0,last:0,noTapUntil:0};
+const TAP={timer:0,last:0,noTapUntil:0,lt:0};
 function emptyTap(act){ const now=performance.now();
   if(TAP.timer){ clearTimeout(TAP.timer); TAP.timer=0; zoomReset(); return; }
-  TAP.last=now; TAP.timer=setTimeout(()=>{ TAP.timer=0; if(act) act(); },300); }
-$('#cstrip').addEventListener('click',e=>{ if(DR.justDragged||performance.now()<TAP.noTapUntil) return; const h=e.target.closest('[data-i]'); if(h){ openEdit(CH.ev[+h.dataset.i]); return; }
+  TAP.last=now; TAP.timer=setTimeout(()=>{ TAP.timer=0; if(act) act(); },450); }
+// Doppeltipp per Berührung (schneller und zuverlässiger als der Klick des Browsers), überall im Blatt, auch zwischen den Zeilen
+$('#cbody').addEventListener('touchstart',e=>{ if(e.touches.length===1){ const t=e.touches[0]; TAP.sx=t.clientX; TAP.sy=t.clientY; TAP.st=performance.now(); } else TAP.st=0; },{passive:true});
+$('#cbody').addEventListener('touchend',e=>{ if(e.touches.length||!TAP.st||CH.pinching||DR.active) return; const t=e.changedTouches[0], now=performance.now();
+  if(Math.hypot(t.clientX-TAP.sx,t.clientY-TAP.sy)>12||now-TAP.st>350||!inSheetView()||!e.target.closest('#cstrip')||e.target.closest('[data-i]')){ TAP.lt=0; return; }
+  if(TAP.lt&&now-TAP.lt<400&&Math.hypot(t.clientX-TAP.lx,t.clientY-TAP.ly)<45){ TAP.lt=0; clearTimeout(TAP.timer); TAP.timer=0; TAP.noTapUntil=now+450; e.preventDefault(); zoomReset(); return; }
+  TAP.lt=now; TAP.lx=t.clientX; TAP.ly=t.clientY; },{passive:false});
+$('#cstrip').addEventListener('click',e=>{ if(DR.justDragged||performance.now()<TAP.noTapUntil) return; if(CH.edm&&!CH.mic){ editTap(e); return; } const h=e.target.closest('[data-i]'); if(h){ openEdit(CH.ev[+h.dataset.i]); return; }
   // Tippen in die Akkordzeile über dem Tab: dort einen Akkord eintragen (Art danach wählen)
   const cl=e.target.closest('[data-clane]');
   if(cl&&!CH.mic){ const svg=cl.ownerSVGElement, r=svg.getBoundingClientRect(), x=(e.clientX-r.left)*(svg.viewBox.baseVal.width/r.width); let t;
