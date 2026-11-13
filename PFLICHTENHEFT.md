@@ -183,18 +183,40 @@ Oben 15 breite Balken (große Fläche), darunter groß der Ton, darunter Saite u
 
 ## 8. Roadmap
 
-0. **Jetzt:** Ton-Erkennung mit Basic Pitch testen (Schalter, siehe 7.) und abstimmen.
-1. **Als Nächstes:** **Aufnahmen-Bereich** auf dem Startbildschirm (Sessions mit Name, Datum, Tempo, Taktart speichern, wieder öffnen, weiter aufnehmen oder neu starten) – vorher besprechen. Dann Läufe als Bundzahlen im Tab (Testgrundlage: Manus Strophen-Aufnahme). Dann **mitlaufendes Metronom** (setzt die Taktstriche selbst an Manus Anschläge; Ziehen bleibt zum Nachkorrigieren): Manu gibt ein ungefähres Tempo vor, das Metronom passt sich seinem Spiel an (sein Tempo im Song schwankt). Vorher gemeinsam besprechen.
-2. **Timeline-Bearbeitung (Manus Liste, 12.11.):** **Akkorde hinzufügen** (an einer Stelle im Tab einen Akkord eintragen, wie bei Tönen). Akkorde sind feste Anker; Einzeltöne zwischen zwei Akkorden werden beim Verschieben proportional gestaucht/gedehnt und rasten ein. Absicherungen: Originalpositionen merken (keine Rundungsfehler), Akkord stoppt am Nachbarakkord, Notenlängen mitskalieren, von Hand korrigierte Töne bleiben fix, Vorschau beim Ziehen. Mehrfachauswahl (z. B. zum Löschen; Bedienung offen, Vorschlag: lange drücken + Rahmen aufziehen), kein Copy-Paste. Grundsatz: Bearbeitung schlank halten, die Erkennung hat Vorrang.
-3. **Idee: Kamera** zur Unterstützung (Saite/Bund, Slide/Hammer/Pull, Griff) per Hand-Erkennung im Browser; großes eigenes Projekt, erst wenn das Hören ausgereizt ist.
-2. **Bald: Aufnahme und Wiedergabe (Record/Playback):** Gespieltes aufnehmen und abspielen, um sich Melodien zu den Akkordwechseln auszudenken, die dann mitgeschrieben werden. Offen: ohne Kopfhörer würde die Wiedergabe mit erkannt. Ideen: Wiedergabe gezielt aus der Analyse herausrechnen (die App kennt das Signal) oder die Echo-Unterdrückung des Browsers testen.
-3. Automatische BPM- und Takterkennung für freies Spielen ohne Metronom.
-4. Transkription: Einzeltöne (z. B. Basic Pitch), Tabs und gut lesbare Takte – als Grundlage für den Bassisten. Mit Bearbeitungsansicht zum Korrigieren.
-5. Play-Along: aufgenommene Spuren einzeln ein- und ausschaltbar.
-6. Alternative Voicings für eine zweite Gitarre, optional in anderen Stimmungen.
-7. Schlagzeug-Gestalter (Kick, Snare, HiHat, Muster), Export als WAV.
-8. Songwriting-Assistent mit Vorschlägen (regelbasiert in der App; kreative Vorschläge im Chat mit Claude).
-9. Später ggf. installierbare App (PWA) oder APK.
+Stand: 13.11.2026, abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Quelle für die Reihenfolge; Details zu laufenden Arbeiten stehen in Abschnitt 7.
+
+### A · Läuft gerade (Akkord-Chat, Plan „Ordnung“)
+1. ✅ Takterkennung nach dem Stoppen, Blatt-Ansicht, erster Akkord auf der Eins, Verschieben im Blatt, Spielweise in drei Stufen.
+2. ▶ Abspielen mit mitlaufendem Balken (erster Teil von Record/Playback).
+3. Akkorde auf Zählzeiten bestimmen, Nachklang-Doppler beim Zupfen entfernen.
+4. „Takt beginnt hier“ zum Korrigieren der Eins, Taktart wählbar.
+- Parallel: neue Ton-Erkennung (Basic Pitch) abstimmen, Rechenzeit auf dem S24 messen, prüfen ob fast live geht; Slide/Hammer-on/Pull-off aus den Tonhöhen-Kurven; offene Fehler: Pull-off-Ton vor dem Em, c#4.
+
+### B · Danach
+1. **Sessions speichern** (Aufnahmen-Bereich auf dem Startbildschirm): Name, Datum, Tempo, Taktart, Kapo; wieder öffnen, weiter aufnehmen oder neu starten. Heute geht beim Schließen alles verloren.
+2. **Eigenes Blatt schreiben:** leeres Blatt ohne Aufnahme (Tempo, Taktart, Anzahl Takte), Akkorde und Töne von Hand eintragen. Eine Session kann aufgenommen, geschrieben oder beides sein. Offen: nur Akkordnamen über den Takten, volle Griffe im Tab oder wahlweise.
+3. **Kapo-Umschalter** für eigene Blätter: Kapo-Bund einstellen, Ansicht „Griff“ (z. B. G bei Kapo 3) ↔ „klingend“ (B♭). Reine Umrechnung, die Erkennung bleibt unberührt.
+4. **Akkordschema für den Bassisten als PDF:** Takte mit den klingenden Akkordnamen, kein Tab, kein Notenblatt. Teilen über das Handy.
+5. **Datensicherung:** Einstellungen und gelernte Korrekturen exportieren/importieren (liegen sonst nur im Browser).
+
+### C · Timeline-Bearbeitung
+- Akkorde als feste Anker; Einzeltöne dazwischen werden beim Verschieben proportional gestaucht/gedehnt und rasten ein. Absicherungen: Originalpositionen merken, Akkord stoppt am Nachbarakkord, Notenlängen mitskalieren, von Hand korrigierte Töne bleiben fix, Vorschau beim Ziehen.
+- Mehrfachauswahl (z. B. zum Löschen; Vorschlag: lange drücken + Rahmen aufziehen), kein Copy-Paste.
+- Prüfen, ob „Akkord auf dem Taktstrich lässt sich nicht greifen“ noch besteht.
+- Grundsatz: Bearbeitung schlank halten, die Erkennung hat Vorrang.
+
+### D · Später
+- Record/Playback ausbauen: zur Aufnahme Melodien erfinden, die mitgeschrieben werden. Offen: ohne Kopfhörer würde die Wiedergabe mit erkannt (herausrechnen oder Echo-Unterdrückung testen).
+- Akkorde Stufe 2: Slash-Akkorde (D/B), add9 und weitere.
+- Kapo bei der Erkennung (Mikro, Lernen nach klingendem Ton, Bundzahlen ab Kapo).
+- Mehrspur / Play-Along: Spuren aufnehmen, stumm/laut schalten, löschen, hinzufügen.
+- Alternative Voicings für eine zweite Gitarre, optional in anderen Stimmungen.
+- Schlagzeug-Gestalter (Kick, Snare, HiHat, Muster), Export als WAV.
+- Songwriting-Assistent (regelbasiert in der App; kreative Vorschläge im Chat).
+- Kamera zur Unterstützung (Saite/Bund, Spieltechnik), erst wenn das Hören ausgereizt ist.
+- Installierbare App (PWA) oder APK.
+- Metronom, das sich dem Spieltempo anpasst – nur falls die Takterkennung nach dem Stoppen nicht reicht.
+- Sprache nicht als Akkord erkennen – nur falls es stört (Manu redet beim Spielen nicht).
 
 ## 9. Bekannte Grenzen
 
