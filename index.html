@@ -336,6 +336,7 @@ html.crec #newver,html.ced #newver{display:none!important}
     <button role="menuitem" id="cmHelp">Bedienhilfe</button>
     <button role="menuitem" id="cmVoice">Sprachbefehle ansehen</button>
     <button role="menuitem" id="cmTest">Test-Mitschnitt<span id="cmTestV"></span></button>
+    <button role="menuitem" id="cmLoad">Mitschnitt laden</button><input type="file" id="capFile" accept=".wav,audio/wav,audio/x-wav,audio/*" hidden>
     <button role="menuitem" id="cmVer">Neue Version laden</button>
     <button role="menuitem" id="creset" class="dng">Zurücksetzen</button>
   </div>
@@ -492,7 +493,18 @@ html.crec #newver,html.ced #newver{display:none!important}
       <li><b>Zwei Finger</b> = zoomen. Zurücksetzen oben in der Statuszeile.</li>
       <li><b>Akkorde im Stück</b> antippen = Griff groß ansehen.</li>
       <li><b>BPM</b> antippen = Taktart, Tempo halbieren oder verdoppeln.</li>
-      <li><b>Edit</b> = Ausrichten an den Zählzeiten. Takte auswählen, kopieren, verschieben und löschen kommen im nächsten Schritt.</li>
+      <li><b>Edit</b> = auswählen: Töne, Akkorde, Taktnummern antippen. Dann Kopieren → Einfügen, Verschieben (Ziel im Blatt antippen), ↤ ↦ schieben, Löschen, Ausrichten. Lange auf eine Taktnummer drücken = Edit an und Takt gewählt.</li>
+      <li><b>Mitschnitt laden</b> (Menü ⋯): eine gespeicherte Test-WAV öffnen, das Blatt steht wieder da.</li>
+    </ul>
+    <h3 style="margin-top:6px">Sprechen (Knopf halten, sprechen, loslassen)</h3>
+    <ul class="hlist">
+      <li>„Takt 3 bis 5 markieren“ · „Markierung weg“</li>
+      <li>„Takt 4 löschen“ · „Takt 4 Töne löschen“ · „Takt 4, 2 bis 3 löschen“ · „löschen“ (das Markierte)</li>
+      <li>„Takt 1 bis 4 kopieren nach Takt 9“ · „verschieben nach Takt 12“ · „Takt 1 bis 2 kopieren auf alle ähnlichen“</li>
+      <li>„Takt 5, 3, E-Moll“ · „Takt 7, 1 D über Fis“ · „Takt 5, 3 bis 6, 1 A sus 2“</li>
+      <li>„Takt 3, 2 und, B-Saite Bund 3“ · „Takt 4, 1, B-Saite: 3, Slide 5, 3, 1, Pull-off 0“</li>
+      <li>Nach Antippen: „Bund 5“ · „G-Saite“ · „Slide“ · „Hammer-on“ · „Pull-off“ · „Anschlag“ · „E-Moll“</li>
+      <li>„Rückgängig“ · „Wiederholen“ · mehrere mit „und dann“. Zählzeiten: „2 und“ = 2+, „2 e“ / „2 a“ = Sechzehntel.</li>
     </ul>
   </div>
 </div>
@@ -1565,7 +1577,7 @@ function demoStrum(ctx,dest,r,qi,t0){
 // Bildschirm öffnen: Mikro bleibt aus, bis „Start“ gedrückt wird
 function startChords(){ checkVersion(false);
   $('#chords').classList.add('on'); root.classList.add('inch'); bpLoad().catch(()=>{}); setEditMode(false); CH.bigK=null; CH.listKey='';
-  capClear(); BPB.gen++; UNDO.length=0; CH.ev=[]; CH.onsets=[]; CH.beatCh=[]; CH.tNow=0; CH.tBase=0; CH.grids=[]; CH.stripKey=''; CH.follow=true; CH.key=''; CH.eng=null; CH.micMsg=''; metUI();
+  capClear(); BPB.gen++; UNDO.length=0; CH.ev=[]; CH.onsets=[]; CH.beatCh=[]; CH.song=null; CH.tNow=0; CH.tBase=0; CH.grids=[]; CH.stripKey=''; CH.follow=true; CH.key=''; CH.eng=null; CH.micMsg=''; metUI();
   $('#cbanner').classList.remove('on');
   setMicUI();
   CH.running=true; cancelAnimationFrame(CH.raf); CH.raf=requestAnimationFrame(chordFrame);
@@ -1656,7 +1668,7 @@ function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) me
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
 // =================== Version ===================
-const APP_VERSION='2026-11-13.2345'; let NEWVER=null, NEWVER_X=false;
+const APP_VERSION='2026-11-14.0010'; let NEWVER=null, NEWVER_X=false;
 async function checkVersion(manual){
   const info=$('#verInfo'); if(info) info.textContent='Diese App: '+APP_VERSION;
   try{
@@ -1862,8 +1874,41 @@ function tabJSON(){
     live:LOG, noteLessons:NLEARN.length, chordLessons:LEARN.length,
     grids:CH.grids.map(g=>({lines:g.lines.map(x=>+x.toFixed(3)),bar:+g.bar.toFixed(3),beats:g.beats,end:g.end==null?null:+g.end.toFixed(3),auto:!!g.auto,bpm:g.bpm?+g.bpm.toFixed(1):null})),
     events:CH.ev.map(e=>e.type==='note'?{t:+e.t.toFixed(3),type:'note',m:e.m,origM:e.origM??null,s:e.s,f:e.f,art:e.art||'pick',edited:!!e.edited,added:!!e.added,learned:!!e.learned,bp:!!e.bp}
-      :{t:+e.t.toFixed(3),type:e.type,name:nm(e),key:e.key,orig:e.orig,bass:e.bass??null,f:e.f,learned:!!e.learned,edited:!!e.edited,added:!!e.added,beat:!!e.beat})};
+      :{t:+e.t.toFixed(3),type:e.type,name:nm(e),key:e.key,orig:e.orig,bass:e.bass??null,f:e.f,learned:!!e.learned,edited:!!e.edited,added:!!e.added,beat:!!e.beat}),
+    session:sessionJSON()};
 }
+// Sitzung als Lied mit Spuren (Form für „Sessions speichern“ B1 und das geteilte Projekt): Kennungen, Besitzer, Änderungsstand je Spur
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+function sessionJSON(){ if(!CH.song) CH.song={id:uid(),created:new Date().toISOString(),track:{id:uid(),owner:'manu',rev:0}}; CH.song.track.rev++;
+  const r3=x=>+x.toFixed(3);
+  return {format:'gitarre-session',v:1,song:{id:CH.song.id,title:'',created:CH.song.created,owner:'manu',tempo:gridBpm(),beats:(CH.grids[0]||{}).beats||+metCfg().sig||4,kapo:0,
+    grids:CH.grids.map(g=>Object.assign({},g,{lines:g.lines.map(r3)}))},
+    tracks:[{id:CH.song.track.id,kind:'gitarre',owner:CH.song.track.owner,rev:CH.song.track.rev,changed:new Date().toISOString(),play:playMode(),
+      events:CH.ev.map(e=>{ const o=Object.assign({},e); o.t=r3(e.t); return o; }),onsets:(CH.onsets||[]).map(r3),beatCh:(CH.beatCh||[]).map(x=>({t:r3(x.t),c:x.c.map(v=>+(+v).toFixed(4))})),audio:'wav-data'}]}; }
+// Mitschnitt laden (WAV mit Tab-Block): Blatt steht wieder genau so da, ohne neue Erkennung; Klang bleibt für erneutes Speichern
+async function capLoad(file){ if(CH.mic) return cMsg('Erst die Aufnahme stoppen');
+  try{ const buf=await file.arrayBuffer(), v=new DataView(buf); const tag=o=>String.fromCharCode(v.getUint8(o),v.getUint8(o+1),v.getUint8(o+2),v.getUint8(o+3));
+    if(tag(0)!=='RIFF'||tag(8)!=='WAVE') throw new Error('keine WAV-Datei');
+    let o=12, sr=48000, pcm=null, js=null;
+    while(o+8<=buf.byteLength){ const id=tag(o), len=v.getUint32(o+4,true), d=o+8;
+      if(id==='fmt ') sr=v.getUint32(d+4,true); else if(id==='data') pcm=new Int16Array(buf.slice(d,d+len-(len%2))); else if(id==='tabj') js=JSON.parse(new TextDecoder().decode(new Uint8Array(buf,d,len)));
+      o=d+len+(len&1); }
+    if(!js) throw new Error('kein Tab in der Datei (nur Test-Mitschnitte der App)');
+    closeEdit(); setEditMode(false); let ev, grids, tr=null;
+    if(js.session&&js.session.tracks&&js.session.tracks[0]){ const S0=js.session; tr=S0.tracks[0]; ev=tr.events; grids=S0.song.grids||js.grids;
+      CH.song={id:S0.song.id,created:S0.song.created,track:{id:tr.id,owner:tr.owner||'manu',rev:tr.rev||0}}; }
+    else { // ältere Mitschnitte: Akkord aus dem Schlüssel
+      ev=(js.events||[]).map(e=>{ if(e.type==='note') return Object.assign({},e,{key:'note|'+e.m}); const k=String(e.key||'').split('|'), r=+k[1], qi=k[2]===''||k[2]==null?null:+k[2];
+        return {t:e.t,type:e.type,r,qi:e.type==='chord'?qi:null,key:e.key,orig:e.orig,bass:e.bass,f:e.f,learned:e.learned,edited:e.edited,added:e.added,beat:e.beat}; });
+      grids=js.grids; CH.song=null; }
+    CH.ev=ev.map(e=>Object.assign({},e)).sort((a,b)=>a.t-b.t); CH.grids=(grids||[]).map(g=>Object.assign({},g,{lines:g.lines.slice(),t:g.t??g.lines[0],bar:g.bar,beats:g.beats,end:g.end}));
+    CH.onsets=tr?tr.onsets||[]:[]; CH.beatCh=tr?tr.beatCh||[]:[];
+    if(js.play&&!tr) {} if(tr&&tr.play){ S.play=tr.play; save(); playUI(); }
+    const tEnd=Math.max(0,...CH.ev.map(e=>e.t),...CH.grids.map(g=>g.end||0)); CH.tNow=tEnd+0.5; CH.tBase=CH.tNow;
+    capClear(); if(pcm){ CAP.sr=sr; CAP.chunks=[pcm]; CAP.n=pcm.length; CAP.segs=js.segments||[]; } LOG.length=0; (js.live||[]).forEach(x=>LOG.push(x));
+    UNDO.length=0; REDO.length=0; CH.rowPlan=null; CH.view='sheet'; CH.stripKey=''; CH.key=''; CH.listKey=''; CH.bigK=null; undoUI(); capUI(); chordsUI();
+    const nT=CH.ev.filter(e=>e.type==='note').length, nA=CH.ev.length-nT; cMsg(`Mitschnitt geladen: ${nA} Akkorde, ${nT} Töne${CH.grids[0]?' · ≈ '+gridBpm()+' BPM':''}`);
+  }catch(e){ cMsg('Laden ging nicht: '+(e&&e.message||e)); } }
 function capSave(){
   if(!CAP.n) return;
   const json=new TextEncoder().encode(JSON.stringify(tabJSON())), jl=json.length+(json.length&1);
@@ -2680,7 +2725,9 @@ function cmenuUI(){ $('#cmTestV').textContent=S.capture?'an':'aus'; }
 $('#cmenu').addEventListener('click',e=>{ if(e.target.closest('button')) setTimeout(closeCMenu,0); });
 $('#cmSet').addEventListener('click',()=>openSheet());
 $('#cmHelp').addEventListener('click',()=>$('#hsheet').classList.add('on'));
-$('#cmVoice').addEventListener('click',()=>cMsg('Sprachbefehle kommen mit Version 1'));
+$('#cmVoice').addEventListener('click',()=>$('#hsheet').classList.add('on'));
+$('#cmLoad').addEventListener('click',()=>$('#capFile').click());
+$('#capFile').addEventListener('change',e=>{ const f=e.target.files&&e.target.files[0]; if(f) capLoad(f); e.target.value=''; });
 $('#cmTest').addEventListener('click',()=>{ S.capture=!S.capture; save(); cmenuUI(); capUI(); cMsg(S.capture?'Test-Mitschnitt an · gilt ab der nächsten Aufnahme':'Test-Mitschnitt aus'); });
 $('#cmVer').addEventListener('click',async()=>{ await checkVersion(true); if(NEWVER) location.replace(location.pathname+'?v='+Date.now()); else cMsg('Das ist die neueste Version'); });
 $('#hclose').addEventListener('click',()=>$('#hsheet').classList.remove('on'));
@@ -2769,7 +2816,7 @@ function voxDo(t){ const nb=(sheetBars()[0]||{g:{beats:4}}).g.beats, P=voxPos(t)
     const P2=voxPos(tt); const Pz=P2; // Quelle aus dem Teil vor „nach“
     if(Pz&&Pz.bars) markBars(Pz.bars); else if(Pz&&Pz.pos!=null){ const L=rangeEv(Pz.pos,Pz.end!=null?Pz.end:Pz.pos+0.5); setEditMode(true); CH.sel.clear(); CH.selBars.clear(); L.forEach(e=>CH.sel.add(e)); edUI(); }
     if(!CH.sel.size) return {ok:0,txt:'Was soll ich '+(mv?'verschieben':'kopieren')+'? Erst markieren'};
-    if(sim&&!mv){ $('#cedCopy').click(); const n=simStart(); return {ok:1,txt:n?n+' ähnliche Stellen gefunden · prüfen und „Übernehmen“':'Keine ähnlichen Stellen gefunden',nosnap:1}; }
+    if(sim&&!mv){ $('#cedCopy').click(); const n=simStart(); return {ok:1,txt:n?n+(n>1?' ähnliche Stellen':' ähnliche Stelle')+' gefunden · prüfen und „Übernehmen“':'Keine ähnlichen Stellen gefunden',nosnap:1}; }
     if(!tm) return {ok:0,txt:'Wohin? „nach Takt …“'};
     const bars=selIsBars(); let tp=(+tm[1]-1)*nb; if(tm[2]){ const b=voxBeat(tm[2]); if(b!=null) tp+=b; } else if(!bars){ const a=selAnchor(); tp+=a-Math.floor(a/nb)*nb; }
     if(!mv){ $('#cedCopy').click(); const r=placePos('paste',tp); return {ok:!!r,txt:r||'Nichts eingefügt'}; }
