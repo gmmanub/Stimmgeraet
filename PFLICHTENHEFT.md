@@ -226,11 +226,14 @@ Stand: 13.11.2026, abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Que
 4. **Version 2:** Ablauf vorgeben (Strophe/Refrain), Erkennung richtet sich danach.
 5. Abspielen mit mitlaufendem Balken (erster Teil von Record/Playback).
 6. Nachklang-Doppler beim Zupfen entfernen; Zupf-Akkorde aus den Basic-Pitch-Tönen bestimmen; „Takt beginnt hier“, Taktart wählbar.
+- **Regel fürs Layout (ab Version 1):** nichts fest auf Handybreite bauen (Größen relativ, Takte pro Zeile nach Breite), damit eine spätere Laptop-Ansicht ohne Umbau möglich ist.
 - Parallel: neue Ton-Erkennung (Basic Pitch) abstimmen, Rechenzeit auf dem S24 messen, prüfen ob fast live geht; Slide/Hammer-on/Pull-off aus den Tonhöhen-Kurven; offene Fehler: Pull-off-Ton vor dem Em, c#4.
 
 ### B · Danach
 1. **Sessions speichern** (Aufnahmen-Bereich auf dem Startbildschirm): Name, Datum, Tempo, Taktart, Kapo; wieder öffnen, weiter aufnehmen oder neu starten. Heute geht beim Schließen alles verloren. **Speicher von Anfang an mit Spuren** (jede Session hat eine Liste von Spuren mit Audio und Ereignissen), auch wenn die Spuren-Bedienung erst später kommt – so muss nichts umgebaut werden.
 2. **Eigenes Blatt schreiben:** leeres Blatt ohne Aufnahme (Tempo, Taktart, Anzahl Takte), Akkorde und Töne von Hand eintragen. Eine Session kann aufgenommen, geschrieben oder beides sein. Offen: nur Akkordnamen über den Takten, volle Griffe im Tab oder wahlweise.
+1a. **Sessions zwischen Handy und Laptop übertragen:** Handy und Laptop haben getrennte Speicher. Zuerst Session-Datei (inkl. Aufnahmen) über „Teilen“ bzw. Herunterladen und am anderen Gerät laden; später automatisch über das private Repo. Realistischer Ablauf: am Handy aufnehmen (besseres Mikro, Laptop-Mikros werden von Windows oft stark gefiltert), am Laptop bearbeiten.
+1b. **Laptop-Ansicht:** breites Layout (mehr Takte pro Zeile, größerer Tab, Bearbeiten als Seitenleiste statt von unten), Maus und Tastatur statt Gesten (Klicken+Ziehen statt langem Drücken, Strg+Mausrad statt zwei Finger, Scrollen statt Wischen), Tastenkürzel (Leertaste = Abspielen, Strg+Z/Strg+Y). Sinnvoll nach „Sessions speichern“ und „Abspielen“, spätestens mit den Spuren.
 3. **Kapo-Umschalter** für eigene Blätter: Kapo-Bund einstellen, Ansicht „Griff“ (z. B. G bei Kapo 3) ↔ „klingend“ (B♭). Reine Umrechnung, die Erkennung bleibt unberührt.
 4. **Akkordschema für den Bassisten als PDF:** Takte mit den klingenden Akkordnamen, kein Tab, kein Notenblatt. Teilen über das Handy.
 5. ✅ **Datensicherung** (Datei über „Teilen“, seit 13.11. 17:45). Später optional: automatisch ins private Repo (GitHub-Zugangsschlüssel nur für dieses Repo).
