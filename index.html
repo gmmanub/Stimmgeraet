@@ -124,7 +124,7 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .cplayPop{margin:0 12px 6px}
 .cpop .opt{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;text-align:left;padding:6px 12px;gap:1px}
 .cpop .opt small{font-size:11px;color:var(--soft2)}
-.clist{padding:10px 12px 0;display:none;flex-direction:column;gap:6px}
+.clist{padding:0 12px 10px;display:none;flex-direction:column;gap:6px}
 .clist.on{display:flex}
 .clab{font-size:11px;color:var(--soft2)}
 .cchips{display:flex;flex-wrap:wrap;gap:6px}
@@ -148,7 +148,10 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .rb.off{opacity:.42}
 .rb.rec .dot{width:24px;height:24px;border-radius:50%;background:var(--acc);display:block;transition:border-radius .2s,width .2s,height .2s}
 .rb.rec.on .dot{width:20px;height:20px;border-radius:4px}
-.ctime{display:none;font-size:15px;color:var(--soft2);font-variant-numeric:tabular-nums}
+.cbot{position:relative}
+.ctime{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:15px;color:var(--soft2);font-variant-numeric:tabular-nums}
+#cmic{transition:transform .25s}
+#chords.rec #cmic{transform:scale(1.18)}
 #chords.rec .cbot>*:not(#cmic):not(.ctime){visibility:hidden}
 #chords.rec .ctime{display:block}
 #chords.rec #cundo,#chords.rec #credo,#chords.rec .cfields,#chords.rec .clist,#chords.rec .cpop{display:none}
@@ -314,6 +317,7 @@ html.crec #newver,html.ced #newver{display:none!important}
     </button>
     <button class="iconbtn flat big" id="cundo" aria-label="Rückgängig"><svg viewBox="0 0 24 24"><path d="M9 7L4.5 11.5 9 16M5 11.5h9.5a5 5 0 0 1 0 10H12"/></svg></button>
     <button class="iconbtn flat" id="credo" aria-label="Wiederholen"><svg viewBox="0 0 24 24"><path d="M15 7l4.5 4.5L15 16M19 11.5H9.5a5 5 0 0 0 0 10H12"/></svg></button>
+    <button class="iconbtn flat" id="cfull" aria-label="Vollbild"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
     <button class="iconbtn flat" id="cmenuB" aria-label="Menü" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18.5" cy="12" r="1.3"/></svg></button>
   </div>
   <div class="cmenu" id="cmenu" role="menu">
@@ -325,7 +329,8 @@ html.crec #newver,html.ced #newver{display:none!important}
     <button role="menuitem" id="creset" class="dng">Zurücksetzen</button>
   </div>
   <div class="cbody" id="cbody">
-    <div class="cstat"><span class="banner" id="cbanner"></span><span id="cstat"></span><button class="mini" id="czoom" style="display:none"></button></div>
+    <div class="cstat"><span class="banner" id="cbanner"></span><span id="cstat"></span></div>
+    <div class="clist" id="clist"><div class="clab">Akkorde im Stück</div><div class="cchips" id="cchips"></div><div class="cbig" id="cbig"></div></div>
     <div class="cfields" id="cfields">
       <button class="fld" id="ckapo">Kapo –</button>
       <button class="fld" id="ctempo">– BPM</button>
@@ -336,7 +341,6 @@ html.crec #newver,html.ced #newver{display:none!important}
       <div class="cpg2"><button id="chalf">Tempo ÷2</button><button id="cdouble">Tempo ×2</button></div>
       <div class="cpg2"><button class="soon" data-soon="Taktart ändern">Taktart</button><button class="soon" data-soon="Takt beginnt hier">Takt beginnt hier</button></div>
     </div>
-    <div class="clist" id="clist"><div class="clab">Akkorde im Stück</div><div class="cchips" id="cchips"></div><div class="cbig" id="cbig"></div></div>
     <div class="cstrip" id="cstrip" aria-label="Tablatur"></div>
     <div class="cstripnote" id="cstripnote"></div>
     <div class="cdisplay" hidden>
@@ -1354,7 +1358,7 @@ function stripSVG(){
   const {dig:D,lab:Lb,gap:G,str:C,px:F}=LAY, top=Math.round(Lb+G+D*.62+6), left=30;
   const vw=($('#cstrip').clientWidth||360), W=Math.max(vw,left+CH.tNow*F+70), H=Math.round(top+5*C+D*.7+30);
   let o=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Tablatur">`;
-  for(let i=0;i<6;i++) o+=`<line x1="${left-8}" y1="${top+i*C}" x2="${W-4}" y2="${top+i*C}" stroke="var(--line)" stroke-width="1.2"/>`;
+  for(let i=0;i<6;i++) o+=`<line x1="${left-8}" y1="${top+i*C}" x2="${W-4}" y2="${top+i*C}" stroke="var(--line)" stroke-width="${strW(i,1)}"/>`;
   'TAB'.split('').forEach((ch,i)=>o+=`<text x="9" y="${top+(1+i*1.5)*C*0.95}" font-size="${Math.min(13,C*.7)}" fill="var(--muted)" text-anchor="middle">${ch}</text>`);
   const cy=top-D*.62-G;
   for(let s=0;s<6;s++) o+=`<rect data-str="${s}" x="${left}" y="${top+(5-s)*C-C/2}" width="${W-left}" height="${C}" fill="transparent"/>`;
@@ -1637,7 +1641,7 @@ function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) me
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
 // =================== Version ===================
-const APP_VERSION='2026-11-13.2130'; let NEWVER=null, NEWVER_X=false;
+const APP_VERSION='2026-11-13.2215'; let NEWVER=null, NEWVER_X=false;
 async function checkVersion(manual){
   const info=$('#verInfo'); if(info) info.textContent='Diese App: '+APP_VERSION;
   try{
@@ -2077,7 +2081,7 @@ async function beatAnalyze(job){
   let nc=0; if(playMode()!=='pick'){ try{ nc=pbRes?applyBeatChords(job,evs,pbRes.times,pbRes.chords):beatChords(job,g,evs); }catch(e){} }
   const evs2=CH.ev.filter(e=>e.t>=tA&&e.t<=tB);
   const n=quantizeEvents(g,evs2);
-  CH.view='sheet'; CH.zoomPer=0; CH.barScale=1; CH.stripKey=''; CH.key=''; undoUI(); alignUI(); checkVersion(false);
+  CH.view='sheet'; CH.stripKey=''; CH.key=''; undoUI(); alignUI(); checkVersion(false);
   bpBanner(`≈ ${Math.round(g.bpm)} BPM · ${g.beats}/4${nc?' · '+nc+' Akkordwechsel':''} · ${n} Stellen auf Zählzeiten gesetzt`,4000);
   setTimeout(bakRemind,4500);
 }
@@ -2167,7 +2171,8 @@ function sheetBars(){ const bars=[];
   return bars;
 }
 function sheetSVG(){
-  const {dig:D,lab:Lb,gap:G,str:C}=LAY, cw=D*.62, gp=6, left=24, padL=17, padR=8;
+  // Zoom im Blatt (CH.sz): Schrift, Saitenabstand und Mindestabstand der Töne wachsen mit; Takte pro Zeile ergeben sich daraus
+  const z=sheetZ(), D=LAY.dig*z, Lb=LAY.lab*z, G=LAY.gap*z, C=LAY.str*z, cw=D*.62, gp=6*z, left=24, padL=17*z, padR=8*z;
   const vw=($('#cstrip').clientWidth||360)-4, avail=vw-left-4;
   const CF=S.chordFrets!==false&&playMode()!=='pick'; const bars=sheetBars(); if(!bars.length) return '<svg width="10" height="10"></svg>';
   // benötigte Breite je Takt (nichts darf sich überdecken)
@@ -2177,18 +2182,20 @@ function sheetSVG(){
       if(e.type==='note') (lanes['s'+e.s]=lanes['s'+e.s]||[]).push([fr,cw*String(e.f).length]);
       else { (lanes.c=lanes.c||[]).push([fr,lw(e)]); if(CF&&e.f) e.f.forEach((f,s)=>{ if(f>=0) (lanes['s'+s]=lanes['s'+s]||[]).push([fr,cw*.82*String(f).length]); }); } });
     Object.values(lanes).forEach(a=>{ a.sort((x,y)=>x[0]-y[0]); for(let i=1;i<a.length;i++){ const d=Math.max(a[i][0]-a[i-1][0],1/16); need=Math.max(need,((a[i][1]+a[i-1][1])/2+gp)/d); } });
-    bb.need=Math.max(70,need+padL+padR); });
+    bb.need=Math.max(70*z,need+padL+padR); });
   // Takte auf Zeilen verteilen
   // gleich breite Takte wie im Notenblatt: so viele pro Zeile, wie der dichteste hineinpasst (Obergrenze nach verfügbarer Breite: Handy 4, breiter Bildschirm mehr)
   // Zeilen einmal festlegen und dann stehen lassen (Bearbeiten verschiebt das Layout nicht); neu nur bei neuem Raster/Tempo/Breite
-  const sig=sheetGrids().map(g=>g.lines.length+':'+g.lines[0].toFixed(2)+':'+g.bar.toFixed(3)).join(',')+'|'+avail;
-  if(!CH.rowPlan||CH.rowPlan.sig!==sig){ const plan=[]; for(let i=0;i<bars.length;){ let k=Math.min(maxPerRow(avail),bars.length-i); while(k>1&&bars.slice(i,i+k).some(bb=>bb.need*0.85>avail/k)) k--; plan.push(k); i+=k; }
+  const sig=sheetGrids().map(g=>g.lines.length+':'+g.lines[0].toFixed(2)+':'+g.bar.toFixed(3)).join(',')+'|'+avail+'|'+z.toFixed(3);
+  if(!CH.rowPlan||CH.rowPlan.sig!==sig){ const plan=[]; for(let i=0;i<bars.length;){ let k=Math.min(maxPerRow(avail,z),bars.length-i); while(k>1&&bars.slice(i,i+k).some(bb=>bb.need*0.85>avail/k)) k--; plan.push(k); i+=k; }
     CH.rowPlan={sig,plan}; }
-  const rows=[]; { const pl=CH.rowPlan.plan; let ri=0; for(let i=0;i<bars.length;){ const k=CH.zoomPer?CH.zoomPer:Math.max(1,pl[Math.min(ri,pl.length-1)]); rows.push(bars.slice(i,i+k)); i+=k; ri++; } }
-  // gleiche Taktbreite innerhalb der Zeile; die letzte Zeile nimmt die Breite der vorigen, wenn sie weniger Takte hat
-  const zs=CH.zoomPer===1?(CH.barScale||1):1; // ein Takt pro Zeile darf breiter als der Bildschirm werden (seitlich schieben)
-  rows.forEach((rw,ri)=>{ const per=CH.zoomPer||(ri===rows.length-1&&ri>0?Math.max(rw.length,rows[ri-1].length):rw.length); rw.forEach(bb=>bb.need=avail/per*zs); });
-  const SW=Math.round(vw+avail*(zs-1));
+  const rows=[]; { const pl=CH.rowPlan.plan; let ri=0; for(let i=0;i<bars.length;){ const k=Math.max(1,pl[Math.min(ri,pl.length-1)]); rows.push(bars.slice(i,i+k)); i+=k; ri++; } }
+  // gleiche Taktbreite innerhalb der Zeile; die letzte Zeile nimmt die Breite der vorigen, wenn sie weniger Takte hat.
+  // Ein einzelner, dichter Takt darf bis ein Drittel breiter als der Bildschirm werden (seitlich schieben), darüber wird er zusammengeschoben.
+  let wMax=avail;
+  rows.forEach((rw,ri)=>{ if(rw.length===1&&!(ri===rows.length-1&&ri>0&&rows[ri-1].length>1)){ const w=clamp(rw[0].need,avail,avail*1.33); rw[0].need=w; wMax=Math.max(wMax,w); return; }
+    const per=ri===rows.length-1&&ri>0?Math.max(rw.length,rows[ri-1].length):rw.length; rw.forEach(bb=>bb.need=avail/per); });
+  const SW=Math.round(vw+wMax-avail);
   const virt=!CH.grids.length, top0=Lb+G+D*.62+8, rowH=Math.round(top0+5*C+D*.7+18), head=virt?26:6, H=head+rows.length*rowH;
   let o=`<svg width="${SW}" height="${H}" viewBox="0 0 ${SW} ${H}" role="img" aria-label="Tablatur als Blatt">`;
   if(virt) o+=`<text x="${left}" y="17" font-size="12" fill="var(--muted)">Kein Takt erkannt · Standardraster 4/4</text>`;
@@ -2196,12 +2203,12 @@ function sheetSVG(){
   SHEET.geo=[]; SHEET.w=SW; $('#cstrip').classList.toggle('wide',SW>vw);
   rows.forEach((rw,ri)=>{ const y0=head+ri*rowH, top=y0+top0;
     const tot=rw.reduce((a,bb)=>a+bb.need,0), sc=1;
-    for(let i=0;i<6;i++) o+=`<line x1="${left}" y1="${top+i*C}" x2="${left+tot*sc}" y2="${top+i*C}" stroke="var(--line)" stroke-width="1.2"/>`;
+    for(let i=0;i<6;i++) o+=`<line x1="${left}" y1="${top+i*C}" x2="${left+tot*sc}" y2="${top+i*C}" stroke="var(--line)" stroke-width="${strW(i,z)}"/>`;
     'TAB'.split('').forEach((ch,i)=>o+=`<text x="10" y="${top+(1+i*1.5)*C*0.95}" font-size="${Math.min(12,C*.65)}" fill="var(--muted)" text-anchor="middle">${ch}</text>`);
     let x0=left;
     rw.forEach(bb=>{ const w=bb.need, len=bb.b-bb.a; barNo++;
       o+=`<line x1="${x0}" y1="${top}" x2="${x0}" y2="${top+5*C}" stroke="var(--muted)" stroke-width="1.3"/>`;
-      o+=`<text x="${x0+2}" y="${top-D*.62-G-Lb*.9}" font-size="10" fill="var(--muted)">${barNo}</text>`;
+      o+=`<text x="${x0+2}" y="${top-D*.62-G-Lb*.9}" font-size="${Math.max(8,10*Math.sqrt(z))}" fill="var(--muted)">${barNo}</text>`;
       SHEET.geo.push({a:bb.a,b:bb.b,x0:x0+padL,w:w-padL-padR,xl:x0,xr:x0+w,y0,y1:y0+rowH});
       o+=`<rect data-clane="1" data-bar="${bars.indexOf(bb)}" data-x0="${x0+padL}" data-w="${w-padL-padR}" x="${x0}" y="${y0+12}" width="${w}" height="${top-y0-12-C/2}" fill="transparent"/>`;
       for(let s=0;s<6;s++) o+=`<rect data-str="${s}" data-bar="${bars.indexOf(bb)}" data-x0="${x0+padL}" data-w="${w-padL-padR}" x="${x0}" y="${top+(5-s)*C-C/2}" width="${w}" height="${C}" fill="transparent"/>`;
@@ -2233,14 +2240,20 @@ function sheetSVG(){
   return o+'</svg>';
 }
 const SHEET={geo:[],w:0};
-// Höchstzahl Takte pro Zeile aus der Breite (Layout-Regel: nichts fest auf Handybreite; ≈ 90 px je Takt, mindestens 4)
-function maxPerRow(avail){ return clamp(Math.floor((avail||($('#cstrip').clientWidth||360)-28)/90),4,12); }
-// Zoom um den Faktor r (aus der Fingerbewegung): Taktbreite × r, dann passende Takte pro Zeile (4, 3, 2, 1) bzw. breiter als der Bildschirm
-function sheetZoomTo(r){ const pl=(CH.rowPlan&&CH.rowPlan.plan)||[2], def=Math.max(...pl), per0=CH.zoomPer||def, sc0=CH.barScale||1;
-  const w=sc0/per0*r; // Taktbreite als Anteil der Bildschirmbreite
-  if(w>=1){ CH.zoomPer=1; CH.barScale=clamp(w,1,3); if(CH.barScale<1.08) CH.barScale=1; }
-  else { let per=1,bd=9; for(let k=1,K=maxPerRow();k<=K;k++){ const d=Math.abs(Math.log(w*k)); if(d<bd){bd=d;per=k;} } CH.zoomPer=per===def?0:per; CH.barScale=1; }
-  CH.stripKey=''; renderStrip(); zoomUI(); }
+// Höchstzahl Takte pro Zeile aus Breite und Zoom (Layout-Regel: nichts fest auf Handybreite; ≈ 82 px je Takt bei Zoom 100 %)
+function maxPerRow(avail,z){ return clamp(Math.floor((avail||($('#cstrip').clientWidth||360)-28)/(82*(z||1))),1,16); }
+const SZ_MIN=0.4, SZ_MAX=1.9;
+function sheetZ(){ return clamp(CH.sz||S.sz||1,SZ_MIN,SZ_MAX); }
+// Saitenstärke: hohe e (oben, i=0) dünn, tiefe E (unten) etwas kräftiger – dezent
+function strW(i,z){ return +((1+i*0.13)*Math.min(1.3,Math.sqrt(z||1))).toFixed(2); }
+// Zoom im Blatt setzen; die Stelle unter (cy) bleibt möglichst an ihrem Platz
+// Während der Geste die berührten Elemente im Dokument halten (sonst kommen nach dem Neuzeichnen keine Fingerbewegungen mehr an)
+function keepTouched(list){ let h=$('#touchKeep'); if(!h){ h=document.createElement('div'); h.id='touchKeep'; h.hidden=true; document.body.appendChild(h); }
+  let svg=null; (list||[]).forEach(n=>{ if(n&&n.ownerSVGElement&&$('#cstrip').contains(n)){ if(!svg){ svg=document.createElementNS('http://www.w3.org/2000/svg','svg'); h.appendChild(svg); } svg.appendChild(n); } else if(n&&n.tagName==='svg'&&$('#cstrip').contains(n)) h.appendChild(n); }); }
+function setSheetZ(z,cy,tg){ z=clamp(z,SZ_MIN,SZ_MAX); if(Math.abs(z-sheetZ())<1e-3) return; const sc=$('#cbody'), svg=$('#cstrip svg'); if(tg) keepTouched(tg);
+  let fr=null; if(svg&&cy!=null){ const r=svg.getBoundingClientRect(); fr=(cy-r.top)/Math.max(1,r.height); }
+  CH.sz=z; CH.stripKey=''; renderStrip();
+  if(fr!=null){ const n=$('#cstrip svg'); if(n){ const r=n.getBoundingClientRect(); sc.scrollTop+=r.top+fr*r.height-cy; } } }
 // Fingerposition (Bildschirm) → Zeit in der Blatt-Ansicht; bleibt in der Zeile, in der der Finger ist
 function sheetTimeAt(cx,cy){ const svg=$('#cstrip svg'); if(!svg||!SHEET.geo.length) return null; const r=svg.getBoundingClientRect(), k=SHEET.w/r.width, x=(cx-r.left)*k, y=(cy-r.top)*k;
   let row=SHEET.geo.filter(g=>y>=g.y0&&y<g.y1); if(!row.length){ let bd=1e9,y0=null; SHEET.geo.forEach(g=>{ const d=Math.min(Math.abs(y-g.y0),Math.abs(y-g.y1)); if(d<bd){bd=d;y0=g.y0;} }); row=SHEET.geo.filter(g=>g.y0===y0); }
@@ -2396,12 +2409,9 @@ function chordMicOff(msg){
 }
 $('#cstrip').addEventListener('scroll',e=>{const el=e.target; if(CH.progScroll){CH.progScroll=false;return;} CH.follow=el.scrollLeft+el.clientWidth>=el.scrollWidth-40; CH.scrollT=performance.now();});
 $('#cmic').addEventListener('click',()=>{CH.mic?chordMicOff():chordMicOn();});
-// Zoom-Hinweis in der Statuszeile (Blatt: Takte pro Zeile / Breite; Streifen: Pixel pro Sekunde)
-function zoomUI(){ const b=$('#czoom'); if(!b) return; let z=100;
-  if(inSheetView()){ const pl=(CH.rowPlan&&CH.rowPlan.plan)||[2], def=Math.max(...pl); z=CH.zoomPer?Math.round(def/CH.zoomPer*(CH.barScale||1)*100):100; }
-  else z=Math.round(LAY.px/PX0*100);
-  b.style.display=Math.abs(z-100)>3&&!CH.mic?'':'none'; b.textContent=`Zoom ${z} % · zurücksetzen`; }
-$('#czoom').addEventListener('click',()=>{ if(inSheetView()){ CH.zoomPer=0; CH.barScale=1; } else { LAY.px=PX0; S.px=PX0; save(); } CH.stripKey=''; renderStrip(); zoomUI(); });
+// Zoom zurücksetzen per Doppeltipp auf eine leere Stelle (kein eigener Knopf mehr)
+function zoomUI(){}
+function zoomReset(){ if(inSheetView()){ CH.sz=1; S.sz=1; save(); CH.stripKey=''; renderStrip(); } else { LAY.px=PX0; S.px=PX0; save(); CH.stripKey=''; } cMsg('Zoom zurückgesetzt'); }
 // =================== Rückgängig ===================
 const UNDO=[], REDO=[];
 function stateNow(){ return {ev:CH.ev.map(e=>Object.assign({},e,{f:Array.isArray(e.f)?e.f.slice():e.f})),grids:CH.grids.map(g=>Object.assign({},g,{lines:g.lines.slice()}))}; }
@@ -2464,17 +2474,18 @@ function pressEnd(){
   st.addEventListener('touchmove',e=>{ if(Z&&e.touches.length===2){ e.preventDefault(); const a=e.touches[0],b=e.touches[1];
     LAY.px=clamp(Z.px0*Math.max(30,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY))/Z.d0,30,320); CH.follow=false; CH.stripKey=''; renderStrip(); st.scrollLeft=Z.tm*LAY.px+40-Z.mid; } },{passive:false});
   st.addEventListener('touchend',e=>{ if(Z&&e.touches.length<2){ Z=null; S.px=Math.round(LAY.px); save(); zoomUI(); } });
-  // Blatt: zwei Finger auseinander = weniger Takte pro Zeile (4 → 2 → 1, dann breiter); zusammen = zurück
-  let ZS=null; const inSheet=inSheetView;
-  // flüssig: während der Bewegung wird das Bild skaliert (Grafikkarte), beim Loslassen in der neuen Größe neu gezeichnet
-  st.addEventListener('touchstart',e=>{ if(e.touches.length===2&&inSheet()){ clearTimeout(DR.timer); DR.timer=0; const a=e.touches[0],b=e.touches[1], svg=st.querySelector('svg'); if(!svg) return; const r=svg.getBoundingClientRect();
-    ZS={d0:Math.max(30,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),r:1,svg,ox:(a.clientX+b.clientX)/2-r.left,oy:(a.clientY+b.clientY)/2-r.top};
-    svg.style.transformOrigin=ZS.ox+'px '+ZS.oy+'px'; svg.style.willChange='transform'; } },{passive:true});
-  st.addEventListener('touchmove',e=>{ if(ZS&&e.touches.length===2){ e.preventDefault(); const a=e.touches[0],b=e.touches[1];
-    ZS.r=clamp(Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)/ZS.d0,0.4,3.5); ZS.svg.style.transform='scale('+ZS.r+')'; } },{passive:false});
-  const zsEnd=()=>{ if(!ZS) return; const r=ZS.r, svg=ZS.svg; ZS=null; svg.style.willChange=''; if(Math.abs(r-1)<0.06){ svg.style.transform=''; return; } sheetZoomTo(r); };
-  st.addEventListener('touchend',e=>{ if(ZS&&e.touches.length<2) zsEnd(); });
-  st.addEventListener('touchcancel',zsEnd);
+  // Blatt: zwei Finger = stufenlos zoomen. Gedämpft (Exponent 0,6), an den Grenzen hört er einfach auf, beim Loslassen bleibt alles stehen.
+  // Das Blatt wird dabei laufend neu gezeichnet (höchstens einmal pro Bild), die Stelle zwischen den Fingern bleibt stehen.
+  let ZS=null, zRaf=0; const inSheet=inSheetView;
+  st.addEventListener('touchstart',e=>{ if(e.touches.length===2&&inSheet()){ clearTimeout(DR.timer); DR.timer=0; clearTimeout(TAP.timer); TAP.timer=0; const a=e.touches[0],b=e.touches[1];
+    ZS={d0:Math.max(30,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),z0:sheetZ(),z:sheetZ(),cy:(a.clientY+b.clientY)/2,tg:[a.target,b.target]}; } },{passive:true});
+  // Bewegung/Ende am Fenster abhören: das berührte Element wird beim Neuzeichnen ersetzt und meldet dann nichts mehr
+  window.addEventListener('touchmove',e=>{ if(ZS&&e.touches.length===2){ e.preventDefault(); const a=e.touches[0],b=e.touches[1];
+    ZS.z=clamp(ZS.z0*Math.pow(Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)/ZS.d0,0.6),SZ_MIN,SZ_MAX); ZS.cy=(a.clientY+b.clientY)/2;
+    if(!zRaf) zRaf=requestAnimationFrame(()=>{ zRaf=0; if(ZS) setSheetZ(ZS.z,ZS.cy,ZS.tg); }); } },{passive:false});
+  const zsEnd=()=>{ if(!ZS) return; setSheetZ(ZS.z,ZS.cy); ZS=null; S.sz=sheetZ(); save(); TAP.noTapUntil=performance.now()+400; setTimeout(()=>{ const h=$('#touchKeep'); if(h) h.innerHTML=''; },0); };
+  window.addEventListener('touchend',e=>{ if(ZS&&e.touches.length<2) zsEnd(); });
+  window.addEventListener('touchcancel',zsEnd);
   // Touch-Ereignisse hängen am berührten Element; der Tab wird beim Ziehen neu gezeichnet, deshalb die Zuhörer direkt dort anbringen
   const onMove=e=>{ const t=e.touches[0]; if(t&&pressMove(t.clientX,t.clientY)) e.preventDefault(); };
   const onEnd=e=>{ const el=e.currentTarget; el.removeEventListener('touchmove',onMove); el.removeEventListener('touchend',onEnd); el.removeEventListener('touchcancel',onEnd); pressEnd(); };
@@ -2512,12 +2523,15 @@ function toggleCPop(pop,btn){ const on=!$(pop).classList.contains('on'); closeCP
 function closeCMenu(){ $('#cmenu').classList.remove('on'); $('#cmenuB').setAttribute('aria-expanded','false'); }
 function setEditMode(on){ CH.edm=!!on; $('#chords').classList.toggle('edm',CH.edm); $('#cedit').setAttribute('aria-pressed',CH.edm); if(on) closeCPops(); alignUI(); }
 function gridBpm(){ const g=CH.grids[0]; return g?Math.round(g.bpm||60*g.beats/g.bar):null; }
-// Akkorde, die im Stück wirklich vorkommen (Reihenfolge des ersten Auftretens; je Name der am häufigsten gespielte Griff)
-function pieceChords(){ const by=new Map();
+// Akkorde, die im Stück wirklich vorkommen (Reihenfolge des ersten Auftretens; je Name der meistgespielte Griff).
+// Hat Manu an einer Stelle selbst einen anderen Griff gewählt (voiSet), steht dieser Griff zusätzlich als eigener Eintrag da.
+function pieceChords(){ const by=new Map(), own=[];
   CH.ev.forEach(e=>{ if(e.type==='note') return; const f=e.f||(evVoicings(e)[0]||{}).f; if(!f) return; const n=evName(e);
-    if(!by.has(n)) by.set(n,{k:n,e,name:n,cnt:{}}); const c=by.get(n), fk=f.join(','); c.cnt[fk]=(c.cnt[fk]||0)+1; });
-  return [...by.values()].map(c=>{ const fk=Object.keys(c.cnt).sort((a,b)=>c.cnt[b]-c.cnt[a])[0], f=fk.split(',').map(Number);
-    return Object.assign(c,{f,b:(evVoicings(c.e).find(v=>v.f.join()===fk)||{b:0}).b}); }); }
+    if(!by.has(n)) by.set(n,{k:n,e,name:n,cnt:{}}); const c=by.get(n), fk=f.join(','); c.cnt[fk]=(c.cnt[fk]||0)+1; if(e.voiSet) own.push({n,e,fk}); });
+  const out=[]; const bfk=fk=>fk.split(',').map(Number);
+  by.forEach(c=>{ const fk=Object.keys(c.cnt).sort((a,b)=>c.cnt[b]-c.cnt[a])[0]; out.push(Object.assign(c,{fk,f:bfk(fk),b:(evVoicings(c.e).find(v=>v.f.join()===fk)||{b:0}).b}));
+    own.filter(o=>o.n===c.name&&o.fk!==fk).forEach(o=>{ const k=o.n+'|'+o.fk; if(!out.some(x=>x.k===k)) out.push({k,e:o.e,name:o.n,fk:o.fk,f:bfk(o.fk),b:(evVoicings(o.e).find(v=>v.f.join()===o.fk)||{b:0}).b}); }); });
+  return out; }
 function chordsUI(){
   const bpm=gridBpm(), g=CH.grids[0];
   $('#ctempo').textContent=bpm?bpm+' BPM':'– BPM';
@@ -2561,31 +2575,45 @@ $('#cmVoice').addEventListener('click',()=>cMsg('Sprachbefehle kommen mit Versio
 $('#cmTest').addEventListener('click',()=>{ S.capture=!S.capture; save(); cmenuUI(); capUI(); cMsg(S.capture?'Test-Mitschnitt an · gilt ab der nächsten Aufnahme':'Test-Mitschnitt aus'); });
 $('#cmVer').addEventListener('click',async()=>{ await checkVersion(true); if(NEWVER) location.replace(location.pathname+'?v='+Date.now()); else cMsg('Das ist die neueste Version'); });
 $('#hclose').addEventListener('click',()=>$('#hsheet').classList.remove('on'));
+// Vollbild: blendet Browserleiste und Tabs aus (der Browser beendet es bei Zurück-Geste oder App-Wechsel)
+function fullUI(){ const on=!!(document.fullscreenElement||document.webkitFullscreenElement); $('#cfull').setAttribute('aria-pressed',on); $('#cfull').setAttribute('aria-label',on?'Vollbild beenden':'Vollbild');
+  $('#cfull').innerHTML=on?'<svg viewBox="0 0 24 24"><path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg>':'<svg viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>'; }
+$('#cfull').addEventListener('click',async()=>{ const d=document, el=d.documentElement;
+  try{ if(d.fullscreenElement||d.webkitFullscreenElement) await (d.exitFullscreen||d.webkitExitFullscreen).call(d); else await (el.requestFullscreen||el.webkitRequestFullscreen).call(el,{navigationUI:'hide'}); }
+  catch(e){ cMsg('Vollbild geht in diesem Browser nicht'); } fullUI(); });
+document.addEventListener('fullscreenchange',fullUI); document.addEventListener('webkitfullscreenchange',fullUI);
 $('#hsheet').addEventListener('click',e=>{ if(e.target.id==='hsheet') $('#hsheet').classList.remove('on'); });
 
 // Bearbeiten
-$('#cstrip').addEventListener('click',e=>{ if(DR.justDragged) return; const h=e.target.closest('[data-i]'); if(h){ openEdit(CH.ev[+h.dataset.i]); return; }
+// Doppeltipp auf eine leere Stelle = Zoom zurücksetzen; deshalb trägt ein einzelner Tipp auf eine leere Stelle erst nach 0,3 s etwas ein.
+const TAP={timer:0,last:0,noTapUntil:0};
+function emptyTap(act){ const now=performance.now();
+  if(TAP.timer){ clearTimeout(TAP.timer); TAP.timer=0; zoomReset(); return; }
+  TAP.last=now; TAP.timer=setTimeout(()=>{ TAP.timer=0; if(act) act(); },300); }
+$('#cstrip').addEventListener('click',e=>{ if(DR.justDragged||performance.now()<TAP.noTapUntil) return; const h=e.target.closest('[data-i]'); if(h){ openEdit(CH.ev[+h.dataset.i]); return; }
   // Tippen in die Akkordzeile über dem Tab: dort einen Akkord eintragen (Art danach wählen)
   const cl=e.target.closest('[data-clane]');
   if(cl&&!CH.mic){ const svg=cl.ownerSVGElement, r=svg.getBoundingClientRect(), x=(e.clientX-r.left)*(svg.viewBox.baseVal.width/r.width); let t;
     if(cl.dataset.bar!=null){ const bb=sheetBars()[+cl.dataset.bar]; if(!bb) return; t=bb.a+clamp((x-+cl.dataset.x0)/+cl.dataset.w,0,0.999)*(bb.b-bb.a); }
     else t=Math.max(0,(x-40)/LAY.px);
-    t=snapT(t,2); snap(); const pv=bpChordAt(t)||{r:7,qi:0};
-    const ev={t,type:'chord',r:pv.r,qi:pv.qi??0,key:'chord|'+pv.r+'|'+(pv.qi??0),orig:null,bass:null,cn:null,pf:null,edited:true,added:true}; ev.f=evFrets(ev);
-    CH.ev.push(ev); CH.ev.sort((a,b)=>a.t-b.t); CH.stripKey=''; openEdit(ev); return; }
+    t=snapT(t,2);
+    emptyTap(()=>{ snap(); const pv=bpChordAt(t)||{r:7,qi:0};
+      const ev={t,type:'chord',r:pv.r,qi:pv.qi??0,key:'chord|'+pv.r+'|'+(pv.qi??0),orig:null,bass:null,cn:null,pf:null,edited:true,added:true}; ev.f=evFrets(ev);
+      CH.ev.push(ev); CH.ev.sort((a,b)=>a.t-b.t); CH.stripKey=''; openEdit(ev); }); return; }
   // Tippen knapp neben einen Ton/Akkord: den nächstgelegenen öffnen (dicke Finger)
-  { const svg=e.target.ownerSVGElement||e.target.closest('svg'); if(svg&&!CH.mic){ const r=svg.getBoundingClientRect(), k=svg.viewBox.baseVal.width/r.width, px=(e.clientX-r.left)*k, py=(e.clientY-r.top)*k;
-    let best=null,bd=1e9; svg.querySelectorAll('[data-i]').forEach(h=>{ const b=h.getBBox(), cx=b.x+b.width/2, cy=b.y+Math.min(b.height,LAY.str)/2+(b.height>LAY.str*2?b.height/2-LAY.str/2:0);
-      const dx=Math.max(0,Math.abs(px-cx)-b.width/2), dy=Math.max(0,Math.abs(py-(b.y+b.height/2))-b.height/2), d=Math.hypot(dx,dy); if(d<bd){bd=d;best=h;} });
-    if(best&&bd<26){ openEdit(CH.ev[+best.dataset.i]); return; } } }
+  { const svg=e.target.ownerSVGElement||e.target.closest('svg'); if(svg&&!CH.mic){ const r=svg.getBoundingClientRect(), k=svg.viewBox.baseVal.width/r.width, px=(e.clientX-r.left)*k, py=(e.clientY-r.top)*k, SC=LAY.str*(inSheetView()?sheetZ():1);
+    let best=null,bd=1e9; svg.querySelectorAll('[data-i]').forEach(h=>{ const b=h.getBBox();
+      const dx=Math.max(0,Math.abs(px-(b.x+b.width/2))-b.width/2), dy=Math.max(0,Math.abs(py-(b.y+b.height/2))-b.height/2), d=Math.hypot(dx,dy); if(d<bd){bd=d;best=h;} });
+    if(best&&bd<SC*1.2){ openEdit(CH.ev[+best.dataset.i]); return; } } }
   // Tippen auf eine leere Stelle einer Saite: dort einen Ton eintragen (Bund danach wählen)
-  const st=e.target.closest('[data-str]'); if(!st||CH.mic) return;
+  const st=e.target.closest('[data-str]'); if(!st||CH.mic){ if(!CH.mic) emptyTap(null); return; }
   const svg=st.ownerSVGElement, r=svg.getBoundingClientRect(), x=(e.clientX-r.left)*(svg.viewBox.baseVal.width/r.width);
   let t;
   if(st.dataset.bar!=null){ const bb=sheetBars()[+st.dataset.bar]; if(!bb) return; t=bb.a+clamp((x-+st.dataset.x0)/+st.dataset.w,0,0.999)*(bb.b-bb.a); t=snapT(t,2); }
   else { t=Math.max(0,(x-40)/LAY.px); t=snapT(t,2); }
-  snap(); const s=+st.dataset.str, ev={t,type:'note',s,f:0,m:OPEN_M[s],key:'note|'+OPEN_M[s],art:'pick',edited:true,added:true};
-  CH.ev.push(ev); CH.ev.sort((a,b)=>a.t-b.t); openEdit(ev); });
+  const s=+st.dataset.str;
+  emptyTap(()=>{ snap(); const ev={t,type:'note',s,f:0,m:OPEN_M[s],key:'note|'+OPEN_M[s],art:'pick',edited:true,added:true};
+    CH.ev.push(ev); CH.ev.sort((a,b)=>a.t-b.t); openEdit(ev); }); });
 $('#cname').addEventListener('click',()=>{ const x=lastChordEv(); if(x) openEdit(x); });
 $('#eclose').addEventListener('click',closeEdit);
 // Felder öffnen ihr Auswahlfenster; nach einer Wahl schließt es wieder
