@@ -87,6 +87,7 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 
 /* Akkorde */
 #chords{display:none;z-index:5;overflow-y:auto}
+#chords>*{flex-shrink:0}
 #chords.on{display:flex}
 .cdisplay{display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 12px 0;min-height:0}
 .chead{display:flex;align-items:center;justify-content:center;gap:18px;min-height:96px}
@@ -99,6 +100,7 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .cvoi{font-size:12px;color:var(--muted);min-height:16px;transition:opacity .3s;text-align:center}
 .cstrip{-webkit-touch-callout:none;touch-action:pan-x;overflow-x:auto;overflow-y:hidden;border-top:1px solid var(--line);margin:10px 0 0;padding-top:4px;flex:none;width:100%;user-select:none;scrollbar-width:thin}
 .cstrip svg{display:block}
+.cstrip.blatt{overflow-x:hidden;overflow-y:visible;touch-action:pan-y}
 .ctools{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;padding:4px 16px 18px}
 #chelp{flex-basis:100%}
 #chelp{font-size:11px;color:var(--muted);text-align:center}
@@ -252,7 +254,7 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
   </div>
   <div class="cstrip" id="cstrip" aria-label="Tablatur-Verlauf"></div>
   <div class="cstripnote" id="cstripnote"></div>
-  <div class="ctools"><button class="chip" id="cplay" style="display:none"></button><button class="chip" id="czoom" style="display:none"></button><button class="chip" id="calign" style="display:none">An Zählzeiten ausrichten</button><button class="chip" id="cundo" style="display:none">↶ Rückgängig</button><button class="chip" id="credo" style="display:none">↷ Wiederholen</button><button class="chip" id="ccap" style="display:none"></button><span id="chelp"></span></div>
+  <div class="ctools"><button class="chip" id="cview" style="display:none"></button><button class="chip" id="cplay" style="display:none"></button><button class="chip" id="czoom" style="display:none"></button><button class="chip" id="calign" style="display:none">An Zählzeiten ausrichten</button><button class="chip" id="cundo" style="display:none">↶ Rückgängig</button><button class="chip" id="credo" style="display:none">↷ Wiederholen</button><button class="chip" id="ccap" style="display:none"></button><span id="chelp"></span></div>
 </section>
 
 <section id="tuner" class="screen" aria-label="Stimmgerät">
@@ -1251,8 +1253,10 @@ function stripSVG(){
 }
 function renderStrip(){
   const key=(ED.ev?CH.ev.indexOf(ED.ev):-1)+'#'+CH.ev.map(e=>e.key+'@'+e.t.toFixed(2)+(e.type==='note'?e.s+'/'+e.f+(e.art||''):(e.f?e.f.join(','):''))).join(';')+'|'+S.notation+'|'+CH.mic+'|'+Math.floor(CH.tNow*6)+'|'+CH.grids.map(g=>g.lines.map(x=>x.toFixed(2)).join(':')+(g.end==null?'':'/'+g.end.toFixed(2))).join(',')+'|'+(DR.active?1:0)+'|'+LAY.px+'|'+(S.chordFrets!==false)+'|'+(DR.snapTo!=null?DR.snapTo.toFixed(2):'');
-  if(key===CH.stripKey) return; CH.stripKey=key;
-  const el=$('#cstrip'); el.innerHTML=stripSVG();
+  const sh=CH.view==='sheet'&&!CH.mic&&CH.grids.length>0;
+  if(key+sh+($('#cstrip').clientWidth)===CH.stripKey) return; CH.stripKey=key+sh+($('#cstrip').clientWidth);
+  const el=$('#cstrip'); el.classList.toggle('blatt',sh); el.innerHTML=sh?sheetSVG():stripSVG(); viewUI();
+  if(sh){ $('#cstripnote').textContent=''; $('#chelp').textContent='Antippen = bearbeiten · leere Saite antippen = Ton eintragen'; alignUI(); capUI(); undoUI(); zoomUI(); return; }
   if(!CH.follow&&CH.mic&&!ED.ev&&performance.now()-(CH.scrollT||0)>4000) CH.follow=true;
   if(CH.follow&&el.scrollLeft<el.scrollWidth-el.clientWidth-2){CH.progScroll=true; el.scrollLeft=el.scrollWidth;}
   $('#cstripnote').textContent=CH.ev.length?'':'Hier erscheint dein Verlauf als Tabelle, Akkorde oben drüber.';
@@ -1479,7 +1483,7 @@ function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) me
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
 // =================== Version ===================
-const APP_VERSION='2026-11-12.2055';
+const APP_VERSION='2026-11-13.1215';
 async function checkVersion(manual){
   const info=$('#verInfo'); if(info) info.textContent='Diese App: '+APP_VERSION;
   try{
@@ -1623,7 +1627,7 @@ function tabJSON(){
     met:metCfg(),segments:CAP.segs,bp:!!S.bp,play:S.play||'strum',
     note:'events = Stand nach Bearbeitung durch Manu; live = alles, was die App live erkannt hat (unverändert)',
     live:LOG, noteLessons:NLEARN.length, chordLessons:LEARN.length,
-    grids:CH.grids.map(g=>({lines:g.lines.map(x=>+x.toFixed(3)),bar:+g.bar.toFixed(3),beats:g.beats,end:g.end==null?null:+g.end.toFixed(3)})),
+    grids:CH.grids.map(g=>({lines:g.lines.map(x=>+x.toFixed(3)),bar:+g.bar.toFixed(3),beats:g.beats,end:g.end==null?null:+g.end.toFixed(3),auto:!!g.auto,bpm:g.bpm?+g.bpm.toFixed(1):null})),
     events:CH.ev.map(e=>e.type==='note'?{t:+e.t.toFixed(3),type:'note',m:e.m,origM:e.origM??null,s:e.s,f:e.f,art:e.art||'pick',edited:!!e.edited,added:!!e.added,learned:!!e.learned,bp:!!e.bp}
       :{t:+e.t.toFixed(3),type:e.type,name:nm(e),key:e.key,orig:e.orig,f:e.f,learned:!!e.learned,edited:!!e.edited})};
 }
@@ -1649,8 +1653,8 @@ function bpLoad(){
   return BPB.lib;
 }
 function bpStart(ctx,src){
-  BPB.on=false; if(!S.bp||!src) return;
-  bpLoad().catch(()=>{});
+  BPB.on=false; BPB.rec=false; if(!src) return;
+  if(S.bp) bpLoad().catch(()=>{});
   try{
     const node=ctx.createScriptProcessor(4096,1,1), mute=ctx.createGain(); mute.gain.value=0;
     BPB.chunks=[]; BPB.n=0; BPB.sr=ctx.sampleRate; BPB.ctxStart=null; BPB.offset=CH.tNow-ctx.currentTime; BPB.tBase=CH.tBase; BPB.pf=[]; BPB.pfT=-1;
@@ -1659,25 +1663,195 @@ function bpStart(ctx,src){
       if(BPB.ctxStart==null) BPB.ctxStart=e.playbackTime-d.length/BPB.sr;
       BPB.chunks.push(new Float32Array(d)); BPB.n+=d.length; };
     src.connect(node); node.connect(mute); mute.connect(ctx.destination);
-    BPB.node=node; BPB.mute=mute; BPB.on=true;
-  }catch(e){ BPB.on=false; }
+    BPB.node=node; BPB.mute=mute; BPB.rec=true; BPB.on=!!S.bp;
+  }catch(e){ BPB.on=false; BPB.rec=false; }
 }
 function bpFrame(ctx){
-  if(!BPB.on) return;
+  if(!BPB.rec) return;
   if(!CH.counting) BPB.offset=CH.tNow-ctx.currentTime;
   // Klangprofil alle 0,1 s merken – fürs Ton-Lernen
   if(CH.eng&&!CH.counting&&CH.tNow-BPB.pfT>=0.1){ BPB.pfT=CH.tNow; BPB.pf.push({t:CH.tNow,pf:Array.from(CH.eng.pf,v=>+v.toFixed(3))}); }
 }
 function bpStop(){
-  if(!BPB.node) { BPB.on=false; return; }
+  if(!BPB.node) { BPB.on=false; BPB.rec=false; return; }
   try{ BPB.node.disconnect(); BPB.mute.disconnect(); }catch(e){}
-  BPB.node=null; BPB.mute=null; BPB.on=false;
+  const bp=BPB.on; BPB.node=null; BPB.mute=null; BPB.on=false; BPB.rec=false;
   if(BPB.n<BPB.sr*0.5||BPB.ctxStart==null) return;
-  const job={chunks:BPB.chunks,n:BPB.n,sr:BPB.sr,t0:BPB.ctxStart+BPB.offset,tBase:BPB.tBase,pf:BPB.pf,gen:BPB.gen,pick:S.play==='pick'};
+  const job={chunks:BPB.chunks,n:BPB.n,sr:BPB.sr,t0:BPB.ctxStart+BPB.offset,tBase:BPB.tBase,pf:BPB.pf,gen:BPB.gen,pick:S.play==='pick',bp};
   BPB.chunks=[]; BPB.n=0;
-  bpBanner('Töne werden erkannt …');
-  BPB.q=BPB.q.then(()=>bpAnalyze(job)).catch(e=>{ bpBanner('Neue Ton-Erkennung fehlgeschlagen ('+(e&&e.message||e)+')',4000); });
+  if(bp){ bpBanner('Töne werden erkannt …');
+    BPB.q=BPB.q.then(()=>bpAnalyze(job)).catch(e=>{ bpBanner('Neue Ton-Erkennung fehlgeschlagen ('+(e&&e.message||e)+')',4000); }); }
+  BPB.q=BPB.q.then(()=>beatAnalyze(job)).catch(e=>{ bpBanner('Takterkennung fehlgeschlagen ('+(e&&e.message||e)+')',4000); });
 }
+// ==BEAT-START==
+// Takterkennung: Anschlagskurve -> Tempo (Autokorrelation) -> Schläge (dynamische Programmierung, nach Ellis 2007)
+function beatTrack(x,sr){
+  const dec=Math.max(1,Math.round(sr/24000)), fs=sr/dec, N=2048, H=512;
+  const n=Math.floor(x.length/dec), y=new Float32Array(n);
+  for(let i=0;i<n;i++){ let s=0; for(let k=0;k<dec;k++) s+=x[i*dec+k]; y[i]=s/dec; }
+  const win=new Float32Array(N); for(let i=0;i<N;i++) win[i]=0.5-0.5*Math.cos(2*Math.PI*i/N);
+  const F=Math.max(0,Math.floor((n-N)/H)+1), kmax=Math.min(N/2,Math.round(8000/fs*N)), kmin=Math.max(1,Math.round(30/fs*N));
+  const re=new Float64Array(N), im=new Float64Array(N); let prev=new Float32Array(kmax), cur=new Float32Array(kmax);
+  const env=new Float32Array(F), bass=new Float32Array(F), kb=Math.round(200/fs*N);
+  // Radix-2-FFT
+  const rev=new Uint32Array(N); for(let i=0,j=0;i<N;i++){ rev[i]=j; let b=N>>1; while(j&b){ j^=b; b>>=1; } j|=b; }
+  const fft=()=>{ for(let i=0;i<N;i++){ const j=rev[i]; if(j>i){ let t=re[i];re[i]=re[j];re[j]=t; t=im[i];im[i]=im[j];im[j]=t; } }
+    for(let len=2;len<=N;len<<=1){ const a=-2*Math.PI/len, wr=Math.cos(a), wi=Math.sin(a);
+      for(let i=0;i<N;i+=len){ let cr=1,ci=0; for(let j=0;j<len/2;j++){ const ur=re[i+j],ui=im[i+j], vr=re[i+j+len/2]*cr-im[i+j+len/2]*ci, vi=re[i+j+len/2]*ci+im[i+j+len/2]*cr;
+        re[i+j]=ur+vr; im[i+j]=ui+vi; re[i+j+len/2]=ur-vr; im[i+j+len/2]=ui-vi; const t=cr*wr-ci*wi; ci=cr*wi+ci*wr; cr=t; } } } };
+  for(let f=0;f<F;f++){ const o=f*H; for(let i=0;i<N;i++){ re[i]=y[o+i]*win[i]; im[i]=0; } fft();
+    let s=0,sb=0; for(let k=kmin;k<kmax;k++){ const m=Math.log(1+1000*Math.hypot(re[k],im[k])); cur[k]=m; const d=m-prev[k]; if(d>0){ s+=d; if(k<kb) sb+=d; } }
+    env[f]=f?s:0; bass[f]=f?sb:0; const t=prev; prev=cur; cur=t; }
+  const fps=fs/H;
+  // gleitenden Mittelwert abziehen, normieren
+  const w=Math.round(fps*0.5), on=new Float32Array(F); { let acc=0; const q=[]; for(let f=0;f<F;f++){ acc+=env[f]; q.push(env[f]); if(q.length>2*w) acc-=q.shift(); on[f]=Math.max(0,env[f]-acc/q.length); } }
+  let sd=0; for(let f=0;f<F;f++) sd+=on[f]*on[f]; sd=Math.sqrt(sd/Math.max(1,F))||1; for(let f=0;f<F;f++) on[f]/=sd;
+  // Tempo: Autokorrelation, gewichtet um 110 BPM
+  const lo=Math.round(fps*60/200), hi=Math.round(fps*60/50); let best=0,bp=lo; const ac=new Float32Array(hi+2);
+  for(let L=lo;L<=hi+1;L++){ let s=0; for(let f=L;f<F;f++) s+=on[f]*on[f-L]; ac[L]=s/(F-L); }
+  for(let L=lo;L<=hi;L++){ const bpm=60*fps/L, wgt=Math.exp(-0.5*Math.pow(Math.log2(bpm/110)/0.9,2)), v=ac[L]*wgt; if(v>best){best=v;bp=L;} }
+  let P=bp; if(bp>lo&&bp<hi){ const a=ac[bp-1],b=ac[bp],c=ac[bp+1], d=a-2*b+c; if(d<0) P=bp+0.5*(a-c)/d; }
+  // Schläge: dynamische Programmierung
+  const alpha=100, sc=new Float32Array(F), bk=new Int32Array(F).fill(-1);
+  for(let f=0;f<F;f++){ let m=0,arg=-1; const a=Math.round(f-2*P), b=Math.round(f-P/2);
+    for(let p=Math.max(0,a);p<=b&&p<f;p++){ const v=sc[p]-alpha*Math.pow(Math.log((f-p)/P),2); if(arg<0||v>m){m=v;arg=p;} }
+    sc[f]=on[f]+(arg>=0?Math.max(0,m):0); bk[f]=arg>=0&&m>0?arg:-1; }
+  // Ende: bester Punkt im letzten Schlag
+  let e=F-1,mv=-1; for(let f=Math.max(0,F-Math.round(P));f<F;f++) if(sc[f]>mv){mv=sc[f];e=f;}
+  const beats=[]; for(let f=e;f>=0;f=bk[f]){ beats.push(f); if(bk[f]<0) break; } beats.reverse();
+  // nur Schläge im gespielten Bereich (Stille am Anfang/Ende weg)
+  const t0=N/2/fs;
+  return {bpm:60*fps/P, beats:beats.map(f=>f/fps+t0), on, bass, fps, t0};
+}
+// ==BEAT-END==
+// Nach dem Stoppen: Tempo, Schläge und Takte erkennen (oder Metronom-Raster nehmen), dann alles auf Zählzeiten einrasten
+function jobSamples(job){ if(job.x) return job.x; const x=new Float32Array(job.n); let o=0; for(const c of job.chunks){ x.set(c,o); o+=c.length; } job.x=x; return x; }
+async function beatAnalyze(job){
+  if(job.gen!==BPB.gen) return;
+  await new Promise(r=>setTimeout(r,30));
+  const tA=job.tBase-0.05, tB=job.t0+job.n/job.sr+0.5;
+  const evs=CH.ev.filter(e=>e.t>=tA&&e.t<=tB); if(!evs.length) return;
+  const te0=evs[0].t, te1=evs[evs.length-1].t;
+  let g=CH.grids.find(q=>q.t>=tA&&q.t<=tB);
+  if(!g){
+    const r=beatTrack(jobSamples(job),job.sr), P=60/r.bpm;
+    let B=r.beats.map(b=>job.t0+b).filter(b=>b>=te0-0.6*P&&b<=te1+P);
+    if(B.length<4){ bpBanner('Zu kurz für die Takterkennung',3000); return; }
+    const M=+(metCfg().sig)||4;
+    // Wo ist die Eins? Akkordwechsel, Basstöne und kräftige tiefe Anschläge zählen
+    const bassAt=t=>{ const f=Math.round((t-job.t0-r.t0)*r.fps); let m=0; for(let k=f-2;k<=f+2;k++) if(k>=0&&k<r.bass.length) m=Math.max(m,r.bass[k]); return m; };
+    let bmax=1e-9; B.forEach(b=>bmax=Math.max(bmax,bassAt(b)));
+    let best=-1,ph=0;
+    for(let p=0;p<M;p++){ let sc=0;
+      for(let i=p;i<B.length;i+=M){ const b=B[i];
+        sc+=bassAt(b)/bmax;
+        if(evs.some(e=>e.type!=='note'&&Math.abs(e.t-b)<0.18)) sc+=2;
+        if(evs.some(e=>e.type==='note'&&e.m<52&&Math.abs(e.t-b)<0.1)) sc+=0.7; }
+      sc/=Math.ceil((B.length-p)/M); if(sc>best){best=sc;ph=p;} }
+    const L=[]; for(let i=ph;i<B.length;i+=M) L.push(B[i]);
+    const bar=L.length>1?(L[L.length-1]-L[0])/(L.length-1):P*M;
+    while(L[0]>te0-0.05) L.unshift(L[0]-bar);
+    while(L[L.length-1]<=te1+0.02) L.push(L[L.length-1]+bar);
+    g={t:L[0],bar,beats:M,lines:L,end:L[L.length-1],auto:true,bpm:r.bpm};
+    snap(); CH.grids.push(g); CH.grids.sort((a,b)=>a.t-b.t);
+  } else { snap(); gridExtend(g); if(g.end==null) g.end=CH.tNow; }
+  g.bpm=g.bpm||60*g.beats/g.bar;
+  const n=quantizeEvents(g,evs);
+  CH.view='sheet'; CH.stripKey=''; CH.key=''; undoUI(); alignUI();
+  bpBanner(`≈ ${Math.round(g.bpm)} BPM · ${g.beats}/4 · ${n} Stellen auf Zählzeiten gesetzt`,4000);
+}
+// Pro Schlag das passende Raster wählen (Viertel, Achtel, Sechzehntel, Triolen) und einrasten
+function quantizeEvents(g,evs){
+  const L=g.lines.slice(); if(g.end!=null) while(L[L.length-1]<g.end-1e-3) L.push(L[L.length-1]+g.bar);
+  L.push(L[L.length-1]+g.bar);
+  const beats=[]; for(let k=0;k+1<L.length;k++){ const len=(L[k+1]-L[k])/g.beats; for(let j=0;j<g.beats;j++) beats.push(L[k]+j*len); } beats.push(L[L.length-1]);
+  const pen={1:0,2:0.02,4:0.06,3:0.05}; let moved=0;
+  for(let i=0;i+1<beats.length;i++){ const a=beats[i], len=beats[i+1]-a;
+    const inb=evs.filter(e=>{ const t=e.tr??e.t; return t>=a-len*0.125&&t<a+len*0.875; }); if(!inb.length) continue;
+    let bd=2,bc=1e9;
+    for(const dv of [1,2,4,3]){ const u=len/dv, slot=new Map(); let c=0;
+      for(const e of inb){ const t=e.tr??e.t, k=Math.round((t-a)/u), q=a+k*u; c+=Math.abs(t-q)/len+pen[dv];
+        const lane=e.type==='note'?'s'+e.s:'c', key=lane+'@'+k; if(slot.has(key)&&!(e.type==='note'&&slot.get(key)===e.m)) c+=1; slot.set(key,e.type==='note'?e.m:1); }
+      if(dv===1&&inb.some(e=>e.type==='note')) c+=0.03*inb.length; // Läufe: lieber Achtel als Viertel
+      if(c<bc){bc=c;bd=dv;} }
+    const u=len/bd;
+    for(const e of inb){ if(e.tr==null) e.tr=e.t; const q=a+Math.round((e.tr-a)/u)*u; if(Math.abs(q-e.t)>1e-4){ e.t=q; moved++; } } }
+  // gleicher Ton doppelt an derselben Stelle: einmal reicht
+  const seen=new Set(); CH.ev=CH.ev.filter(e=>{ if(e.type!=='note') return true; const k=e.s+'|'+e.m+'|'+e.t.toFixed(3); if(seen.has(k)) return false; seen.add(k); return true; });
+  CH.ev.sort((a,b)=>a.t-b.t);
+  return moved;
+}
+
+// =================== Blatt-Ansicht: Takte in Zeilen, Akkorde über dem Takt ===================
+function sheetBars(){ const bars=[];
+  CH.grids.forEach((g,gi)=>{ gridExtend(g); const L=g.lines.slice(); const end=g.end==null?CH.tNow:g.end;
+    if(!g.auto&&L[L.length-1]<end-1e-3) L.push(L[L.length-1]+g.bar);
+    for(let k=0;k+1<L.length;k++) bars.push({a:L[k],b:L[k+1],g,gi}); });
+  bars.forEach(bb=>bb.ev=CH.ev.filter(e=>e.t>=bb.a-1e-3&&e.t<bb.b-1e-3));
+  return bars.filter((bb,i)=>bb.ev.length||bars.slice(i+1).some(q=>q.ev&&q.ev.length)||i<bars.length-1);
+}
+function sheetSVG(){
+  const {dig:D,lab:Lb,gap:G,str:C}=LAY, cw=D*.62, gp=6, left=24, padL=17, padR=8;
+  const vw=($('#cstrip').clientWidth||360)-4, avail=vw-left-4;
+  const CF=S.chordFrets!==false&&S.play!=='pick'; const bars=sheetBars(); if(!bars.length) return '<svg width="10" height="10"></svg>';
+  // benötigte Breite je Takt (nichts darf sich überdecken)
+  const lw=e=>{ const p=labelParts(e); return Lb*.62*(p.root.length+p.suf.length*.75); };
+  bars.forEach(bb=>{ const len=bb.b-bb.a; let need=0; const lanes={};
+    bb.ev.forEach(e=>{ const fr=(e.t-bb.a)/len;
+      if(e.type==='note') (lanes['s'+e.s]=lanes['s'+e.s]||[]).push([fr,cw*String(e.f).length]);
+      else { (lanes.c=lanes.c||[]).push([fr,lw(e)]); if(CF&&e.f) e.f.forEach((f,s)=>{ if(f>=0) (lanes['s'+s]=lanes['s'+s]||[]).push([fr,cw*.82*String(f).length]); }); } });
+    Object.values(lanes).forEach(a=>{ a.sort((x,y)=>x[0]-y[0]); for(let i=1;i<a.length;i++){ const d=Math.max(a[i][0]-a[i-1][0],1/16); need=Math.max(need,((a[i][1]+a[i-1][1])/2+gp)/d); } });
+    bb.need=Math.max(70,need+padL+padR); });
+  // Takte auf Zeilen verteilen
+  // gleich breite Takte wie im Notenblatt: so viele pro Zeile, wie der dichteste hineinpasst (höchstens 4)
+  let per=4; while(per>1&&bars.some(bb=>bb.need>avail/per)) per--;
+  const rows=[]; for(let i=0;i<bars.length;i+=per) rows.push(bars.slice(i,i+per));
+  bars.forEach(bb=>bb.need=avail/per);
+  const top0=Lb+G+D*.62+8, rowH=Math.round(top0+5*C+D*.7+18), head=26, H=head+rows.length*rowH;
+  const bpm=CH.grids.map(g=>g.bpm||60*g.beats/g.bar).filter(Boolean), g0=CH.grids[0];
+  let o=`<svg width="${vw}" height="${H}" viewBox="0 0 ${vw} ${H}" role="img" aria-label="Tablatur als Blatt">`;
+  o+=`<text x="${left}" y="17" font-size="13" fill="var(--muted)">≈ ${Math.round(bpm.reduce((a,b)=>a+b,0)/bpm.length)} BPM · ${g0.beats}/4${CH.grids.some(g=>g.auto)?' · Takt automatisch erkannt':''}</text>`;
+  let barNo=0; const pos=new Map(); // Ereignis -> {x,y0}
+  rows.forEach((rw,ri)=>{ const y0=head+ri*rowH, top=y0+top0;
+    const tot=rw.reduce((a,bb)=>a+bb.need,0), sc=1;
+    for(let i=0;i<6;i++) o+=`<line x1="${left}" y1="${top+i*C}" x2="${left+tot*sc}" y2="${top+i*C}" stroke="var(--line)" stroke-width="1.2"/>`;
+    'TAB'.split('').forEach((ch,i)=>o+=`<text x="10" y="${top+(1+i*1.5)*C*0.95}" font-size="${Math.min(12,C*.65)}" fill="var(--muted)" text-anchor="middle">${ch}</text>`);
+    let x0=left;
+    rw.forEach(bb=>{ const w=bb.need, len=bb.b-bb.a; barNo++;
+      o+=`<line x1="${x0}" y1="${top}" x2="${x0}" y2="${top+5*C}" stroke="var(--muted)" stroke-width="1.3"/>`;
+      o+=`<text x="${x0+2}" y="${top-D*.62-G-Lb*.9}" font-size="10" fill="var(--muted)">${barNo}</text>`;
+      for(let s=0;s<6;s++) o+=`<rect data-str="${s}" data-bar="${bars.indexOf(bb)}" data-x0="${x0+padL}" data-w="${w-padL-padR}" x="${x0}" y="${top+(5-s)*C-C/2}" width="${w}" height="${C}" fill="transparent"/>`;
+      // Anzeige-Positionen: würde sich etwas überdecken, rückt das Spätere nach rechts (Zeit bleibt gleich)
+      const XS=new Map(), endS=new Array(6).fill(-1e9); let endL=-1e9;
+      bb.ev.forEach(e=>{ let x=x0+padL+(e.t-bb.a)/len*(w-padL-padR);
+        if(e.type==='note'){ const ww=cw*String(e.f).length; x=Math.max(x,endS[e.s]+gp+ww/2); endS[e.s]=x+ww/2; }
+        else { const fr=(CF&&e.f)?e.f:[]; fr.forEach((f,s)=>{ if(f>=0) x=Math.max(x,endS[s]+gp+cw*.82*String(f).length/2); }); x=Math.max(x,endL+gp+lw(e)/2);
+          fr.forEach((f,s)=>{ if(f>=0) endS[s]=x+cw*.82*String(f).length/2; }); endL=x+lw(e)/2; }
+        XS.set(e,x); });
+      const X=e=>XS.get(e);
+      const cy=top-D*.62-G;
+      bb.ev.forEach(e=>{ const i=CH.ev.indexOf(e), x=X(e), sel=ED.ev===e;
+        if(e.type==='note'){ const y=top+(5-e.s)*C, n=String(e.f).length; pos.set(e,{x,y});
+          if(e.art&&e.art!=='pick'){ let pv=null; for(let k=i-1;k>=0;k--){const q=CH.ev[k]; if(q.type==='note'){ if(q.s===e.s&&e.t-q.t<1.5) pv=q; break; } }
+            const up=pv?e.f>=pv.f:true, sym=e.art==='slide'?(up?'/':'\\'):e.art, pp=pv&&pos.get(pv), mx=pp&&pp.y===y?(pp.x+x)/2:x-D*.8;
+            o+=`<text x="${mx}" y="${y-D*.75}" text-anchor="middle" font-size="${Math.round(D*.62)}" font-style="${e.art==='slide'?'normal':'italic'}" fill="var(--acc)" opacity=".85">${sym}</text>`; }
+          if(sel) o+=`<rect x="${x-D*.8}" y="${y-D*.9}" width="${D*1.6}" height="${D*1.8}" rx="7" fill="var(--acc)" opacity=".22"/>`;
+          o+=`<rect x="${x-D*.42*n-1}" y="${y-D*.62}" width="${D*.84*n+2}" height="${D*1.15}" fill="${sel?'none':'var(--bg)'}"/><text x="${x}" y="${y+D*.36}" text-anchor="middle" font-size="${D}" font-weight="500" fill="var(--acc)">${e.f}</text>`;
+          o+=`<rect data-i="${i}" x="${x-D*.8}" y="${y-C*.5}" width="${D*1.6}" height="${C}" fill="transparent" style="cursor:pointer"/>`; return; }
+        const p=labelParts(e);
+        if(sel) o+=`<rect x="${x-Math.max(Lb,D)*1.1}" y="${cy-Lb*1.1}" width="${Math.max(Lb,D)*2.2}" height="${top+5*C+D*.7-cy+Lb*1.1}" rx="8" fill="var(--acc)" opacity=".18"/>`;
+        o+=`<text x="${x}" y="${cy}" text-anchor="middle" font-size="${Lb}" font-weight="500" fill="var(--text)">${p.root}<tspan fill="var(--acc)" font-size="${Lb*.75}" dy="-${Lb*.18}">${p.suf}</tspan></text>`;
+        if(e.f&&CF){ const D2=D*.82; e.f.forEach((f,s)=>{ if(f<0) return; const y=top+(5-s)*C, n=String(f).length;
+          o+=`<rect x="${x-D2*.42*n-1}" y="${y-D2*.62}" width="${D2*.84*n+2}" height="${D2*1.15}" fill="${sel?'none':'var(--bg)'}"/><text x="${x}" y="${y+D2*.36}" text-anchor="middle" font-size="${D2}" fill="var(--muted)">${f}</text>`; }); }
+        o+=`<rect data-i="${i}" x="${x-Math.max(Lb,D)*1.1}" y="${y0}" width="${Math.max(Lb,D)*2.2}" height="${rowH-6}" fill="transparent" style="cursor:pointer"/>`; });
+      x0+=w; });
+    o+=`<line x1="${x0}" y1="${top}" x2="${x0}" y2="${top+5*C}" stroke="var(--muted)" stroke-width="1.3"/>`; });
+  return o+'</svg>';
+}
+function viewUI(){ const b=$('#cview'); if(!b) return; const can=CH.grids.length>0&&CH.ev.length>0&&!CH.mic; if(!can&&CH.view==='sheet') CH.view='strip';
+  b.style.display=can?'':'none'; b.textContent=CH.view==='sheet'?'Ansicht: Blatt':'Ansicht: Streifen'; }
+$('#cview').addEventListener('click',()=>{ CH.view=CH.view==='sheet'?'strip':'sheet'; CH.stripKey=''; viewUI(); });
+
 function bpBanner(txt,hide){ const b=$('#cbanner'); b.textContent=txt; b.classList.add('on'); clearTimeout(BPB.bt); if(hide) BPB.bt=setTimeout(()=>b.classList.remove('on'),hide); }
 async function bpAnalyze(job){
   const model=await bpLoad();
@@ -1755,7 +1929,7 @@ function bpToTab(raw,job){
 }
 
 async function chordMicOn(){
-  const run=++CH.run; CH.mic=true; CH.micMsg=''; setMicUI();
+  const run=++CH.run; CH.mic=true; CH.view='strip'; CH.micMsg=''; setMicUI();
   let ctx=null, demo=true, stream=null;
   try{ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}
   if(!ctx){$('#cbanner').textContent='Audio wird von diesem Browser nicht unterstützt.';$('#cbanner').classList.add('on');CH.mic=false;setMicUI();return;}
@@ -1844,6 +2018,7 @@ function snapT(t,div){
 }
 const DR={timer:0,active:false,ev:null,b:null,x0:0,t0:0,lines0:null,justDragged:false,sx:0,sy:0};
 function pressStart(x,y,target){
+  if(CH.view==='sheet'&&!CH.mic) return;
   const h=target.closest&&(target.closest('[data-b]')||target.closest('[data-i]')); if(!h) return;
   DR.sx=x; DR.sy=y; clearTimeout(DR.timer);
   DR.timer=setTimeout(()=>{ DR.timer=0; snap(); DR.active=true; DR.x0=x; CH.follow=false;
@@ -1872,7 +2047,7 @@ function pressEnd(){
   if(S.px) LAY.px=S.px;
   // Zoomen mit zwei Fingern (in jede Richtung gespreizt), die Stelle zwischen den Fingern bleibt stehen
   let Z=null;
-  st.addEventListener('touchstart',e=>{ if(e.touches.length===2){ clearTimeout(DR.timer); DR.timer=0; const a=e.touches[0],b=e.touches[1], r=st.getBoundingClientRect();
+  st.addEventListener('touchstart',e=>{ if(e.touches.length===2&&!(CH.view==='sheet'&&!CH.mic)){ clearTimeout(DR.timer); DR.timer=0; const a=e.touches[0],b=e.touches[1], r=st.getBoundingClientRect();
     const mid=(a.clientX+b.clientX)/2-r.left; Z={d0:Math.max(30,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),px0:LAY.px,tm:(st.scrollLeft+mid-40)/LAY.px,mid}; } },{passive:true});
   st.addEventListener('touchmove',e=>{ if(Z&&e.touches.length===2){ e.preventDefault(); const a=e.touches[0],b=e.touches[1];
     LAY.px=clamp(Z.px0*Math.max(30,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY))/Z.d0,30,320); CH.follow=false; CH.stripKey=''; renderStrip(); st.scrollLeft=Z.tm*LAY.px+40-Z.mid; } },{passive:false});
@@ -1908,7 +2083,9 @@ $('#cstrip').addEventListener('click',e=>{ if(DR.justDragged) return; const h=e.
   // Tippen auf eine leere Stelle einer Saite: dort einen Ton eintragen (Bund danach wählen)
   const st=e.target.closest('[data-str]'); if(!st||CH.mic) return;
   const svg=st.ownerSVGElement, r=svg.getBoundingClientRect(), x=(e.clientX-r.left)*(svg.viewBox.baseVal.width/r.width);
-  let t=Math.max(0,(x-40)/LAY.px); t=snapT(t,2);
+  let t;
+  if(st.dataset.bar!=null){ const bb=sheetBars()[+st.dataset.bar]; if(!bb) return; t=bb.a+clamp((x-+st.dataset.x0)/+st.dataset.w,0,0.999)*(bb.b-bb.a); t=snapT(t,2); }
+  else { t=Math.max(0,(x-40)/LAY.px); t=snapT(t,2); }
   snap(); const s=+st.dataset.str, ev={t,type:'note',s,f:0,m:OPEN_M[s],key:'note|'+OPEN_M[s],art:'pick',edited:true,added:true};
   CH.ev.push(ev); CH.ev.sort((a,b)=>a.t-b.t); openEdit(ev); });
 $('#cname').addEventListener('click',()=>{ const x=lastChordEv(); if(x) openEdit(x); });
