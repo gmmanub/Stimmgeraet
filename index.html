@@ -1485,7 +1485,7 @@ function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) me
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
 // =================== Version ===================
-const APP_VERSION='2026-11-13.1300';
+const APP_VERSION='2026-11-13.1330';
 async function checkVersion(manual){
   const info=$('#verInfo'); if(info) info.textContent='Diese App: '+APP_VERSION;
   try{
@@ -1744,15 +1744,22 @@ async function beatAnalyze(job){
     let B=r.beats.map(b=>job.t0+b).filter(b=>b>=te0-0.6*P&&b<=te1+P);
     if(B.length<4){ bpBanner('Zu kurz für die Takterkennung',3000); return; }
     const M=+(metCfg().sig)||4;
+    // Akkordwechsel gehören auf den Schlag: liegt das Raster systematisch dazwischen (z. B. auf den „und“), Schläge dorthin schieben
+    { let sx=0,sy=0,n=0; evs.forEach(e=>{ if(e.type==='note') return; let k=0; while(k+1<B.length&&B[k+1]<=e.t) k++; const len=(B[k+1]??B[k]+P)-B[k], fr=(e.t-B[k])/len; if(fr<0||fr>1) return; sx+=Math.cos(2*Math.PI*fr); sy+=Math.sin(2*Math.PI*fr); n++; });
+      if(n>=3){ let mf=Math.atan2(sy,sx)/(2*Math.PI); if(mf<-0.5) mf+=1; const R=Math.hypot(sx,sy)/n; if(Math.abs(mf)>0.2&&R>0.4) B=B.map(b=>b+mf*P); } }
     // Wo ist die Eins? Akkordwechsel, Basstöne und kräftige tiefe Anschläge zählen
     const bassAt=t=>{ const f=Math.round((t-job.t0-r.t0)*r.fps); let m=0; for(let k=f-2;k<=f+2;k++) if(k>=0&&k<r.bass.length) m=Math.max(m,r.bass[k]); return m; };
     let bmax=1e-9; B.forEach(b=>bmax=Math.max(bmax,bassAt(b)));
     let best=-1,ph=0;
-    // Der erste Akkord liegt auf der Eins (davor: Auftakt)
-    const c0=evs.find(e=>e.type!=='note');
-    let i0=-1; if(c0){ let bd=1e9; B.forEach((b,i)=>{ const d=Math.abs(b-c0.t); if(d<bd){bd=d;i0=i;} }); if(bd>0.45*P) i0=-1; }
-    if(i0>=0){ ph=i0%M; best=1e9; }
-    else for(let p=0;p<M;p++){ let sc=0;
+    // Die Eins: dort, wo der Anfangsakkord im ganzen Stück meistens landet (ein verzögerter erster Anschlag kippt das Raster nicht)
+    const c0=evs.find(e=>e.type!=='note'), nb=t=>{ let bd=1e9,bi=-1; B.forEach((b,i)=>{ const d=Math.abs(b-t); if(d<bd){bd=d;bi=i;} }); return bd<0.35*P?bi:-1; };
+    if(c0){ const cnt=new Array(M).fill(0); let i0=nb(c0.t);
+      // Anker: der häufigste Akkord (bei Gleichstand der erste) – meist der Grundakkord des Stücks
+      const kc={}; evs.forEach(e=>{ if(e.type!=='note') kc[e.key]=(kc[e.key]||0)+1; }); let ak=c0.key; for(const k in kc) if(kc[k]>kc[ak]) ak=k;
+      if(ak!==c0.key) i0=-1;
+      evs.forEach(e=>{ if(e.type==='note') return; const i=nb(e.t); if(i<0) return; if(e.key===ak) cnt[i%M]+=1; else { cnt[i%M]+=0.15; cnt[(i+M/2)%M]+=0.15; } });
+      let bm=-1; for(let p=0;p<M;p++){ const v=cnt[p]+(i0>=0&&i0%M===p?0.5:0); if(v>bm){bm=v;ph=p;} } best=1e9; }
+    if(best<1e9) for(let p=0;p<M;p++){ let sc=0;
       for(let i=p;i<B.length;i+=M){ const b=B[i];
         sc+=bassAt(b)/bmax;
         if(evs.some(e=>e.type!=='note'&&Math.abs(e.t-b)<0.18)) sc+=2;
