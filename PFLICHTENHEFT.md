@@ -13,11 +13,12 @@ Eine Web-App für Akustikgitarre, gedacht für zu Hause, optimiert für das Sams
 
 ## 2. Arbeitsweise
 
-1. Manu beschreibt einen Wunsch oder stellt eine Frage.
-2. Claude schlägt vor, was es ändern würde. **Nichts wird ohne Freigabe umgesetzt.**
-3. Bei Animationen oder größeren Designfragen erst Vorschauen mit Reglern im Chat zeigen; Manu schickt seine Werte über „Werte senden“. Kleine Änderungen (Größe, Farbe, Position) nach kurzer Beschreibung direkt umsetzen und nur kurz testen; große Änderungen (Erkennung, Abläufe) vorher besprechen und gründlich testen.
-4. Nach Freigabe: Claude ändert `index.html`, prüft den **ganzen Ablauf mit Davor und Danach** (keine Folgefehler), lädt hoch und aktualisiert dieses Pflichtenheft.
-5. Manu testet auf der Pages-Adresse nach einmaligem Neuladen (etwa 1 Minute nach dem Hochladen).
+Die Arbeitsregeln (Freigabe, Umgang mit unklaren Ansagen, Prüfsatz, Hochladen, mehrere Chats) stehen an **einer** Stelle: in den **Projekt-Anweisungen** des Claude-Projekts „Gitarre App“ (Stand 13.11.2026). Kurzfassung:
+
+- Konkrete Ansage von Manu = Freigabe, direkt umsetzen und mit Bildschirmfoto zeigen. Unklare Ansage: erst in einem Satz wiederholen oder kurz skizzieren, dann bauen.
+- Claudes eigene Ideen und Änderungen an der Bedienung: erst Vorschlag (möglichst Vorschau), dann Freigabe. Animationen/Design: Vorschau mit Reglern, Manu schickt Werte über „Werte senden“.
+- Erkennung: erst am Prüfsatz messen, dann besprechen.
+- Nach jeder Änderung: ganzen Ablauf mit Davor und Danach prüfen, `APP_VERSION` erhöhen, hochladen, dieses Pflichtenheft aktualisieren. Manu testet nach einmaligem Neuladen (etwa 1 Minute nach dem Hochladen).
 
 ## 3. Globale Regeln
 
