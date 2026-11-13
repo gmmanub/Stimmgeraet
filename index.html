@@ -244,8 +244,14 @@ html.crec #newver,html.ced #newver{display:none!important}
 .echips{display:flex;flex-wrap:wrap;gap:6px}
 .echips button{min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line);font-size:14px;color:var(--soft)}
 .echips button[aria-pressed="true"]{border-color:color-mix(in oklab,var(--ct) 65%,var(--line));background:color-mix(in oklab,var(--ct) 20%,var(--panel));color:var(--text)}
-.epop{display:none;background:color-mix(in oklab,var(--panel) 60%,var(--bg));border:1px solid var(--line);border-radius:10px;padding:8px}
+.epop{display:none;position:fixed;left:50%;transform:translateX(-50%);z-index:12;width:max-content;max-width:calc(100vw - 16px);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px;box-shadow:0 10px 30px rgba(0,0,0,.45)}
 .epop.on{display:block}
+#epDim{display:none;position:fixed;inset:0;z-index:11;background:rgba(0,0,0,.32)}#epDim.on{display:block}
+.epop .egrid{grid-template-columns:repeat(var(--cols,6),52px)}
+#eRoot{--cols:4}#eBass{--cols:5}#eFret{--cols:6}#eQual{--cols:3}#eStr{--cols:3}#eGrid{--cols:3}#eArt{--cols:2}
+#eArt{grid-template-columns:repeat(2,130px)}#eStr{grid-template-columns:repeat(3,84px)}#eGrid{grid-template-columns:repeat(3,72px)}#eQual{grid-template-columns:repeat(3,64px)}
+.epop .egrid button{min-height:46px;font-size:15px}
+.epop .evois{max-width:calc(100vw - 32px)}
 .egrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
 .egrid.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.egrid.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.egrid.q{grid-template-columns:repeat(4,minmax(0,1fr))}
 .egrid button{min-height:42px;border-radius:9px;border:1px solid var(--line);font-size:14px;color:var(--soft);padding:0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -564,6 +570,7 @@ html.crec #newver,html.ced #newver{display:none!important}
         <button class="ef ediagb" id="eDiagB" data-p="pVois" aria-label="Griff wählen"></button></div>
       <div class="esim"><span>Ähnlich klingend</span><div class="echips" id="eSim"></div></div>
     </div>
+    <div id="epDim"></div>
     <div class="epop" id="pStr"><div class="egrid g3" id="eStr"></div></div>
     <div class="epop" id="pFret"><div class="egrid" id="eFret"></div></div>
     <div class="epop" id="pArt"><div class="egrid g2" id="eArt"><button data-a="pick">• Anschlag</button><button data-a="slide">/ Slide</button><button data-a="h">h Hammer-on</button><button data-a="p">p Pull-off</button></div></div>
@@ -1678,7 +1685,7 @@ function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) me
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
 // =================== Version ===================
-const APP_VERSION='2026-11-14.0100'; let NEWVER=null, NEWVER_X=false;
+const APP_VERSION='2026-11-14.0130'; let NEWVER=null, NEWVER_X=false;
 async function checkVersion(manual){
   const info=$('#verInfo'); if(info) info.textContent='Diese App: '+APP_VERSION;
   try{
@@ -1817,7 +1824,7 @@ function countLabel(t){
   if(best[0]===1) beat++; const bar=k+1;
   if(beat>=beats) return 'Takt '+(bar+1)+' · 1';
   return 'Takt '+bar+' · '+(bd>0.05?'≈ ':'')+(beat+1)+best[1]; }
-function closeEPops(){ document.querySelectorAll('#esheet .epop.on').forEach(p=>p.classList.remove('on')); document.querySelectorAll('#esheet .ef.open').forEach(b=>b.classList.remove('open')); }
+function closeEPops(){ const d=$('#epDim'); if(d) d.classList.remove('on'); document.querySelectorAll('#esheet .epop.on').forEach(p=>p.classList.remove('on')); document.querySelectorAll('#esheet .ef.open').forEach(b=>b.classList.remove('open')); }
 function renderEdit(){
   const e=ED.ev; if(!e) return;
   { const i=CH.ev.indexOf(e); $('#ePrev').disabled=i<=0; $('#eNext').disabled=i<0||i>=CH.ev.length-1; }
@@ -1840,9 +1847,10 @@ function renderEdit(){
   $('#eLrn').textContent=e.orig&&e.key!==e.orig?'Korrektur wird gemerkt · erkannt war '+evName(Object.assign({},e,keyParts(e.orig))):'';
   const sim=similar(e);
   $('#eSim').innerHTML=`<button aria-pressed="true" data-cur="1">${evName(e)}</button>`+sim.map(x=>`<button data-r="${x.r}" data-q="${x.qi}">${rootName(x.r)}${QUAL[x.qi].id}</button>`).join('');
-  $('#eRoot').innerHTML=ROOTS.map((_,r)=>`<button data-v="${r}" aria-pressed="${e.r===r}">${rootName(r)}</button>`).join('');
+  const RA=[9,10,11,0,1,2,3,4,5,6,7,8]; // ab A: A, B♭, B, C … A♭ (Manus A-B-C-Logik)
+  $('#eRoot').innerHTML=RA.map(r=>`<button data-v="${r}" aria-pressed="${e.r===r}">${rootName(r)}</button>`).join('');
   const qs=QUAL.map((q,i)=>({v:String(i),t:q.id||'Dur'})).concat([{v:'p',t:'5'}]);
-  $('#eBass').innerHTML=[{v:'',t:'–'}].concat(ROOTS.map((_,r)=>({v:String(r),t:rootName(r)}))).map(b=>`<button data-v="${b.v}" aria-pressed="${b.v===''?e.bass==null:String(e.bass)===b.v}">${b.t}</button>`).join('');
+  $('#eBass').innerHTML=[{v:'',t:'–'}].concat(RA.map(r=>({v:String(r),t:rootName(r)}))).map(b=>`<button data-v="${b.v}" aria-pressed="${b.v===''?e.bass==null:String(e.bass)===b.v}">${b.t}</button>`).join('');
   $('#eQual').innerHTML=qs.map(q=>`<button data-v="${q.v}" aria-pressed="${e.type==='power'?q.v==='p':String(e.qi)===q.v}">${q.t}</button>`).join('');
   $('#eRootB').innerHTML=`<small>Grundton</small>${rootName(e.r)}`;
   $('#eQualB').innerHTML=`<small>Art</small>${e.type==='power'?'5':(QUAL[e.qi].id||'Dur')}`;
@@ -2806,7 +2814,10 @@ function voxChord(t){ const m=/(?:^| )(cis|des|dis|es|fis|ges|gis|as|ais|bflat|[
   const qi=qualIdx(id); if(qi<0) return null; return {r:ROOTW[m[1]],qi,bass:m[7]!=null?ROOTW[m[7]]:null,txt:m[0].trim()}; }
 // Position: „takt 4“, „takt 4 , 2+“, „takt 4 , 2 bis 3“, „takt 1 bis 3“, „takt 1 und 2“, „die ersten 2 takt“
 function voxBeat(w){ const m=/^(\d+)(\+|e|a)?$/.exec(w||''); if(!m) return null; return +m[1]-1+({'+':0.5,e:0.25,a:0.75}[m[2]]||0); }
-function voxPos(t){ const nb=(sheetBars()[0]||{g:{beats:4}}).g.beats;
+function voxPos(t,skipStr){ const nb=(sheetBars()[0]||{g:{beats:4}}).g.beats;
+  // „takt 1 g akkord von 2“, „takt 1 S4 2+“ → „takt 1 , 2“ (Wörter zwischen Takt und Zählzeit überspringen)
+  const gap='(?: (?:,|von|der|die|das|akkord|akkorde|töne|ton|einzeltöne|moll|dur|7|maj7|sus2|sus4|add9|über|cis|des|dis|es|fis|ges|gis|as|ais|bflat|[a-h])'+(skipStr?'| S\\d':'')+')*';
+  t=t.replace(new RegExp('takt (\\d+)'+gap+' (\\d+[+ea]?)(?= |$)'),(m,a,b)=>'takt '+a+' , '+b);
   let m=/die (\d+) (letzten )?takt/.exec(t)||/die ersten (\d+) takt/.exec(t); if(/(die )?(ersten|1) (\d+) takt/.test(t)){ const k=+/(\d+) takt/.exec(t)[1]; return {bars:Array.from({length:k},(_,i)=>i),txt:'die ersten '+k+' Takte'}; }
   m=/takt (\d+)((?: und \d+)+)/.exec(t); if(m){ const L=[+m[1]].concat((m[2].match(/\d+/g)||[]).map(Number)); return {bars:L.map(x=>x-1),txt:'Takt '+L.join(' und ')}; }
   m=/takt (\d+) (?:, )?(?:bis|-) (?:takt )?(\d+)(?! ?[+ea]\b)(?! ,? ?\d)/.exec(t);
@@ -2846,28 +2857,31 @@ function voxDo(t){ const nb=(sheetBars()[0]||{g:{beats:4}}).g.beats, P=voxPos(t)
   if(/MARKWEG/.test(t)){ CH.sel.clear(); CH.selBars.clear(); CH.stripKey=''; edUI(); return {ok:1,txt:'Markierung weg',nosnap:1}; }
   if(/MARKIER/.test(t)){ if(!P) return {ok:0,txt:'Welche Takte markieren?'}; const bars=P.bars||[P.bar]; markBars(bars); return {ok:1,txt:P.txt+' markiert',nosnap:1}; }
   // Quelle: genannte Takte/Stelle, sonst die markierten
-  const srcFromPos=()=>{ if(P&&P.bars){ markBars(P.bars); return true; } if(P&&P.pos!=null){ const L=rangeEv(P.pos,P.end!=null?P.end:P.pos+0.5); if(!L.length) return false; setEditMode(true); CH.sel.clear(); CH.selBars.clear(); L.forEach(e=>CH.sel.add(e)); edUI(); return true; } return CH.sel.size>0; };
+  const srcFromPos=()=>{ if(P&&P.bars){ markBars(P.bars); return true; } if(P&&P.pos!=null){ const L=(P.end!=null?rangeEv(P.pos,P.end):rangeEv(P.pos-0.25,P.pos+0.25)); if(!L.length) return false; setEditMode(true); CH.sel.clear(); CH.selBars.clear(); L.forEach(e=>CH.sel.add(e)); edUI(); return true; } return CH.sel.size>0; };
   if(/KOPIER|VERSCHIEB/.test(t)){ const mv=/VERSCHIEB/.test(t), sim=/ALLESIM/.test(t);
     // Ziel: „nach/auf takt 9“, „nach takt 9 , 3“, „auf die 1“ (nur Zählzeit = im selben Takt wie die Quelle)
     const tgRe=/(?:nach|auf|zu|zur) (?:die |den |der )?(?:takt (\d+)(?: ?,? (\d+[+ea]?))?|(\d+[+ea]?))(?= |$)/, tg=tgRe.exec(t);
     const tt=tg?t.slice(0,tg.index)+' '+t.slice(tg.index+tg[0].length):t;
-    const P2=voxPos(tt); const Pz=P2; // Quelle: alles außer dem Ziel
+    const P2=voxPos(tt,true); const Pz=P2; // Quelle: alles außer dem Ziel
     const tm=tg?[tg[0],tg[1]!=null?tg[1]:null,tg[1]!=null?tg[2]:tg[3]]:null;
     // Akkordname in der Quelle genannt („Takt 1, 2 G auf die 1 schieben“) → nur Akkorde an der Stelle, nicht die Töne daneben
-    const onlyCh=!!voxChord(tt.replace(/takt \d+( ,)? ?(\d+[+ea]?)?( bis (takt )?\d+( ,)? ?(\d+[+ea]?)?)?/,' ').replace(/VERSCHIEB|KOPIER/g,' '));
-    if(Pz&&Pz.bars) markBars(Pz.bars); else if(Pz&&Pz.pos!=null){ let L=rangeEv(Pz.pos,Pz.end!=null?Pz.end:Pz.pos+0.5); if(onlyCh) L=L.filter(e=>e.type!=='note'); setEditMode(true); CH.sel.clear(); CH.selBars.clear(); L.forEach(e=>CH.sel.add(e)); edUI(); }
-    if(!CH.sel.size) return {ok:0,txt:'Was soll ich '+(mv?'verschieben':'kopieren')+'? Erst markieren'};
+    const onlyCh=/akkord/.test(tt)||!!voxChord(tt.replace(/takt \d+( ,)? ?(\d+[+ea]?)?( bis (takt )?\d+( ,)? ?(\d+[+ea]?)?)?/,' ').replace(/VERSCHIEB|KOPIER/g,' '));
+    if(Pz&&Pz.bars&&/\d+[+ea]|von \d/.test(tt.replace(/takt \d+/g,''))&&!confirm('Ganzen '+Pz.txt+(mv?' verschieben':' kopieren')+'?')) return {ok:0,txt:'Nichts geändert'};
+    if(Pz&&Pz.bars) markBars(Pz.bars); else if(Pz&&Pz.pos!=null){ let L=(Pz.end!=null?rangeEv(Pz.pos,Pz.end):rangeEv(Pz.pos-0.25,Pz.pos+0.25)); if(onlyCh) L=L.filter(e=>e.type!=='note'); else if(str!=null) L=L.filter(e=>e.type==='note'&&e.s===str); setEditMode(true); CH.sel.clear(); CH.selBars.clear(); L.forEach(e=>CH.sel.add(e)); edUI(); }
+    if(!CH.sel.size) return {ok:0,txt:Pz&&Pz.pos!=null?'Bei '+Pz.txt+' liegt '+(onlyCh?'kein Akkord':str!=null?'nichts auf der '+SN[str]:'nichts'):'Was soll ich '+(mv?'verschieben':'kopieren')+'? Erst markieren'};
     if(sim&&!mv){ $('#cedCopy').click(); const n=simStart(); return {ok:1,txt:n?n+(n>1?' ähnliche Stellen':' ähnliche Stelle')+' gefunden · prüfen und „Übernehmen“':'Keine ähnlichen Stellen gefunden',nosnap:1}; }
     if(!tm) return {ok:0,txt:'Wohin? „nach Takt …“ oder „auf die 1“'};
     const bars=selIsBars(), a0=selAnchor(); const barI=tm[1]!=null?+tm[1]-1:Math.floor(a0/nb+1e-6); let tp=barI*nb;
     if(tm[2]){ const b=voxBeat(tm[2]); if(b!=null) tp+=b; } else if(!bars){ tp+=a0-Math.floor(a0/nb+1e-6)*nb; }
     if(!mv){ $('#cedCopy').click(); const r=placePos('paste',tp); return {ok:!!r,txt:r||'Nichts eingefügt'}; }
     const r=placePos('move',tp); return {ok:!!r,txt:r||'Nichts verschoben'}; }
-  if(/LÖSCH/.test(t)){ const notesOnly=/töne|noten/.test(t);
-    let L=null; if(P&&P.bars) L=barsEv(P.bars); else if(P&&P.pos!=null) L=rangeEv(P.pos,P.end!=null?P.end:P.pos+0.5); else if(/(ton|akkord|den|das)\b/.test(t)&&cur) L=[cur]; else if(CH.sel.size) L=selList(); else if(cur) L=[cur];
-    if(!L||!L.length) return {ok:0,txt:'Was soll ich löschen?'}; if(notesOnly) L=L.filter(e=>e.type==='note'); if(!L.length) return {ok:0,txt:'Dort sind keine Töne'};
+  if(/LÖSCH/.test(t)){ const notesOnly=/töne|noten/.test(t), chOnly=/akkord/.test(t)&&!notesOnly, P=voxPos(t,true);
+    let L=null; if(P&&P.bars) L=barsEv(P.bars); else if(P&&P.pos!=null) L=(P.end!=null?rangeEv(P.pos,P.end):rangeEv(P.pos-0.25,P.pos+0.25)); else if(/(ton|akkord|den|das)\b/.test(t)&&cur) L=[cur]; else if(CH.sel.size) L=selList(); else if(cur) L=[cur];
+    if(!L||!L.length) return {ok:0,txt:'Was soll ich löschen?'}; if(notesOnly||str!=null) L=L.filter(e=>e.type==='note'); if(str!=null) L=L.filter(e=>e.s===str); if(chOnly) L=L.filter(e=>e.type!=='note');
+    if(!L.length) return {ok:0,txt:str!=null?'Dort ist nichts auf der '+SN[str]:chOnly?'Dort ist kein Akkord':'Dort sind keine Töne'};
+    if(P&&P.bars&&/\d+[+ea]|von \d/.test(t.replace(/takt \d+/g,''))&&!confirm('Ganzen '+P.txt+' löschen ('+L.length+' Elemente)?')) return {ok:0,txt:'Nichts gelöscht'};
     snap(); const set=new Set(L); CH.ev=CH.ev.filter(e=>!set.has(e)); L.forEach(e=>{ CH.sel.delete(e); }); if(ED.ev&&set.has(ED.ev)) closeEdit(); CH.stripKey=''; edUI();
-    return {ok:1,txt:(P?P.txt+': ':'')+L.length+(notesOnly?(L.length>1?' Töne':' Ton'):(L.length>1?' Elemente':' Element'))+' gelöscht'}; }
+    return {ok:1,txt:(P?P.txt+(str!=null?' · '+SN[str]:'')+': ':'')+L.length+(notesOnly||str!=null?(L.length>1?' Töne':' Ton'):chOnly?(L.length>1?' Akkorde':' Akkord'):(L.length>1?' Elemente':' Element'))+' gelöscht'}; }
   // Ton setzen: Stelle + Saite + Bund; Folge: Saite + „3, slide 5, 3, 1, pulloff 0“
   if(str!=null){ const after=t.slice(t.indexOf('S'+str)+2); const items=[]; let art=null;
     after.replace(/(slide|hammeron|pulloff|anschlag)|bund (\d+)|(\d+)/g,(m,a,b2,c)=>{ if(a){ art=a==='hammeron'?'h':a==='pulloff'?'p':a==='slide'?'slide':'pick'; return m; } const f=+(b2||c); if(f<=17){ items.push({f,art:art||'pick'}); art=null; } return m; });
@@ -2889,7 +2903,8 @@ function voxDo(t){ const nb=(sheetBars()[0]||{g:{beats:4}}).g.beats, P=voxPos(t)
   return {ok:0,txt:''}; }
 const VOXLOG=[]; // Sprachprotokoll (kommt in den Mitschnitt): gehört, verstanden, getan
 function voxRun(alts){ let best=null;
-  for(const raw of alts){ const parts=voxNorm(raw).split(/ (?:und dann|danach|dann) /); const sim=[];
+  const isCmd=x=>/takt|LÖSCH|KOPIER|VERSCHIEB|MARKIER|RÜCKGÄNGIG|WIEDERHOL|MARKWEG|ALLESIM|S\d/.test(x);
+  for(const raw of alts){ const P0=voxNorm(raw).split(/ (?:und dann|danach|dann) /), parts=[]; P0.forEach(x=>{ if(parts.length&&!isCmd(x)) parts[parts.length-1]+=' , '+x; else parts.push(x); }); const sim=[];
     // Trockenlauf geht nicht ohne Seiteneffekte – nimm die erste Variante, deren erster Teil erkannt wird
     best={raw,parts}; if(parts.some(x=>/takt|LÖSCH|KOPIER|VERSCHIEB|MARKIER|RÜCKGÄNGIG|WIEDERHOL|S\d|bund|slide|hammeron|pulloff|anschlag|moll|dur|MARKWEG|ALLESIM/.test(x))) break; }
   if(!best) return; let n0=UNDO.length; const done=[], bad=[];
@@ -2995,7 +3010,11 @@ $('#cstrip').addEventListener('click',e=>{ if(DR.justDragged||performance.now()<
 $('#cname').addEventListener('click',()=>{ const x=lastChordEv(); if(x) openEdit(x); });
 $('#eclose').addEventListener('click',closeEdit);
 // Felder öffnen ihr Auswahlfenster; nach einer Wahl schließt es wieder
-document.querySelectorAll('#esheet .ef[data-p]').forEach(b=>b.addEventListener('click',()=>{ const p=$('#'+b.dataset.p), on=!p.classList.contains('on'); closeEPops(); if(on){ p.classList.add('on'); b.classList.add('open'); } }));
+document.querySelectorAll('#esheet .ef[data-p]').forEach(b=>b.addEventListener('click',()=>{ const p=$('#'+b.dataset.p), on=!p.classList.contains('on'); closeEPops(); if(!on) return;
+  p.classList.add('on'); b.classList.add('open'); $('#epDim').classList.add('on');
+  // immer gleich: waagrecht mittig, Unterkante auf Höhe der Unterkante des angetippten Felds (oben nie aus dem Bild)
+  const r=b.getBoundingClientRect(), h=p.offsetHeight; p.style.top=Math.max(8,r.bottom-h)+'px'; }));
+$('#epDim').addEventListener('click',e=>{ e.stopPropagation(); closeEPops(); });
 $('#esheet .esh').addEventListener('click',e=>{ if(e.target.closest('.epop button')) setTimeout(closeEPops,0); },true);
 $('#eMid').addEventListener('click',()=>showSel());
 // Namens-Chip: zwischen Ton und Akkord umschalten (Akkord = der zuletzt davor benutzte, sonst G; Ton = tiefster gegriffener Ton des Akkords)
