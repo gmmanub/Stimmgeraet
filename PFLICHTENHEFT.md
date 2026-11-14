@@ -22,6 +22,8 @@ Die Arbeitsregeln (Freigabe, Umgang mit unklaren Ansagen, Prüfsatz, Hochladen, 
 
 ## 3. Globale Regeln
 
+- **Kammerton, Stimmung und B/H gelten für die ganze App** (Erkennung, Tab, Abspiel-Klänge, Ansage, Griffbrett-Trainer); Umstellen wirkt sofort überall. Die **Feinstimmung** (Mathematisch/Menschlich/Buzz Feiten, 0–2,3 Cent) gilt nur im Stimmgerät (Manu 14.11.).
+
 - **Notennamen:** Standard „B“ (international). Umschalter B/H in den Einstellungen gilt für die ganze App, auch für Akkorde und spätere Tabs. Bei H heißt B♭ „B“.
 - **Sprache:** Deutsch.
 - **Design:** dezent, erwachsen, aufgeräumt. Basis ist das Pitchblack-Pedal.
@@ -359,6 +361,9 @@ Stand: 13.11.2026, abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Que
 - **iPhone/Safari:** testen und anpassen (Mikro, Teilen, Basic Pitch), wenn die App rund läuft.
 - **Notation wählbar: Tab / Noten / Tab + Noten** (wie Ultimate Guitar). Vorher **alphaTab** prüfen (kostenlose Bibliothek für Tab und Notenschrift mit Cursor, Mixer, Loop) – offen, ob sie mit unseren echten Aufnahmen statt Synthesizer-Klang zusammengeht.
 - Vielleicht: Tempo-Trainer (wird mit jedem Loop etwas schneller). **Nicht:** Griffbrett-Ansicht statt Tab (Manu will Tabs lesen lernen), Song-Bibliothek, Kurse, „Simplify“, Effekte.
+- **Üben & Lernen (Manu 14.11.):**
+  - **Griffbrett-Trainer** als eigener Knopf auf dem Startbildschirm (neben Stimmgerät und Akkorde), kann zwischendurch kommen: App gibt einen Ton vor – nur als Name („Finde D“) oder nur als Klang (Gehör) –, Manu spielt, Prüfung mit der Stimmgerät-Erkennung (Toleranz ca. ±30 Cent), ✓/✗, Punkte, Serie, Zeit. Gilt für die eingestellte Stimmung und den Kammerton. Watchout: die App hört den Ton, nicht die Saite – „Finde D“ zählt jedes D, Saite nur als Hinweis; Variante „Finde alle D“. Später: Akkorde und Intervalle nach Gehör.
+  - **Ansage beim Abspielen** (nach Play, Loop, Langsamer): Ton wird digital in exakter Höhe erzeugt (wie MIDI: Tab-Position → Ton → Frequenz nach Kammerton und Stimmung). **Stufe 1:** Ton + kurz gesprochener Name (Sprachausgabe des Handys). **Stufe 2:** „singende“ Stimme ganz digital – 12 Silben (C, Cis … B) einmal per kostenloser Sprachsynthese erzeugen, App verschiebt sie auf die exakte Frequenz (Oktave passend zur Stimmlage); erst nach Hörprobe entscheiden. Bei Akkorden nur der **Grundton** („G“, „Fis“) plus Akkordklang, kein „Dur/Moll/sus2“ (optional später kurz „Moll“). Schnelle Läufe nur mit „Langsamer“ sinnvoll.
 - **Einstellungen aufräumen** (Manu 14.11.): Gruppen „Allgemein / Stimmgerät / Akkorde / Daten & Sicherung“, Stimmgerät-Einstellungen nur dort (heute stehen sie auf der obersten Ebene mit drin), Sicherung unter „Daten & Sicherung“.
 - Alternative Voicings für eine zweite Gitarre, optional in anderen Stimmungen.
 - Schlagzeug-Gestalter (Kick, Snare, HiHat, Muster), Export als WAV.
@@ -367,6 +372,11 @@ Stand: 13.11.2026, abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Que
 - Installierbare App (PWA) oder APK.
 - Metronom, das sich dem Spieltempo anpasst – nur falls die Takterkennung nach dem Stoppen nicht reicht.
 - Sprache nicht als Akkord erkennen – nur falls es stört (Manu redet beim Spielen nicht).
+
+### F · Veröffentlichen (ganz später, nur falls die App mit der Band richtig gut läuft – Manu 14.11.)
+- **Sprachpakete Deutsch / Englisch / Französisch:** alle Texte der Oberfläche (heute fest im Code, geschätzt einige hundert) in je eine Sprachdatei. Der größere Teil sind die **Sprachbefehle** (eigene Befehlswörter, Zahlen, Verhörer-Liste und Spracherkennung je Sprache). **Notennamen:** Englisch C D E F G A B, Französisch **Do Ré Mi Fa Sol La Si** – betrifft Anzeige, Ansage und Befehle.
+- **KI-Anleitung zum Kopieren:** aus der App herunterladbarer Text (aus `BEFEHLE.md`) für beliebige KIs: Nutzer erklärt der KI sein Lied, die KI schreibt den Befehlsblock, Nutzer fügt ihn über „abc“ ein. Fremde KIs können Blöcke nicht testen → die ✓/✗-Vorschau ist das Sicherheitsnetz; Befehlssprache einfach und versioniert halten.
+- Vor dem Veröffentlichen prüfen: Lizenzen der Bibliotheken (z. B. Basic Pitch), Datenschutzhinweis (App sammelt keine Daten), Name und Adresse.
 
 ## 9. Bekannte Grenzen
 
