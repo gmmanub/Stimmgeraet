@@ -516,7 +516,9 @@ html.crec #newver,html.ced #newver{display:none!important}
       <li><b>BPM</b> antippen = Taktart, Tempo halbieren oder verdoppeln.</li>
       <li><b>Edit</b> = auswählen: Töne, Akkorde, Taktnummern antippen. Dann Kopieren → Einfügen, Verschieben (Ziel im Blatt antippen), ↤ ↦ schieben, Löschen, Ausrichten. Lange auf eine Taktnummer drücken = Edit an und Takt gewählt.</li>
       <li><b>Mitschnitt laden</b> (Menü ⋯): eine gespeicherte Test-WAV öffnen, das Blatt steht wieder da.</li>
-      <li><b>Play</b> unten (im Edit-Modus oben neben „Alle“): abspielen ab markierten Takten, sonst ab der Stoppstelle. Der Balken läuft mit, das Blatt scrollt mit. Während Play: Taktnummer antippen = dorthin springen.</li>
+      <li><b>Play</b> unten (im Edit-Modus oben neben „Alle“): abspielen ab markierten Takten, sonst ab der Stoppstelle. Der Balken läuft mit, das Blatt scrollt mit. Während Play: in einen Takt tippen = dorthin springen.</li>
+      <li><b>Taktnummer</b> steht fett unten am Taktstrich: im Edit-Modus antippen = Takt wählen, sonst lange drücken.</li>
+      <li><b>Zurück-Taste</b> schließt nur das Oberste (Fenster, Feld, Edit, Play …). Das Blatt wird im Browser gesichert und lässt sich nach versehentlichem Schließen wiederherstellen.</li>
       <li><b>Bernstein gestrichelt</b> = bitte drüberschauen (antippen nimmt es weg, alle: Menü ⋯ „Markierungen weg“). <b>Blau gestrichelt</b> = Vorschlag „auf alle ähnlichen“.</li>
     </ul>
     <h3 style="margin-top:6px">Sprechen (einmal tippen, sprechen, nochmal tippen)</h3>
@@ -1604,7 +1606,7 @@ function demoStrum(ctx,dest,r,qi,t0){
 
 // Bildschirm öffnen: Mikro bleibt aus, bis „Start“ gedrückt wird
 function startChords(){ checkVersion(false);
-  $('#chords').classList.add('on'); root.classList.add('inch'); bpLoad().catch(()=>{}); setEditMode(false); CH.bigK=null; CH.listKey='';
+  $('#chords').classList.add('on'); root.classList.add('inch'); setTimeout(()=>NF.check(),300); bpLoad().catch(()=>{}); setEditMode(false); CH.bigK=null; CH.listKey='';
   capClear(); BPB.gen++; UNDO.length=0; CH.ev=[]; CH.onsets=[]; CH.beatCh=[]; CH.song=null; CH.tNow=0; CH.tBase=0; CH.grids=[]; CH.stripKey=''; CH.follow=true; CH.key=''; CH.eng=null; CH.micMsg=''; metUI();
   $('#cbanner').classList.remove('on');
   setMicUI();
@@ -2386,7 +2388,7 @@ function sheetBars(){ const bars=[];
 function sheetSVG(){
   // Zoom im Blatt (CH.sz): Schrift, Saitenabstand und Mindestabstand der Töne wachsen mit; Takte pro Zeile ergeben sich daraus
   // Schrift nur bis 72 % verkleinern (bleibt lesbar), Abstände folgen dem Zoom voll; die Takte pro Zeile ergeben sich so, dass nichts überdeckt
-  const z=sheetZ(), fz=Math.max(z,0.72), D=LAY.dig*fz, Lb=LAY.lab*fz, G=LAY.gap*fz, C=LAY.str*fz, cw=D*.62, gp=Math.max(4,6*z), left=24, padL=17*z, padR=8*z;
+  const z=sheetZ(), fz=Math.max(z,0.72), D=LAY.dig*fz, Lb=LAY.lab*fz, G=LAY.gap*fz, C=LAY.str*fz, cw=D*.62, gp=Math.max(4,6*z), left=24, padL=10*z, padR=3*z;
   // Zeilenaufteilung während der Geste erst bei ≥ 10 % Zoomänderung neu (weniger Zucken), beim Loslassen genau
   // Zeilenaufteilung: während der Geste erst bei ≥ 10 % neu, beim Loslassen so lassen, wie sie gerade aussieht (kein Springen)
   let zp=CH.zp; if(zp==null||(!CH.pinching&&!CH.zpKeep)||Math.abs(z/zp-1)>0.1) zp=CH.zp=z;
@@ -2422,10 +2424,9 @@ function sheetSVG(){
     const tot=rw.reduce((a,bb)=>a+bb.need,0), sc=1;
     for(let i=0;i<6;i++) o+=`<line x1="${left}" y1="${top+i*C}" x2="${left+tot*sc}" y2="${top+i*C}" stroke="var(--line)" stroke-width="${strW(i,z)}"/>`;
     'TAB'.split('').forEach((ch,i)=>o+=`<text x="10" y="${top+(1+i*1.5)*C*0.95}" font-size="${Math.min(12,C*.65)}" fill="var(--muted)" text-anchor="middle">${ch}</text>`);
-    let x0=left;
+    let x0=left; const nums=[];
     rw.forEach(bb=>{ const w=bb.need, len=bb.b-bb.a; barNo++;
       o+=`<line x1="${x0}" y1="${top}" x2="${x0}" y2="${top+5*C}" stroke="var(--muted)" stroke-width="1.3"/>`;
-      o+=`<text x="${x0+2}" y="${top-D*.62-G-Lb*.9}" font-size="${Math.max(8,10*Math.sqrt(z))}" fill="${CH.edm&&CH.selBars.has(bb.a.toFixed(3))?'var(--acc)':'var(--muted)'}">${barNo}</text>`;
       SHEET.geo.push({a:bb.a,b:bb.b,x0:x0+padL,w:w-padL-padR,xl:x0,xr:x0+w,y0,y1:y0+rowH});
       if(CH.edm&&CH.selBars.has(bb.a.toFixed(3))) o+=`<rect x="${x0}" y="${y0+4}" width="${w}" height="${top+5*C-y0}" fill="var(--acc)" opacity=".13"/>`;
       o+=`<rect data-clane="1" data-bar="${bars.indexOf(bb)}" data-x0="${x0+padL}" data-w="${w-padL-padR}" x="${x0}" y="${y0+12}" width="${w}" height="${top-y0-12-C/2}" fill="transparent"/>`;
@@ -2453,16 +2454,17 @@ function sheetSVG(){
         o+=`<text x="${x}" y="${cy}" text-anchor="middle" font-size="${Lb}" font-weight="500" fill="var(--text)">${p.root}<tspan fill="var(--acc)" font-size="${Lb*.75}" dy="-${Lb*.18}">${p.suf}</tspan></text>`;
         if(e.f&&CF){ const D2=D*.82; e.f.forEach((f,s)=>{ if(f<0) return; const y=top+(5-s)*C, n=String(f).length;
           o+=`<rect x="${x-D2*.42*n-1}" y="${y-D2*.62}" width="${D2*.84*n+2}" height="${D2*1.15}" fill="${sel?'none':'var(--bg)'}"/><text x="${x}" y="${y+D2*.36}" text-anchor="middle" font-size="${D2}" fill="var(--muted)">${f}</text>`; }); }
-        o+=`<rect data-i="${i}" x="${x-Math.max(Lb,D)*1.1}" y="${y0}" width="${Math.max(Lb,D)*2.2}" height="${rowH-6}" fill="transparent" style="cursor:pointer"/>`; });
+        o+=`<rect data-i="${i}" x="${x-Math.max(Lb,D)*1.1}" y="${y0+12}" width="${Math.max(Lb,D)*2.2}" height="${top+5*C+C*.5-y0-12}" fill="transparent" style="cursor:pointer"/>`; });
       // Taktnummer zuletzt: liegt über dem Akkord-Trefferfeld (antippen im Edit-Modus, lange drücken = Edit + Takt wählen)
       if(CH.edm&&ED.prop){ const bi=bars.indexOf(bb), nbb=bb.g.beats; ED.prop.forEach(pr=>{ const a=Math.max(pr.pos,bi*nbb), b=Math.min(pr.pos+pr.len,(bi+1)*nbb); if(b<=a) return;
         const xa=x0+(a-bi*nbb)/nbb*w, xb=x0+(b-bi*nbb)/nbb*w; o+=`<rect x="${xa}" y="${y0+4}" width="${xb-xa}" height="${top+5*C-y0}" pointer-events="none" fill="#3E7CC9" fill-opacity="${pr.on?.16:.05}" stroke="#3E7CC9" stroke-opacity="${pr.on?.7:.25}" stroke-dasharray="4 3"/>`; }); }
       // Zählzeichen unter dem Tab (dezent): 1 + 2 + … ; in schmalen Takten nur die Schläge
       { const nb=bb.g.beats, yy=top+5*C+D*.95, fs=Math.max(9,9.5*fz), inner=w-padL-padR, half=inner/(nb*2)>=fs*1.1;
-        for(let k=0;k<nb*2;k++){ if(k%2&&!half) continue; o+=`<text x="${x0+padL+k/(nb*2)*inner}" y="${yy}" text-anchor="middle" font-size="${k%2?fs*.9:fs}" fill="var(--muted)" opacity="${k%2?.45:.7}">${k%2?'+':k/2+1}</text>`; } }
-      { const ny=top-D*.62-G-Lb*.9; o+=`<rect data-barno="${bars.indexOf(bb)}" x="${x0-2}" y="${ny-14*Math.max(1,z)}" width="${Math.min(w*.4,26)}" height="${18*Math.max(1,z)}" fill="transparent" style="cursor:pointer"/>`; }
+        for(let k=0;k<nb*2;k++){ if(z<0.7) break; /* rausgezoomt: keine Zählzeichen, nur Taktnummern (Manu 14.11.) */ if(k%2&&!half) continue; o+=`<text x="${x0+padL+k/(nb*2)*inner}" y="${yy}" text-anchor="middle" font-size="${k%2?fs*.9:fs}" fill="var(--muted)" opacity="${k%2?.45:.7}">${k%2?'+':k/2+1}</text>`; }
+          const selB=CH.edm&&CH.selBars.has(bb.a.toFixed(3)); o+=`<text x="${x0+4*z}" y="${yy}" text-anchor="end" font-size="${fs*1.12}" font-weight="700" fill="${selB?'var(--acc)':'var(--soft)'}" pointer-events="none">${barNo}</text>`; }
+      { const yb=top+5*C+C*.5+1, hb=y0+rowH+11-yb; nums.push(`<rect data-barno="${bars.indexOf(bb)}" x="${x0-26}" y="${yb}" width="40" height="${hb}" fill="transparent" style="cursor:pointer"/>`); }
       x0+=w; });
-    o+=`<line x1="${x0}" y1="${top}" x2="${x0}" y2="${top+5*C}" stroke="var(--muted)" stroke-width="1.3"/>`; });
+    o+=`<line x1="${x0}" y1="${top}" x2="${x0}" y2="${top+5*C}" stroke="var(--muted)" stroke-width="1.3"/>`; o+=nums.join(''); });
   return o+'</svg>';
 }
 const SHEET={geo:[],w:0};
@@ -2915,7 +2917,7 @@ function plFromCap(){ PL.src=PL.src.filter(s=>!s.cap); if(!CAP.n) return; const 
   segs.forEach((seg,k)=>{ const a=Math.round(seg.wavStart*CAP.sr), b=k+1<segs.length?Math.round(segs[k+1].wavStart*CAP.sr):CAP.n; if(b-a<CAP.sr*0.2) return;
     PL.src.push({cap:1,t0:seg.ctxStart+seg.offset,sr:CAP.sr,n:b-a,a,buf:null}); });
   PL.src.sort((x,y)=>x.t0-y.t0); }
-function plSamples(s){ const x=new Float32Array(s.n); if(s.cap){ let o=0, i=0; for(const c of CAP.chunks){ const L=c.length; if(o+L>s.a){ const from=Math.max(0,s.a-o), to=Math.min(L,s.a+s.n-o); for(let j=from;j<to;j++) x[i++]=c[j]/32768; } o+=L; if(o>=s.a+s.n) break; } }
+function plSamples(s){ const x=new Float32Array(s.n); if(s.pcm){ for(let i=0;i<s.n;i++) x[i]=s.pcm[i]/32768; return x; } if(s.cap){ let o=0, i=0; for(const c of CAP.chunks){ const L=c.length; if(o+L>s.a){ const from=Math.max(0,s.a-o), to=Math.min(L,s.a+s.n-o); for(let j=from;j<to;j++) x[i++]=c[j]/32768; } o+=L; if(o>=s.a+s.n) break; } }
   else { let o=0; for(const c of s.chunks){ x.set(c.subarray(0,Math.min(c.length,s.n-o)),o); o+=c.length; if(o>=s.n) break; } } return x; }
 function plBuf(s){ if(!s.buf||s.buf.sampleRate!==s.sr){ const b=PL.ctx.createBuffer(1,s.n,s.sr); b.copyToChannel(plSamples(s),0); s.buf=b; } return s.buf; }
 function plLat(){ const c=PL.ctx; return c?clamp((c.outputLatency||0)||(c.baseLatency||0),0,0.5):0; }
@@ -2936,11 +2938,17 @@ async function plPlay(t,end){ if(!PL.src.length) return cMsg('Nichts zum Abspiel
     const off=Math.max(0,t-s.t0), when=now+Math.max(0,s.t0-t)/PL.rate; try{ n.start(when,off); }catch(e){} PL.nodes.push(n); });
   PL.startCtx=now; PL.startT=t; PL.end=end!=null?end:null; PL.on=true; PL.follow=true; plUI();
   if(CH.mic&&!PL.hint){ PL.hint=true; cMsg('Abspielen läuft · der Lautsprecher kommt ins Mikro'); }
-  cancelAnimationFrame(PL.raf); const tick=()=>{ if(!PL.on) return; const tn=plNow(); if(PL.loop&&PL.end!=null&&tn>=PL.end-0.01){ plPlay(PL.loop.a,PL.loop.e); return; } if((PL.end!=null&&tn>=PL.end)||tn>=E+0.05){ plStop(); if(PL.end==null) PL.pos=null; return; } plDraw(tn); PL.raf=requestAnimationFrame(tick); }; PL.raf=requestAnimationFrame(tick);
+  cancelAnimationFrame(PL.raf); const tick=()=>{ if(!PL.on) return; const tn=plNow(); if(PL.loop&&PL.end!=null&&tn>=PL.end-0.01){ PL.nodes.forEach(n=>{ try{ n.stop(); }catch(e){} }); PL.nodes=[]; PL.on=false; PL.pos=PL.loop.a; plPlay(PL.loop.a,PL.loop.e); return; } if((PL.end!=null&&tn>=PL.end)||tn>=E+0.05){ plStop(); if(PL.end==null) PL.pos=null; return; } plDraw(tn); PL.raf=requestAnimationFrame(tick); }; PL.raf=requestAnimationFrame(tick);
   return true; }
-function plStop(keep){ const was=PL.on; if(was) PL.pos=plNow(); PL.nodes.forEach(n=>{ try{ n.stop(); }catch(e){} try{ n.disconnect(); }catch(e){} }); PL.nodes=[]; PL.on=false; cancelAnimationFrame(PL.raf); if(!keep){ plUI(); plDraw(PL.pos); } }
-function plToggle(){ if(PL.on){ plStop(); return; } if(!S.plHelp&&PL.src.length){ S.plHelp=1; save(); cMsg('Abspielen · Tipp: Taktnummer antippen springt dorthin'); } if(PL.loop){ const p=PL.pos; plPlay(p!=null&&p>=PL.loop.a&&p<PL.loop.e?p:PL.loop.a,PL.loop.e); return; } plPlay(); }
-function plSeek(t){ if(PL.loop&&(t<PL.loop.a-1e-3||t>=PL.loop.e)){ PL.loop=null; cMsg('Loop aus'); } if(PL.on) plPlay(t,PL.end!=null&&t<PL.end?PL.end:null); else { PL.pos=t; plDraw(t); } }
+function plStop(keep){ const was=PL.on; if(was) PL.pos=plNow(); PL.nodes.forEach(n=>{ try{ n.stop(); }catch(e){} try{ n.disconnect(); }catch(e){} }); PL.nodes=[]; PL.on=false; cancelAnimationFrame(PL.raf);
+  if(!keep){ plUI(); plDraw(null); if(was&&PL.pos!=null){ const B=sheetBars(), k=B.findIndex(b=>PL.pos>=b.a-1e-3&&PL.pos<b.b); if(k>=0&&!VOX.active) cMsg('Pause · Takt '+(k+1)); } } }
+function plSelRange(){ if(!CH.sel.size) return null; const B=sheetBars(); let m0=1e9,m1=-1e9; CH.sel.forEach(x=>{ m0=Math.min(m0,x.t); m1=Math.max(m1,x.t); });
+  const k0=B.findIndex(b=>m0>=b.a-1e-3&&m0<b.b), k1=B.findIndex(b=>m1>=b.a-1e-3&&m1<b.b); if(k0<0) return null;
+  return {a:B[k0].a,e:(B[k1<0?k0:k1]).b,txt:k1>k0?(k0+1)+' bis '+(k1+1):String(k0+1)}; }
+function plToggle(){ if(PL.on){ plStop(); return; }
+  // Markierte Takte gewinnen gegen einen alten Loop (Manu 14.11.): der Loop wandert auf die Markierung
+  if(PL.loop){ const r=plSelRange(); if(r&&(Math.abs(r.a-PL.loop.a)>1e-3||Math.abs(r.e-PL.loop.e)>1e-3)){ PL.loop={a:r.a,e:r.e,txt:r.txt}; cMsg('Loop Takt '+r.txt); plPlay(r.a,r.e); return; } } if(!S.plHelp&&PL.src.length){ S.plHelp=1; save(); cMsg('Abspielen · Tipp: Taktnummer antippen springt dorthin'); } if(PL.loop){ const p=PL.pos; plPlay(p!=null&&p>=PL.loop.a&&p<PL.loop.e?p:PL.loop.a,PL.loop.e); return; } plPlay(); }
+function plSeek(t){ if(PL.loop&&(t<PL.loop.a-1e-3||t>=PL.loop.e)){ PL.loop=null; cMsg('Loop aus'); } if(PL.on) plPlay(t,PL.end!=null&&t<PL.end?PL.end:null); else PL.pos=t; }
 function plReset(){ plStop(); PL.loop=null; PL.src=[]; PL.pos=null; plDraw(null); }
 // Ton leiser, solange zugehört wird (damit die Spracherkennung Manu versteht)
 function plDuck(on){ if(!PL.ctx||!PL.gain) return; const g=PL.gain.gain, n=PL.ctx.currentTime; g.cancelScheduledValues(n); g.setTargetAtTime(on?0.2:1,n,0.08); }
@@ -2948,8 +2956,10 @@ function plDuck(on){ if(!PL.ctx||!PL.gain) return; const g=PL.gain.gain, n=PL.ct
 function plDraw(t){ const svg=$('#cstrip svg'); let r=svg&&svg.querySelector('#plHead'); if(t==null||!inSheetView()||!svg||!SHEET.geo.length){ if(r) r.remove(); return; }
   const g=SHEET.geo.find(q=>t>=q.a-1e-3&&t<q.b)||null; if(!g){ if(r) r.remove(); return; }
   if(!r){ r=document.createElementNS('http://www.w3.org/2000/svg','rect'); r.id='plHead'; r.setAttribute('pointer-events','none'); r.setAttribute('rx','1.5'); svg.appendChild(r); }
-  const x=g.x0+clamp((t-g.a)/Math.max(1e-6,g.b-g.a),0,1)*g.w; r.setAttribute('x',(x-1.5).toFixed(1)); r.setAttribute('y',g.y0+6); r.setAttribute('width',3); r.setAttribute('height',Math.max(10,g.y1-g.y0-10));
-  r.setAttribute('fill','var(--acc)'); r.setAttribute('opacity',PL.on?'.9':'.45');
+  const f=clamp((t-g.a)/Math.max(1e-6,g.b-g.a),0,1); let x=g.x0+f*g.w;
+  // letztes Achtel (ab „4 und“): über den Rand zur „1“ des nächsten Takts gleiten (gleiche Zeile), sonst springt der Balken um die Randbreite
+  if(f>7/8){ const nx=SHEET.geo.find(q=>Math.abs(q.a-g.b)<1e-3&&q.y0===g.y0); if(nx){ const xs=g.x0+7/8*g.w; x=xs+(f-7/8)*8*(nx.x0-xs); } } r.setAttribute('x',(x-1.5).toFixed(1)); r.setAttribute('y',g.y0+6); r.setAttribute('width',3); r.setAttribute('height',Math.max(10,g.y1-g.y0-10));
+  r.setAttribute('fill','var(--acc)'); r.setAttribute('opacity','.9');
   if(!PL.on) return; if(!PL.follow&&performance.now()-PL.userT>3000) PL.follow=true; if(!PL.follow) return;
   const sc=$('#cbody'), rr=svg.getBoundingClientRect(), k=rr.width/Math.max(1,SHEET.w), y0=rr.top+g.y0*k, y1=rr.top+g.y1*k, br=sc.getBoundingClientRect();
   if(y0<br.top+8||y1>br.bottom-br.height*0.3){ PL.progScroll=performance.now(); sc.scrollTop+=y0-(br.top+br.height*0.18); }
@@ -2957,11 +2967,67 @@ function plDraw(t){ const svg=$('#cstrip svg'); let r=svg&&svg.querySelector('#p
 // Selbst scrollen/zoomen: Mitscrollen kurz aussetzen (3 s ohne Berührung, dann folgt es wieder)
 ['touchstart','wheel'].forEach(ev=>$('#cbody').addEventListener(ev,()=>{ if(PL.on){ PL.follow=false; PL.userT=performance.now(); } },{passive:true}));
 $('#cbody').addEventListener('scroll',()=>{ if(PL.on&&performance.now()-PL.progScroll>250){ PL.follow=false; PL.userT=performance.now(); } },{passive:true});
-// Während des Abspielens: Taktnummer antippen = dorthin springen (vor Edit-Modus und Bearbeiten)
-$('#cstrip').addEventListener('click',e=>{ if(!PL.on) return; const bn=e.target.closest&&e.target.closest('[data-barno]'); if(!bn) return; const B=sheetBars(), bb=B[+bn.dataset.barno]; if(!bb) return;
-  e.stopPropagation(); e.preventDefault(); plSeek(bb.a); cMsg('Ab Takt '+(+bn.dataset.barno+1)); },true);
+// Während des Abspielens: irgendwo in einen Takt tippen = an den Taktanfang springen. Nichts wird ausgewählt oder bearbeitet (Manu 14.11.).
+// Abgefangen vor allen anderen Bearbeitern (Finger: touchstart/touchend, Maus: click). Zwei Finger (Zoomen) und Scrollen bleiben frei.
+function plTapJump(cx,cy,tg){ const B=sheetBars(); let k=-1; const bn=tg&&tg.closest&&tg.closest('[data-barno]'); // Taktnummer steht links vom Strich: sie meint ihren eigenen Takt
+  if(bn) k=+bn.dataset.barno; else { const t=sheetTimeAt(cx,cy); if(t==null) return; k=B.findIndex(b=>t>=b.a-1e-3&&t<b.b); } if(k<0||!B[k]) return; plSeek(B[k].a); cMsg('Ab Takt '+(k+1)); }
+const PLT={x:0,y:0,t:0,on:false};
+$('#cstrip').addEventListener('touchstart',e=>{ if(!PL.on||e.touches.length!==1) return; const t=e.touches[0]; PLT.x=t.clientX; PLT.y=t.clientY; PLT.t=performance.now(); PLT.on=true; e.stopPropagation(); },{capture:true,passive:true});
+$('#cstrip').addEventListener('touchend',e=>{ if(!PLT.on) return; PLT.on=false; e.stopPropagation(); const t=e.changedTouches[0]; if(!PL.on||e.touches.length) return;
+  if(Math.hypot(t.clientX-PLT.x,t.clientY-PLT.y)<12&&performance.now()-PLT.t<600){ if(e.cancelable) e.preventDefault(); plTapJump(t.clientX,t.clientY,e.target); } },{capture:true,passive:false});
+$('#cstrip').addEventListener('click',e=>{ if(!PL.on) return; e.stopPropagation(); e.preventDefault(); plTapJump(e.clientX,e.clientY,e.target); },true);
+['mousedown','pointerdown'].forEach(ev=>$('#cstrip').addEventListener(ev,e=>{ if(PL.on&&e.pointerType!=='touch') e.stopPropagation(); },true));
 { const b=$('#cplayb'); b.classList.remove('soon'); delete b.dataset.soon; b.setAttribute('aria-pressed','false'); b.addEventListener('click',plToggle); $('#cedPlay').addEventListener('click',plToggle); }
-{ const _rs=renderStrip; renderStrip=function(){ _rs.apply(this,arguments); if(!PL.on) plDraw(PL.pos); }; }
+{ const _rs=renderStrip; renderStrip=function(){ _rs.apply(this,arguments); if(PL.on) plDraw(plNow()); }; }
+// =================== Zurück-Taste (Android) und Notfall-Sicherung (Manu 14.11.) ===================
+// Zurück schließt nur die oberste Ebene (Pop-up → Menü/Fenster → Bearbeiten-Feld → Edit-Modus → Zuhören/Aufnahme/Play → Akkord-Ansicht).
+// Chrome überspringt beim Zurück Verlaufseinträge, die ohne Berührung angelegt wurden – deshalb wird der Schutz-Eintrag bei jeder Berührung (neu) gesetzt.
+const BK={armed:false};
+function bkArm(){ if(BK.armed) return; try{ history.pushState({gitarre:1},''); BK.armed=true; }catch(e){} }
+['pointerdown','touchstart','keydown'].forEach(ev=>document.addEventListener(ev,bkArm,{capture:true,passive:true}));
+function bkOpen(sel){ const el=$(sel); return el&&el.classList.contains('on')?el:null; }
+function bkStep(){
+  if(typeof VOX!=='undefined'&&VOX.active){ voxFinish('Abgebrochen'); return true; }
+  if(document.querySelector('#chords .cpop.on')){ closeCPops(); return true; }
+  if(document.querySelector('#esheet .epop.on')){ closeEPops(); return true; }
+  if(bkOpen('#cmenu')){ closeCMenu(); return true; }
+  for(const s of ['#hsheet','#msheet','#sheet']){ const el=bkOpen(s); if(el){ el.classList.remove('on'); return true; } }
+  if(bkOpen('#esheet')){ closeEdit(); return true; }
+  if(typeof ED!=='undefined'&&ED.tgt){ const b=document.querySelector('#cedbar .cedtgt button'); if(b) b.click(); else ED.tgt=null; return true; }
+  if(CH.edm){ const d=$('#cedDone'); if(d) d.click(); else setEditMode(false); return true; }
+  if(CH.mic){ chordMicOff(); return true; }
+  if(PL.on){ plStop(); return true; }
+  if(bkOpen('#chords')){ stopChords(); return true; }
+  return false; }
+window.addEventListener('popstate',()=>{ BK.armed=false; if(bkStep()) return;
+  // ganz oben: nur mit Rückfrage die App verlassen, wenn ein Blatt da ist (die Notfall-Sicherung hat es aber gespeichert)
+  if((CH.ev.length||PL.src.length)&&!confirm('App verlassen? Das Blatt ist als Notfall-Sicherung gemerkt und lässt sich beim nächsten Öffnen wiederherstellen.')) return;
+  NF.save(true); history.back(); });
+
+// Notfall-Sicherung: letzte Sitzung (Blatt + Klang) im Browser (IndexedDB, nur auf diesem Gerät). Beim Öffnen der Akkord-Ansicht: „Letzte Sitzung wiederherstellen?“
+const NF={db:null,sig:'',ksig:'',offer:null,
+  open(){ if(this.db) return Promise.resolve(this.db); return new Promise((res,rej)=>{ try{ const r=indexedDB.open('gitarre-notfall',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>{ this.db=r.result; res(this.db); }; r.onerror=()=>rej(r.error); }catch(e){ rej(e); } }); },
+  async get(k){ const db=await this.open(); return new Promise(res=>{ const q=db.transaction('kv').objectStore('kv').get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>res(null); }); },
+  async put(k,v){ const db=await this.open(); return new Promise(res=>{ const tx=db.transaction('kv','readwrite'); tx.objectStore('kv').put(v,k); tx.oncomplete=()=>res(true); tx.onerror=()=>res(false); }); },
+  blattSig(){ const e=CH.ev[CH.ev.length-1]; return CH.ev.length+':'+UNDO.length+':'+REDO.length+':'+CH.grids.length+':'+(e?e.t.toFixed(3)+e.key:'')+':'+JSON.stringify(S.ablauf||'').length+':'+PL.src.length; },
+  async save(force){ if(CH.mic) return; if(!CH.ev.length&&!PL.src.length) return; // leeres Blatt überschreibt keine Sicherung
+    if(this.offer){ this.offer=null; const y=$('#nfYes'); if(y) $('#cbanner').classList.remove('on'); } // neu aufgenommen statt wiederhergestellt: die neue Sitzung wird gesichert
+    const sig=this.blattSig(); if(!force&&sig===this.sig) return; this.sig=sig;
+    try{ await this.put('blatt',{when:new Date().toISOString(),ev:CH.ev.map(e=>Object.assign({},e)),grids:CH.grids,onsets:CH.onsets||[],beatCh:CH.beatCh||[],ablauf:S.ablauf||null,ablaufOn:S.ablaufOn!==false,tNow:CH.tNow,song:CH.song||null,play:S.play});
+      const ks=PL.src.map(s=>s.t0.toFixed(3)+':'+s.n).join(','); if(ks!==this.ksig){ this.ksig=ks; await this.put('klang',{sig:ks,src:PL.src.map(s=>{ const x=plSamples(s), q=new Int16Array(x.length); for(let i=0;i<x.length;i++) q[i]=Math.max(-32768,Math.min(32767,Math.round(x[i]*32767))); return {t0:s.t0,sr:s.sr,pcm:q}; })}); } }catch(e){} },
+  async check(){ if(CH.ev.length||PL.src.length) return; let b=null; try{ b=await this.get('blatt'); }catch(e){} if(!b||!b.ev||!b.ev.length) return;
+    this.offer=b; const nT=b.ev.filter(e=>e.type==='note').length, nA=b.ev.length-nT, d=new Date(b.when), w=d.toLocaleDateString('de-DE',{day:'numeric',month:'numeric'})+' '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+    const bn=$('#cbanner'); clearTimeout(BPB.bt); bn.textContent='Letzte Sitzung ('+w+', '+nA+' Akkorde, '+nT+' Töne) '; const y=document.createElement('button'); y.className='mini'; y.id='nfYes'; y.textContent='Wiederherstellen'; const n=document.createElement('button'); n.className='mini'; n.id='nfNo'; n.textContent='Nein'; n.style.marginLeft='6px';
+    bn.appendChild(y); bn.appendChild(n); bn.classList.add('on'); y.onclick=()=>this.restore(); n.onclick=()=>{ this.offer=null; bn.classList.remove('on'); }; },
+  async restore(){ const b=this.offer; this.offer=null; if(!b) return; let k=null; try{ k=await this.get('klang'); }catch(e){}
+    closeEdit(); setEditMode(false); plReset(); CH.ev=b.ev.map(e=>Object.assign({},e)).sort((x,y)=>x.t-y.t); CH.grids=(b.grids||[]).map(g=>Object.assign({},g,{lines:g.lines.slice()})); CH.onsets=b.onsets||[]; CH.beatCh=b.beatCh||[]; CH.song=b.song||null;
+    if(b.ablauf){ S.ablauf=b.ablauf; S.ablaufOn=b.ablaufOn; } if(b.play) S.play=b.play; save(); try{ playUI(); }catch(e){}
+    const tEnd=Math.max(0,...CH.ev.map(e=>e.t),...CH.grids.map(g=>g.end||0)); CH.tNow=Math.max(b.tNow||0,tEnd+0.5); CH.tBase=CH.tNow;
+    if(k&&k.src) k.src.forEach(s=>PL.src.push({t0:s.t0,sr:s.sr,n:s.pcm.length,pcm:s.pcm,buf:null})); PL.src.sort((x,y)=>x.t0-y.t0); this.ksig=k?k.sig:'';
+    UNDO.length=0; REDO.length=0; CH.rowPlan=null; CH.view='sheet'; metFollowGrid(); CH.stripKey=''; CH.key=''; CH.listKey=''; CH.bigK=null; undoUI(); chordsUI(); this.sig=this.blattSig();
+    cMsg('Letzte Sitzung wiederhergestellt'+(PL.src.length?' · mit Klang':'')); } };
+setInterval(()=>NF.save(false),4000);
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') NF.save(true); });
 // =================== Sprechen: feste Befehle, keine KI (Chrome-Spracherkennung de-DE) ===================
 // Knopf gedrückt halten, sprechen, loslassen. Jeder Befehl ist ein Rückgängig-Schritt, mehrere mit „und dann“.
 const VOX={rec:null,on:false,txt:'',alts:[],snaps:0};
@@ -3129,9 +3195,9 @@ function setChordAt(p,c,pEnd){ const B=sheetBars(), beat=B.length?(B[0].b-B[0].a
 const SN=['tiefe E','A-Saite','D-Saite','G-Saite','B-Saite','hohe e'];
 // Einen Satzteil ausführen; gibt {ok,txt} zurück
 // Abspielen per Sprache: „Play“, „spiel ab Takt 4“, „Takt 3 bis 5 abspielen“, „spiel Strophe 2“, „spiel die Bridge“, „zweiter Durchlauf von Refrain 2“, „Stopp“, „von vorne“
-function voxPlay(t){ const loop=/LOOP/.test(t);
-  if(loop&&/( aus| beenden| weg| ende|STOPP|LÖSCH)( |$)/.test(t)&&!/takt/.test(t)){ const was=!!PL.loop; PL.loop=null; return {ok:1,txt:was?'Loop aus'+(PL.on?' · spielt weiter':''):'Kein Loop an',nosnap:1}; }
-  if(/STOPP/.test(t)&&!/PLAY/.test(t)){ PL.loop=null; if(!PL.on) return {ok:1,txt:'Spielt gerade nicht',nosnap:1}; plStop(); return {ok:1,txt:'Gestoppt',nosnap:1}; }
+function voxPlay(t){ const loop=/LOOP/.test(t), was=!!VOX.plResume; VOX.plResume=false; // ein Play-Befehl entscheidet selbst, wie es weitergeht
+  if(loop&&/( aus| beenden| weg| ende|STOPP|LÖSCH)( |$)/.test(t)&&!/takt/.test(t)){ const hadL=!!PL.loop, go=was||PL.on; PL.loop=null; if(go) plPlay(PL.on?plNow():PL.pos,null); return {ok:1,txt:hadL?'Loop aus'+(go?' · spielt weiter':''):'Kein Loop an',nosnap:1}; }
+  if(/STOPP/.test(t)&&!/PLAY/.test(t)){ PL.loop=null; if(!PL.on&&!was) return {ok:1,txt:'Spielt gerade nicht',nosnap:1}; plStop(); return {ok:1,txt:'Gestoppt',nosnap:1}; }
   if(/TEMPOX/.test(t)) return {ok:0,txt:'Langsamer/schneller kommt mit dem nächsten Schritt'};
   if(!PL.src.length) return {ok:0,txt:'Nichts zum Abspielen · erst aufnehmen oder einen Mitschnitt laden'};
   const B=sheetBars(); let a=null,e=null,txt='';
@@ -3237,7 +3303,7 @@ $('#cbanner').addEventListener('click',e=>{ if(e.target.id!=='cSayUndo') return;
 function voxSR(){ return window.SpeechRecognition||window.webkitSpeechRecognition; }
 function voxToggle(){ if(VOX.active) voxFinish(); else voxStart(); }
 function voxStart(){ if(CH.mic) return cMsg('Sprechen geht, wenn keine Aufnahme läuft'); if(!voxSR()) return cMsg('Sprechen geht in diesem Browser nicht · bitte Chrome nutzen');
-  plDuck(true); VOX.active=true; VOX.final=[]; VOX.seg=''; VOX.segAlts=[]; VOX.txt=''; VOX.err=null; VOX.restarts=[]; VOX.lastSpeech=performance.now();
+  VOX.plResume=PL.on; if(PL.on) plStop(); VOX.active=true; VOX.final=[]; VOX.seg=''; VOX.segAlts=[]; VOX.txt=''; VOX.err=null; VOX.restarts=[]; VOX.lastSpeech=performance.now();
   document.querySelectorAll('.say').forEach(b=>{ b.classList.add('on'); b.setAttribute('aria-pressed','true'); }); voxMsg('Hört zu … zum Beenden nochmal tippen',false); clearTimeout(BPB.bt);
   clearInterval(VOX.tick); VOX.tick=setInterval(()=>{ if(VOX.active&&performance.now()-VOX.lastSpeech>15000){ voxFinish(VOX.final.length||VOX.seg?null:'Nach 15 s ohne Sprache beendet'); } },500);
   voxListen(); }
@@ -3254,10 +3320,12 @@ function voxListen(){ const SR=voxSR(); const r=new SR(); r.lang='de-DE'; r.inte
     voxEval(); };
   try{ r.start(); }catch(_){ voxFinish(null); } }
 // Fertig: noch kurz auf die letzten Worte warten, dann ausführen
-function voxFinish(msg){ if(!VOX.active) return; VOX.active=false; plDuck(false); clearInterval(VOX.tick); document.querySelectorAll('.say').forEach(b=>{ b.classList.remove('on'); b.setAttribute('aria-pressed','false'); });
+function voxFinish(msg){ if(!VOX.active) return; VOX.active=false; clearInterval(VOX.tick); document.querySelectorAll('.say').forEach(b=>{ b.classList.remove('on'); b.setAttribute('aria-pressed','false'); });
   VOX.endMsg=msg; VOX.done=false; const r=VOX.rec; if(r){ try{ r.stop(); }catch(_){ voxEval(); } setTimeout(()=>{ if(!VOX.done) voxEval(); },1500); } else voxEval(); }
 function voxEval(){ if(VOX.done) return; VOX.done=true; if(VOX.seg){ VOX.final.push(VOX.seg); VOX.seg=''; } const txt=VOX.final.join(' ').replace(/\s+/g,' ').trim(); VOX.final=[];
-  if(!txt){ voxMsg(VOX.endMsg||'Nichts gehört',false); return; } voxRun(VOX.segAlts&&VOX.segAlts.length>1&&VOX.segAlts[0]===txt?VOX.segAlts:[txt]); VOX.segAlts=[]; }
+  if(!txt){ voxMsg(VOX.endMsg||'Nichts gehört',false); plAfterVox(); return; } voxRun(VOX.segAlts&&VOX.segAlts.length>1&&VOX.segAlts[0]===txt?VOX.segAlts:[txt]); VOX.segAlts=[]; plAfterVox(); }
+// Nach dem Zuhören: lief vorher etwas und hat der Befehl nichts zum Abspielen gesagt, geht es an derselben Stelle weiter (Loop bzw. Bereich bleiben)
+function plAfterVox(){ if(!VOX.plResume) return; VOX.plResume=false; if(PL.on) return; if(PL.loop){ const p=PL.pos; plPlay(p!=null&&p>=PL.loop.a&&p<PL.loop.e?p:PL.loop.a,PL.loop.e); } else plPlay(PL.pos,PL.end); }
 function voxStop(){ voxFinish(null); }
 document.querySelectorAll('#csay,#csay2').forEach(b=>{ b.classList.remove('soon'); delete b.dataset.soon; b.setAttribute('aria-pressed','false'); b.addEventListener('click',voxToggle); });
 window.__vox=(t)=>voxRun([t]); // für Tests
@@ -3425,7 +3493,7 @@ $('#launchChords').addEventListener('click',startChords);
 $('#cclose').addEventListener('click',stopChords);
 
 // Reset: Verlauf und angezeigten Akkord leeren (gemerkte Griffe bleiben)
-$('#creset').addEventListener('click',()=>{closeEdit(); ALIGN_UNDO=null; CH.lastJob=null; plReset(); UNDO.length=0; REDO.length=0; if(!CAP.on) capClear(); else {CAP.chunks=[];CAP.n=0;CAP.segs=[CAP.seg];CAP.seg.wavStart=0;CAP.seg.ctxStart=null;LOG.length=0;}const d=CH.tNow; CH.tBase-=d; CH.tNow=0; CH.ev=[]; CH.onsets=[]; CH.beatCh=[]; CH.grids=CH.met?[newGrid(CH.tBase,CH.met.beat*CH.met.beats,CH.met.beats)]:[]; CH.stripKey=''; CH.follow=true; CH.key=''; if(CH.eng){const sr=CH.eng.sr,pref=CH.eng.pref; CH.eng=makeChordEngine(sr); CH.eng.pref=pref; CH.eng.onCommit=onChordCommit; CH.eng.NT.onNote=onNoteDetected; CH.eng.NT.onReplace=onNoteReplaced; CH.eng.learn=LEARN;}});
+$('#creset').addEventListener('click',()=>{closeEdit(); ALIGN_UNDO=null; CH.lastJob=null; plReset(); NF.offer=null; NF.put('blatt',null).catch(()=>{}); NF.put('klang',null).catch(()=>{}); NF.sig=''; NF.ksig=''; UNDO.length=0; REDO.length=0; if(!CAP.on) capClear(); else {CAP.chunks=[];CAP.n=0;CAP.segs=[CAP.seg];CAP.seg.wavStart=0;CAP.seg.ctxStart=null;LOG.length=0;}const d=CH.tNow; CH.tBase-=d; CH.tNow=0; CH.ev=[]; CH.onsets=[]; CH.beatCh=[]; CH.grids=CH.met?[newGrid(CH.tBase,CH.met.beat*CH.met.beats,CH.met.beats)]:[]; CH.stripKey=''; CH.follow=true; CH.key=''; if(CH.eng){const sr=CH.eng.sr,pref=CH.eng.pref; CH.eng=makeChordEngine(sr); CH.eng.pref=pref; CH.eng.onCommit=onChordCommit; CH.eng.NT.onNote=onNoteDetected; CH.eng.NT.onReplace=onNoteReplaced; CH.eng.learn=LEARN;}});
 // Griffbild antippen: nächster Griff, wird für diesen Akkord gemerkt
 $('#cdiag').addEventListener('click',()=>{
   if(!CH.eng) return; const r=CH.eng.nextVoicing(); if(!r) return;
