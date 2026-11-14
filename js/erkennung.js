@@ -545,13 +545,14 @@ function demoStrum(ctx,dest,r,qi,t0){
 // Bildschirm öffnen: Mikro bleibt aus, bis „Start“ gedrückt wird
 function startChords(){ checkVersion(false);
   $('#chords').classList.add('on'); root.classList.add('inch'); setTimeout(()=>NF.check(),300); bpLoad().catch(()=>{}); setEditMode(false); CH.bigK=null; CH.listKey='';
-  capClear(); BPB.gen++; UNDO.length=0; CH.ev=[]; CH.onsets=[]; CH.beatCh=[]; CH.song=null; CH.tNow=0; CH.tBase=0; CH.grids=[]; CH.stripKey=''; CH.follow=true; CH.key=''; CH.eng=null; CH.micMsg=''; metUI();
+  // Das Blatt bleibt offen und auf demselben Stand, wenn man die Akkord-Ansicht verlässt und wieder öffnet (Manu 14.11.); leer starten = Reset-Knopf
+  if(!CH.ev.length){ capClear(); BPB.gen++; UNDO.length=0; CH.ev=[]; CH.onsets=[]; CH.beatCh=[]; CH.song=null; CH.tNow=0; CH.tBase=0; CH.grids=[]; } CH.stripKey=''; CH.follow=true; CH.key=''; CH.eng=null; CH.micMsg=''; metUI();
   $('#cbanner').classList.remove('on');
   setMicUI();
   CH.running=true; cancelAnimationFrame(CH.raf); CH.raf=requestAnimationFrame(chordFrame);
 }
 function stopChords(){
-  closeEdit(); chordMicOff(); metPreview(false); if(typeof PL!=='undefined') plStop(); $('#msheet').classList.remove('on'); CH.running=false; cancelAnimationFrame(CH.raf); CH.eng=null;
+  try{ NF.save(true); }catch(e){} closeEdit(); chordMicOff(); metPreview(false); if(typeof PL!=='undefined') plStop(); $('#msheet').classList.remove('on'); CH.running=false; cancelAnimationFrame(CH.raf); CH.eng=null;
   $('#chords').classList.remove('on'); root.classList.remove('inch','crec','ced'); closeCPops(); closeCMenu(); $('#hsheet').classList.remove('on');
 }
 function setMicUI(){

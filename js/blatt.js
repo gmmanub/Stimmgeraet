@@ -365,8 +365,10 @@ function pressEnd(){
 // Ausrichten: Akkorde auf Viertel, Lauf-Töne auf Achtel (mit Rückgängig)
 let ALIGN_UNDO=null, alignT=0;
 function alignUI(){ const b=$('#calign'); if(!b) return; const can=CH.grids.length>0&&CH.ev.length>0; b.classList.toggle('soon',!can); }
-$('#ccap').addEventListener('click',()=>{ if(S.capture&&CAP.n){ capSave(); cMsg('Test-Mitschnitt gespeichert (Klang + Tab)'); }
-  else cMsg(S.capture?'Noch nichts aufgenommen':'Speichern ohne Test-Mitschnitt folgt mit den Sessions'); });
+$('#ccap').addEventListener('click',()=>{ if(S.capture&&CAP.n){ capSave(); cMsg('Test-Mitschnitt gespeichert (Klang + Tab)'); NF.save(true); return; }
+  // Speichern sichert das Blatt (Akkorde, Töne, Klang) auch ohne Aufnahme: Änderungen an Akkorden zählen (Manu 14.11.)
+  if(!CH.ev.length&&!PL.src.length) return cMsg('Noch nichts zu sichern · erst aufnehmen oder Akkorde schreiben');
+  NF.save(true).then(()=>cMsg('Blatt gesichert · kommt beim nächsten Öffnen automatisch zurück')); });
 // Spielweise für die neue Ton-Erkennung: Strummen (Anschläge zusammenfassen) oder Zupfen (alle Töne behalten)
 const PLAYN={strum:'Strummen',melody:'Strummen + Melodie',pick:'Zupfen'};
 const PLAYS={strum:'Strum',melody:'Strum+',pick:'Notes'};

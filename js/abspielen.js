@@ -1,6 +1,6 @@
 // =================== Abspielen: Aufnahmen und geladene Mitschnitte, Balken läuft im Blatt mit (Roadmap A4) ===================
 // Quellen: jede Aufnahme (Rohklang der Takterkennung) und jeder Abschnitt eines geladenen Mitschnitts, je mit Blattzeit t0 des ersten Samples.
-// Uhr: Blattzeit = Startzeit + (AudioContext-Zeit − Start − Ausgabe-Latenz) × Tempo. Tempo bleibt 1, bis die Zeitdehnung kommt (Loop/Langsamer: nächster Schritt).
+// Uhr: die gemeinsame Taktquelle js/uhr.js (UHR): Blattzeit = Startzeit + (AudioContext-Zeit − Start − Ausgabe-Latenz) × Tempo. Tempo bleibt 1, bis die Zeitdehnung kommt (Loop/Langsamer: nächster Schritt).
 const PL={loop:null,src:[],on:false,ctx:null,gain:null,nodes:[],startCtx:0,startT:0,pos:null,end:null,raf:0,follow:true,userT:0,rate:1,progScroll:0,hint:false};
 function plAddJob(job){ if(!job||!job.n) return; PL.src.push({t0:job.t0,sr:job.sr,n:job.n,chunks:job.chunks,buf:null}); PL.src.sort((a,b)=>a.t0-b.t0); }
 // Geladener Mitschnitt: Abschnitte aus der WAV (Int16) mit ihrer Blattzeit
@@ -22,8 +22,7 @@ async function plStretch(tl){ if(!PL.ss){ const m=await import('../lib/signalsmi
   if(PL.ss.tlSig!==tl.sig){ PL.ss.dropBuffers(); await PL.ss.addBuffers([plResample(tl.data,tl.sr,PL.ctx.sampleRate)]); PL.ss.tlSig=tl.sig; } return PL.ss; }
 // Die Zeitdehnung erwartet die Abtastrate des Browsers (sonst klingt es z. B. bei 48 kHz-Aufnahme und 44,1 kHz-Ausgabe 8 % zu tief)
 function plResample(x,from,to){ if(Math.abs(from-to)<1) return x; const r=from/to, m=Math.floor(x.length/r), y=new Float32Array(m); for(let i=0;i<m;i++){ const q=i*r, k=Math.floor(q), f=q-k; y[i]=x[k]*(1-f)+(x[k+1]||0)*f; } return y; }
-function plLat(){ const c=PL.ctx; return c?clamp((c.outputLatency||0)||(c.baseLatency||0),0,0.5):0; }
-function plNow(){ if(!PL.on||!PL.ctx) return PL.pos; let x=PL.startT+Math.max(0,PL.ctx.currentTime-PL.startCtx-plLat())*PL.rate; const L=PL.looping&&PL.loop; if(L&&x>=L.e){ const len=Math.max(0.05,L.e-L.a); x=L.a+((x-L.a)%len); } return x; }
+function plNow(){ if(!PL.on||!PL.ctx) return PL.pos; return UHR.jetzt(PL.looping&&PL.loop); }
 function plEndT(){ let e=0; PL.src.forEach(s=>e=Math.max(e,s.t0+s.n/s.sr)); return e; }
 function plFirstT(){ const s=PL.src[0]; if(!s) return 0; const e0=CH.ev.length?CH.ev[0].t:s.t0; return Math.max(s.t0,Math.min(e0-0.4,s.t0+s.n/s.sr)); }
 // Start: markierte Takte → erster markierter; sonst die Stelle, an der zuletzt gestoppt wurde; sonst der Anfang
@@ -34,18 +33,18 @@ function plUI(){ ['#cplayb','#cedPlay'].forEach(id=>{ const b=$(id); if(!b) retu
   b.setAttribute('aria-label',(PL.on?tx('play.pause'):tx('play.knopf'))+(p!==100?' · '+tx('tempo.prozent',{p:fmtNum(p)}):'')); }); }
 async function plPlay(t,end){ if(!PL.src.length) return cMsg('Nichts zum Abspielen · erst aufnehmen oder einen Mitschnitt laden'), false;
   plStop(true); if(t==null) t=plStartT(); const E=plEndT(); if(t>=E-0.05) t=plFirstT();
-  if(!PL.ctx){ try{ PL.ctx=new (window.AudioContext||window.webkitAudioContext)(); PL.gain=PL.ctx.createGain(); PL.gain.connect(PL.ctx.destination); }catch(e){ return cMsg('Abspielen geht in diesem Browser nicht'), false; } }
+  if(!PL.ctx||PL.ctx.state==='closed'){ try{ PL.ctx=UHR.audio(); if(!PL.ctx) throw 0; PL.gain=PL.ctx.createGain(); PL.gain.connect(PL.ctx.destination); }catch(e){ PL.ctx=null; return cMsg('Abspielen geht in diesem Browser nicht'), false; } }
   try{ await PL.ctx.resume(); }catch(e){}
   const c=PL.ctx, tl=plTL(), rate=PL.rate||1, L=PL.loop&&t>=PL.loop.a-1e-3&&t<PL.loop.e?PL.loop:null; let now; PL.gain.gain.cancelScheduledValues(0); PL.gain.gain.value=1;
   if(Math.abs(rate-1)<1e-3){ now=c.currentTime+0.06; const n=c.createBufferSource(); n.buffer=plTLBuf(tl); n.connect(PL.gain); if(L){ n.loop=true; n.loopStart=L.a-tl.T0; n.loopEnd=L.e-tl.T0; } try{ n.start(now,Math.max(0,t-tl.T0)); }catch(e){} PL.nodes.push(n); }
   else { let ss=null; try{ ss=await plStretch(tl); }catch(e){ ss=null; } if(!ss){ PL.rate=1; plUI(); cMsg(tx('tempo.fehler')); return plPlay(t,end); }
     let lat=0; try{ lat=Number(ss.latency&&ss.latency()); }catch(e){} if(!isFinite(lat)||lat<0) lat=0.1; now=c.currentTime+Math.max(0.12,lat+0.06); ss.schedule({output:now,active:true,input:Math.max(0,t-tl.T0),rate,semitones:0,loopStart:L?L.a-tl.T0:0,loopEnd:L?L.e-tl.T0:0}); PL.ssOn=true; }
   PL.looping=!!L;
-  PL.startCtx=now; PL.startT=t; PL.end=L?null:(end!=null?end:null); PL.on=true; PL.follow=true; plUI();
+  PL.startCtx=now; PL.startT=t; UHR.setze(t,now,rate); PL.end=L?null:(end!=null?end:null); PL.on=true; PL.follow=true; plUI();
   if(CH.mic&&!PL.hint){ PL.hint=true; cMsg('Abspielen läuft · der Lautsprecher kommt ins Mikro'); }
   cancelAnimationFrame(PL.raf); const tick=()=>{ if(!PL.on) return; const tn=plNow(); if((PL.end!=null&&tn>=PL.end)||(!PL.looping&&tn>=E+0.05)){ plStop(); if(PL.end==null) PL.pos=null; return; } plDraw(tn); PL.raf=requestAnimationFrame(tick); }; PL.raf=requestAnimationFrame(tick);
   return true; }
-function plStop(keep){ const was=PL.on; if(was) PL.pos=plNow(); PL.nodes.forEach(n=>{ try{ n.stop(); }catch(e){} try{ n.disconnect(); }catch(e){} }); PL.nodes=[]; if(PL.ss&&PL.ssOn){ try{ PL.ss.schedule({active:false}); }catch(e){} PL.ssOn=false; } PL.on=false; PL.looping=false; cancelAnimationFrame(PL.raf);
+function plStop(keep){ const was=PL.on; if(was) PL.pos=plNow(); PL.nodes.forEach(n=>{ try{ n.stop(); }catch(e){} try{ n.disconnect(); }catch(e){} }); PL.nodes=[]; if(PL.ss&&PL.ssOn){ try{ PL.ss.schedule({active:false}); }catch(e){} PL.ssOn=false; } PL.on=false; UHR.halt(); PL.looping=false; cancelAnimationFrame(PL.raf);
   if(!keep){ plUI(); plDraw(null); if(was&&PL.pos!=null){ const B=sheetBars(), k=B.findIndex(b=>PL.pos>=b.a-1e-3&&PL.pos<b.b); if(k>=0&&!VOX.active) cMsg('Pause · Takt '+(k+1)); } } }
 function plSelRange(){ if(!CH.sel.size) return null; const B=sheetBars(); let m0=1e9,m1=-1e9; CH.sel.forEach(x=>{ m0=Math.min(m0,x.t); m1=Math.max(m1,x.t); });
   const k0=B.findIndex(b=>m0>=b.a-1e-3&&m0<b.b), k1=B.findIndex(b=>m1>=b.a-1e-3&&m1<b.b); if(k0<0) return null;
@@ -137,13 +136,14 @@ const NF={db:null,sig:'',ksig:'',offer:null,
   async get(k){ const db=await this.open(); return new Promise(res=>{ const q=db.transaction('kv').objectStore('kv').get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>res(null); }); },
   async put(k,v){ const db=await this.open(); return new Promise(res=>{ const tx=db.transaction('kv','readwrite'); tx.objectStore('kv').put(v,k); tx.oncomplete=()=>res(true); tx.onerror=()=>res(false); }); },
   blattSig(){ const e=CH.ev[CH.ev.length-1]; return CH.ev.length+':'+UNDO.length+':'+REDO.length+':'+CH.grids.length+':'+(e?e.t.toFixed(3)+e.key:'')+':'+JSON.stringify(S.ablauf||'').length+':'+PL.src.length; },
-  async save(force){ if(CH.mic) return; if(!CH.ev.length&&!PL.src.length) return; // leeres Blatt überschreibt keine Sicherung
+  async save(force){ if(!CH.ev.length&&!PL.src.length) return; // leeres Blatt überschreibt keine Sicherung
     if(this.offer){ this.offer=null; const y=$('#nfYes'); if(y) $('#cbanner').classList.remove('on'); } // neu aufgenommen statt wiederhergestellt: die neue Sitzung wird gesichert
     const sig=this.blattSig(); if(!force&&sig===this.sig) return; this.sig=sig;
     try{ await this.put('blatt',{when:new Date().toISOString(),ev:CH.ev.map(e=>Object.assign({},e)),grids:CH.grids,onsets:CH.onsets||[],beatCh:CH.beatCh||[],ablauf:S.ablauf||null,ablaufOn:S.ablaufOn!==false,tNow:CH.tNow,song:CH.song||null,play:S.play});
       const ks=PL.src.map(s=>s.t0.toFixed(3)+':'+s.n).join(','); if(ks!==this.ksig){ this.ksig=ks; await this.put('klang',{sig:ks,src:PL.src.map(s=>{ const x=plSamples(s), q=new Int16Array(x.length); for(let i=0;i<x.length;i++) q[i]=Math.max(-32768,Math.min(32767,Math.round(x[i]*32767))); return {t0:s.t0,sr:s.sr,pcm:q}; })}); } }catch(e){} },
-  async check(){ if(CH.ev.length||PL.src.length) return; let b=null; try{ b=await this.get('blatt'); }catch(e){} if(!b||!b.ev||!b.ev.length) return;
-    this.offer=b; const nT=b.ev.filter(e=>e.type==='note').length, nA=b.ev.length-nT, d=new Date(b.when), w=d.toLocaleDateString('de-DE',{day:'numeric',month:'numeric'})+' '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+  async check(){ if(CH.ev.length||CH.mic) return; let b=null; try{ b=await this.get('blatt'); }catch(e){} if(!b||!b.ev||!b.ev.length) return;
+    this.offer=b; if(S.nfAuto!==false){ await this.restore(); const bn=$('#cbanner'); if(bn.classList.contains('on')){ const n=document.createElement('button'); n.className='mini'; n.id='nfLeer'; n.textContent='Leer starten'; n.style.marginLeft='6px'; n.onclick=()=>$('#creset').click(); bn.appendChild(n); } return; } // Manu 14.11.: automatisch zurückholen (kein Angebot mehr); „Leer starten“ = Reset
+     const nT=b.ev.filter(e=>e.type==='note').length, nA=b.ev.length-nT, d=new Date(b.when), w=d.toLocaleDateString('de-DE',{day:'numeric',month:'numeric'})+' '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
     const bn=$('#cbanner'); clearTimeout(BPB.bt); bn.textContent='Letzte Sitzung ('+w+', '+nA+' Akkorde, '+nT+' Töne) '; const y=document.createElement('button'); y.className='mini'; y.id='nfYes'; y.textContent='Wiederherstellen'; const n=document.createElement('button'); n.className='mini'; n.id='nfNo'; n.textContent='Nein'; n.style.marginLeft='6px';
     bn.appendChild(y); bn.appendChild(n); bn.classList.add('on'); y.onclick=()=>this.restore(); n.onclick=()=>{ this.offer=null; bn.classList.remove('on'); }; },
   async restore(){ const b=this.offer; this.offer=null; if(!b) return; let k=null; try{ k=await this.get('klang'); }catch(e){}
