@@ -375,7 +375,7 @@ Stand: 13.11.2026, abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Que
 
 ### F · Veröffentlichen (ganz später, nur falls die App mit der Band richtig gut läuft – Manu 14.11.)
 - **Sprachpakete Deutsch / Englisch / Französisch:** alle Texte der Oberfläche (heute fest im Code, geschätzt einige hundert) in je eine Sprachdatei. Der größere Teil sind die **Sprachbefehle** (eigene Befehlswörter, Zahlen, Verhörer-Liste und Spracherkennung je Sprache). **Notennamen:** Englisch C D E F G A B, Französisch **Do Ré Mi Fa Sol La Si** – betrifft Anzeige, Ansage und Befehle.
-- **KI-Anleitung zum Kopieren:** aus der App herunterladbarer Text (aus `BEFEHLE.md`) für beliebige KIs: Nutzer erklärt der KI sein Lied, die KI schreibt den Befehlsblock, Nutzer fügt ihn über „abc“ ein. Fremde KIs können Blöcke nicht testen → die ✓/✗-Vorschau ist das Sicherheitsnetz; Befehlssprache einfach und versioniert halten.
+- **KI-Anleitung zum Kopieren:** aus der App herunterladbarer Text (aus `BEFEHLE.md`) für beliebige KIs: Nutzer erklärt der KI sein Lied, die KI schreibt den Befehlsblock, Nutzer fügt ihn über „abc“ ein. Fremde KIs können Blöcke nicht testen → die ✓/✗-Vorschau ist das Sicherheitsnetz; Die Befehlssprache wird dafür **nicht vereinfacht** (Sprachsteuerung so reich wie nötig, Manu 14.11.); wichtig ist nur, dass sie eindeutig, versioniert und mit vielen Beispielen dokumentiert ist.
 - Vor dem Veröffentlichen prüfen: Lizenzen der Bibliotheken (z. B. Basic Pitch), Datenschutzhinweis (App sammelt keine Daten), Name und Adresse.
 
 ## 9. Bekannte Grenzen
