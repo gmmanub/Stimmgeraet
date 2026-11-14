@@ -2124,12 +2124,12 @@ function chordsPerBeat(x,sr,beats,opt){
     const al=ablaufAlign(sc,nB,quiet,opt.ablauf,opt);
     const ao=[], s0=al.segs.length?al.segs[0].b:nB, s1=al.segs.length?al.segs[al.segs.length-1].e:nB;
     // Vorlauf: normale Erkennung bis zum Ablauf-Beginn
-    free.forEach(c=>{ if(c.i<s0) ao.push(c); });
+    free.forEach(c=>{ if(c.i<s0){ const nx=free.find(q=>q.i>c.i), len=Math.min(s0,nx?nx.i:s0)-c.i; ao.push(!opt.lenient&&!c.quiet&&len>=2?Object.assign({},c,{unsure:true,why:'vor dem Ablauf gespielt'}):c); } });
     al.segs.forEach(g=>{ const c=opt.ablauf[g.s], p=ao[ao.length-1]; if(p&&!c.label&&p.r===c.r&&p.qi===c.qi&&p.bass===(c.bass??null)){ if(g.unsure) p.unsure=true; return; }
       ao.push({i:g.b,r:c.r,qi:c.qi,bass:c.bass??null,quiet:false,chroma:Array.from(chr[g.b]),unsure:g.unsure,why:g.why,label:c.label||null,len:g.e-g.b,pass:c.first?c.pass:null}); });
     // Nachlauf: normale Erkennung ab dem Ablauf-Ende (ein Lauf, der vorher begann, setzt an der Grenze neu ein)
     if(s1<nB){ let last=null; free.forEach(c=>{ if(c.i<s1) last=c; }); const tail=free.filter(c=>c.i>=s1); if(last&&!last.quiet&&!(tail[0]&&tail[0].i===s1)) tail.unshift(Object.assign({},last,{i:s1}));
-      tail.forEach(c=>{ const p=ao[ao.length-1]; if(p&&p.r===c.r&&p.qi===c.qi&&p.bass===c.bass) return; ao.push(c); }); }
+      tail.forEach(c=>{ const p=ao[ao.length-1]; if(p&&p.r===c.r&&p.qi===c.qi&&p.bass===c.bass) return; const nx=tail.find(q=>q.i>c.i), len=(nx?nx.i:nB)-c.i; ao.push(!opt.lenient&&!c.quiet&&len>=2?Object.assign({},c,{unsure:true,why:'nach dem Ablauf gespielt'}):c); }); }
     return {chords:ao,key,chr:chr.map(c=>c?Array.from(c):null),score:al.score,ablauf:al}; }
   return {chords:out,key,chr:chr.map(c=>c?Array.from(c):null)};
 }
@@ -2144,19 +2144,19 @@ function ablaufAlign(sc,nB,quiet,seq,o){
   const passStart=[], passEnd=[]; let ps=0; for(let s=0;s<NS;s++){ if(seq[s].first) ps=s; passStart[s]=ps; }
   let pe=NS-1; for(let s=NS-1;s>=0;s--){ if(s<NS-1&&seq[s+1].first) pe=s; passEnd[s]=pe; }
   // Vorgänger je Abschnitt: [vorheriger Abschnitt, Strafe]
+  // Ablauf ist verbindlich (Manu 14.11.): kein Durchgang mehr oder weniger – Abweichungen werden markiert, nicht übernommen (o.lenient = alte Regel, nur zum Vergleich)
   const preds=seq.map((x,s)=>{ const L=[]; if(s>0) L.push([s-1,0]);
-    if(x.first){ L.push([passEnd[s],W]); // Durchgang noch einmal
-      const pPrev=s>0?passStart[s-1]:-1; if(pPrev>0) L.push([pPrev-1,W]); } // einen Durchgang ausgelassen
+    if(o.lenient&&x.first){ L.push([passEnd[s],W]); const pPrev=s>0?passStart[s-1]:-1; if(pPrev>0) L.push([pPrev-1,W]); }
     return L; });
   const dc=(s,L)=>(seq[s].mu??mu)*Math.abs(L-seq[s].d);
   const Lmax=s=>Math.max(seq[s].d*2+4,seq[s].d+6);
   const NEG=-1e18, best=[...Array(nB+1)].map(()=>new Float64Array(NS).fill(NEG)), from=[...Array(nB+1)].map(()=>new Array(NS));
-  const inc=(b,s)=>{ let v=NEG, w=null; if(seq[s].first){ const st=(s===0?0:W*0.5); const c=-lc[b]-st; if(c>v){v=c;w=[-1,b];} }
+  const inc=(b,s)=>{ let v=NEG, w=null; if(seq[s].first&&(s===0||o.lenient)){ const st=(s===0?0:W*0.5); const c=-lc[b]-st; if(c>v){v=c;w=[-1,b];} }
     if(b>0) for(const [p,pen] of preds[s]){ const c=best[b][p]-pen; if(c>v){v=c;w=[p,b];} } return [v,w]; };
   for(let e=1;e<=nB;e++) for(let s=0;s<NS;s++){ const lm=Math.min(e,Lmax(s));
     for(let L=1;L<=lm;L++){ const b=e-L, [v,w]=inc(b,s); if(v<=NEG/2) continue; const t=v+pref[s][e]-pref[s][b]-dc(s,L); if(t>best[e][s]){ best[e][s]=t; from[e][s]=w; } } }
   // Ende: nach einem Abschnitt Nachlauf, oder der letzte Abschnitt klingt bis zum Schluss aus
-  const endPen=s=>s===NS-1?0:(seq[s].last?W*0.5:W);
+  const endPen=s=>s===NS-1?0:(o.lenient&&seq[s].last?W*0.5:W);
   let bv=NEG, bw=null;
   for(let e=1;e<=nB;e++) for(let s=0;s<NS;s++){ if(best[e][s]<=NEG/2) continue; const v=best[e][s]-(lc[nB]-lc[e])-endPen(s); if(v>bv){ bv=v; bw={e,s,open:false}; } }
   for(let s=0;s<NS;s++) for(let b=0;b<nB;b++){ const [v,w]=inc(b,s); if(v<=NEG/2) continue; const L=nB-b; const t=v+pref[s][nB]-pref[s][b]-dc(s,L)-endPen(s); if(t>bv){ bv=t; bw={e:nB,s,open:true,w}; } }
@@ -2169,7 +2169,9 @@ function ablaufAlign(sc,nB,quiet,seq,o){
   // Längenabweichung nur markieren, wenn der Klang sie nicht klar belegt (Vergleich mit der Grenze laut Ablauf)
   segs.forEach((g,k)=>{ const nx=segs[k+1], d=seq[g.s].d; let sure=false;
     if(g.dev&&nx&&nx.b===g.e){ let D=0; if(g.dev>0) for(let i=g.b+d;i<g.e;i++) D+=sc(g.s,i)-sc(nx.s,i); else for(let i=g.e;i<Math.min(nB,g.b+d);i++) D+=sc(nx.s,i)-sc(g.s,i); sure=D>(o.sure??0.4); }
-    if(sure) g.why=g.why.filter(x=>!/Schläge/.test(x)); g.unsure=g.why.length>0; g.why=g.why.join(', '); });
+    if(sure&&o.lenient) g.why=g.why.filter(x=>!/Schläge?/.test(x)); g.unsure=g.why.length>0; g.why=g.why.join(', '); });
+  // Ablauf nicht zu Ende gespielt
+  if(segs.length&&segs[segs.length-1].s<NS-1&&!o.lenient){ const g=segs[segs.length-1]; g.unsure=true; g.why=(g.why?g.why+', ':'')+'Ablauf danach nicht zu Ende gespielt'; }
   const n=segs.length||1; return {segs,score:bv,bad:segs.filter(g=>g.fit<bad).length/n,unsure:segs.filter(g=>g.unsure).length/n}; }
 // ==BEATCHORD-END==
 
@@ -2906,7 +2908,7 @@ $('#hsheet').addEventListener('click',e=>{ if(e.target.id==='hsheet') $('#hsheet
 // =================== Abspielen: Aufnahmen und geladene Mitschnitte, Balken läuft im Blatt mit (Roadmap A4) ===================
 // Quellen: jede Aufnahme (Rohklang der Takterkennung) und jeder Abschnitt eines geladenen Mitschnitts, je mit Blattzeit t0 des ersten Samples.
 // Uhr: Blattzeit = Startzeit + (AudioContext-Zeit − Start − Ausgabe-Latenz) × Tempo. Tempo bleibt 1, bis die Zeitdehnung kommt (Loop/Langsamer: nächster Schritt).
-const PL={src:[],on:false,ctx:null,gain:null,nodes:[],startCtx:0,startT:0,pos:null,end:null,raf:0,follow:true,userT:0,rate:1,progScroll:0,hint:false};
+const PL={loop:null,src:[],on:false,ctx:null,gain:null,nodes:[],startCtx:0,startT:0,pos:null,end:null,raf:0,follow:true,userT:0,rate:1,progScroll:0,hint:false};
 function plAddJob(job){ if(!job||!job.n) return; PL.src.push({t0:job.t0,sr:job.sr,n:job.n,chunks:job.chunks,buf:null}); PL.src.sort((a,b)=>a.t0-b.t0); }
 // Geladener Mitschnitt: Abschnitte aus der WAV (Int16) mit ihrer Blattzeit
 function plFromCap(){ PL.src=PL.src.filter(s=>!s.cap); if(!CAP.n) return; const segs=(CAP.segs||[]).filter(x=>x&&x.ctxStart!=null&&x.offset!=null&&x.wavStart!=null).sort((a,b)=>a.wavStart-b.wavStart);
@@ -2934,13 +2936,12 @@ async function plPlay(t,end){ if(!PL.src.length) return cMsg('Nichts zum Abspiel
     const off=Math.max(0,t-s.t0), when=now+Math.max(0,s.t0-t)/PL.rate; try{ n.start(when,off); }catch(e){} PL.nodes.push(n); });
   PL.startCtx=now; PL.startT=t; PL.end=end!=null?end:null; PL.on=true; PL.follow=true; plUI();
   if(CH.mic&&!PL.hint){ PL.hint=true; cMsg('Abspielen läuft · der Lautsprecher kommt ins Mikro'); }
-  if(!S.plHelp){ S.plHelp=1; save(); cMsg('Abspielen · Taktnummer antippen springt dorthin'); }
-  cancelAnimationFrame(PL.raf); const tick=()=>{ if(!PL.on) return; const tn=plNow(); if((PL.end!=null&&tn>=PL.end)||tn>=E+0.05){ plStop(); if(PL.end==null) PL.pos=null; return; } plDraw(tn); PL.raf=requestAnimationFrame(tick); }; PL.raf=requestAnimationFrame(tick);
+  cancelAnimationFrame(PL.raf); const tick=()=>{ if(!PL.on) return; const tn=plNow(); if(PL.loop&&PL.end!=null&&tn>=PL.end-0.01){ plPlay(PL.loop.a,PL.loop.e); return; } if((PL.end!=null&&tn>=PL.end)||tn>=E+0.05){ plStop(); if(PL.end==null) PL.pos=null; return; } plDraw(tn); PL.raf=requestAnimationFrame(tick); }; PL.raf=requestAnimationFrame(tick);
   return true; }
 function plStop(keep){ const was=PL.on; if(was) PL.pos=plNow(); PL.nodes.forEach(n=>{ try{ n.stop(); }catch(e){} try{ n.disconnect(); }catch(e){} }); PL.nodes=[]; PL.on=false; cancelAnimationFrame(PL.raf); if(!keep){ plUI(); plDraw(PL.pos); } }
-function plToggle(){ if(PL.on){ plStop(); return; } plPlay(); }
-function plSeek(t){ if(PL.on) plPlay(t,PL.end!=null&&t<PL.end?PL.end:null); else { PL.pos=t; plDraw(t); } }
-function plReset(){ plStop(); PL.src=[]; PL.pos=null; plDraw(null); }
+function plToggle(){ if(PL.on){ plStop(); return; } if(!S.plHelp&&PL.src.length){ S.plHelp=1; save(); cMsg('Abspielen · Tipp: Taktnummer antippen springt dorthin'); } if(PL.loop){ const p=PL.pos; plPlay(p!=null&&p>=PL.loop.a&&p<PL.loop.e?p:PL.loop.a,PL.loop.e); return; } plPlay(); }
+function plSeek(t){ if(PL.loop&&(t<PL.loop.a-1e-3||t>=PL.loop.e)){ PL.loop=null; cMsg('Loop aus'); } if(PL.on) plPlay(t,PL.end!=null&&t<PL.end?PL.end:null); else { PL.pos=t; plDraw(t); } }
+function plReset(){ plStop(); PL.loop=null; PL.src=[]; PL.pos=null; plDraw(null); }
 // Ton leiser, solange zugehört wird (damit die Spracherkennung Manu versteht)
 function plDuck(on){ if(!PL.ctx||!PL.gain) return; const g=PL.gain.gain, n=PL.ctx.currentTime; g.cancelScheduledValues(n); g.setTargetAtTime(on?0.2:1,n,0.08); }
 // Balken: Rechteck im Blatt (pointer-events aus), beim Pausieren gedämpft an der Stoppstelle; Blatt scrollt mit
@@ -3008,6 +3009,7 @@ function voxNorm(t){ t=' '+t.toLowerCase().replace(/[!?;:]/g,' , ').replace(/(\d
     [/ (nochmal|noch mal|ganz)? ?(von vorne|von vorn|vom anfang|von anfang an|zurück zum anfang|zum anfang|an den anfang) /g,' PLAYSTART '],[/ (nochmal|noch mal) (abspielen|spielen|anhören|play) /g,' PLAYSTART '],
     [/ (spiel ab|spiel app|spiel mal|play|plei|blay|plej|pläy|spiel|spiele|spielen|abspielen|abspiel|vorspielen|anhören|hör mal|lass hören|wiedergabe|starten|start|los|weiter|weiterspielen|fortsetzen) /g,' PLAY '],
     [/ (stopp|stop|stoppe|stoppen|stoppt|pause|pausiere|pausieren|halt|anhalten|halte an|halt an|aufhören|hör auf) /g,' STOPP '],
+    [/ (in (der |einer )?(schleife|dauerschleife)|dauerschleife|schleife|endlos|immer wieder|im kreis|loopen|loope|loop|lupe|lup|luup|lub) /g,' LOOP '],
     [/ (langsamer|schneller|halbes tempo|normales tempo|volles tempo|tempo \d+( prozent)?) /g,' TEMPOX '],
     // mehrfach Rückgängig: „dreimal rückgängig“, „letzten Schritt zurück“
     [/ (zwei|zwo|drei|vier|fünf|sechs|sieben|acht|neun|zehn)mal /g,(m,a)=>' '+(NUMW[a]||2)+' x '],[/ (\d+) ?mal (RÜCKGÄNGIG|rückgängig) /g,' $1 x $2 '],[/ (einen |den letzten |letzten )?schritt zurück /g,' RÜCKGÄNGIG '],
@@ -3127,7 +3129,9 @@ function setChordAt(p,c,pEnd){ const B=sheetBars(), beat=B.length?(B[0].b-B[0].a
 const SN=['tiefe E','A-Saite','D-Saite','G-Saite','B-Saite','hohe e'];
 // Einen Satzteil ausführen; gibt {ok,txt} zurück
 // Abspielen per Sprache: „Play“, „spiel ab Takt 4“, „Takt 3 bis 5 abspielen“, „spiel Strophe 2“, „spiel die Bridge“, „zweiter Durchlauf von Refrain 2“, „Stopp“, „von vorne“
-function voxPlay(t){ if(/STOPP/.test(t)&&!/PLAY/.test(t)){ if(!PL.on) return {ok:1,txt:'Spielt gerade nicht',nosnap:1}; plStop(); return {ok:1,txt:'Gestoppt',nosnap:1}; }
+function voxPlay(t){ const loop=/LOOP/.test(t);
+  if(loop&&/( aus| beenden| weg| ende|STOPP|LÖSCH)( |$)/.test(t)&&!/takt/.test(t)){ const was=!!PL.loop; PL.loop=null; return {ok:1,txt:was?'Loop aus'+(PL.on?' · spielt weiter':''):'Kein Loop an',nosnap:1}; }
+  if(/STOPP/.test(t)&&!/PLAY/.test(t)){ PL.loop=null; if(!PL.on) return {ok:1,txt:'Spielt gerade nicht',nosnap:1}; plStop(); return {ok:1,txt:'Gestoppt',nosnap:1}; }
   if(/TEMPOX/.test(t)) return {ok:0,txt:'Langsamer/schneller kommt mit dem nächsten Schritt'};
   if(!PL.src.length) return {ok:0,txt:'Nichts zum Abspielen · erst aufnehmen oder einen Mitschnitt laden'};
   const B=sheetBars(); let a=null,e=null,txt='';
@@ -3136,7 +3140,10 @@ function voxPlay(t){ if(/STOPP/.test(t)&&!/PLAY/.test(t)){ if(!PL.on) return {ok
     else if(/markiert|markierung|auswahl/.test(t)&&CH.sel.size){ let m0=1e9,m1=-1e9; CH.sel.forEach(x=>{ m0=Math.min(m0,x.t); m1=Math.max(m1,x.t); }); const b0=B.find(b=>m0>=b.a-1e-3&&m0<b.b), b1=B.find(b=>m1>=b.a-1e-3&&m1<b.b); a=b0?b0.a:m0; e=b1?b1.b:null; txt='Markierte Takte'; }
     else { const P=voxPos(t); if(P&&P.bars&&B[P.bars[0]]){ const L=P.bars; a=B[L[0]].a; if(L.length>1||/ nur /.test(' '+t+' ')){ e=(B[L[L.length-1]]||B[B.length-1]).b; txt=P.txt; } else txt='Ab '+P.txt; }
       else if(P&&P.pos!=null){ a=timeOf(P.pos); txt='Ab '+P.txt; } else if(P&&P.bars) return {ok:0,txt:P.txt+' gibt es nicht'}; } }
-  plPlay(a,e); return {ok:1,txt:(txt?txt+' · ':'')+'Abspielen',nosnap:1}; }
+  if(loop){ if(a==null){ if(PL.loop){ a=PL.loop.a; e=PL.loop.e; txt='Takt '+PL.loop.txt; } else return {ok:0,txt:'Welche Takte? z. B. „Takt 3 bis 5 loopen“'}; }
+    if(e==null){ const B2=sheetBars(), bb=B2.find(b=>a>=b.a-1e-3&&a<b.b); e=bb?bb.b:a+2; txt=txt.replace(/^Ab /,''); }
+    PL.loop={a,e,txt:txt.replace(/^Takt /,'')}; plPlay(a,e); return {ok:1,txt:'Loop '+txt+' · „Loop aus“ zum Beenden',nosnap:1}; }
+  PL.loop=null; plPlay(a,e); return {ok:1,txt:(txt?txt+' · ':'')+'Abspielen',nosnap:1}; }
 // Liedteil aus dem Blatt (Namen kommen aus dem Ablauf: „Strophe 1“, „Refrain 2“ …), optional Durchlauf
 function voxPart(t){ let k=null,name=null; for(const [key,nm,re] of TEILW){ if(new RegExp('(^| )('+re.source+')( |$)').test(t)){ k=key; name=nm; break; } } if(!k) return null;
   let tt=t, pass=null; const dm=/(\d+) (durchlauf|durchgang|durchläufe|runde|wiederholung)|(durchlauf|durchgang|runde) (\d+)/.exec(tt); if(dm){ pass=+(dm[1]||dm[4]); tt=tt.replace(dm[0],' '); }
@@ -3151,7 +3158,7 @@ function voxPart(t){ let k=null,name=null; for(const [key,nm,re] of TEILW){ if(n
   return {a,e,txt}; }
 function voxDo(t){ const nb=(sheetBars()[0]||{g:{beats:4}}).g.beats, P=voxPos(t), cur=ED.ev||(CH.sel.size===1?[...CH.sel][0]:null);
   const strM=/ ?S(\d) /.exec(' '+t+' '), str=strM?+strM[1]:null;
-  if(/PLAY|STOPP|TEMPOX/.test(t)) return voxPlay(t);
+  if(/PLAY|STOPP|TEMPOX|LOOP/.test(t)) return voxPlay(t);
   if(/RÜCKGÄNGIG/.test(t)||/^zurück\b/.test(t)){ const m=/(\d+) (?:x )?RÜCKGÄNGIG/.exec(t), n=Math.min(20,m?+m[1]:1); let k=0; for(;k<n&&UNDO.length;k++) $('#cundo').click(); return {ok:1,txt:k>1?k+' Schritte rückgängig':(k?'Rückgängig':'Nichts zum Zurücknehmen'),nosnap:1}; }
   if(/WIEDERHOL/.test(t)){ $('#credo').click(); return {ok:1,txt:'Wiederholt',nosnap:1}; }
   if(/CHKWEG/.test(t)){ const n=CH.ev.filter(e=>e.chk).length; if(!n) return {ok:1,txt:'Keine Hinweise da',nosnap:1}; $('#cmChk').click(); return {ok:1,txt:n+(n>1?' Hinweise':' Hinweis')+' entfernt',nosnap:1}; }
@@ -3206,11 +3213,11 @@ function voxDo(t){ const nb=(sheetBars()[0]||{g:{beats:4}}).g.beats, P=voxPos(t)
 const VOXLOG=[]; // Sprachprotokoll (kommt in den Mitschnitt): gehört, verstanden, getan
 function voxRun(alts){ let best=null; const edm0=CH.edm, sel0=CH.sel.size>0;
   // Ablauf vorgeben („Strophe: G 6, E-Moll 2, mal 3 …“, „Ablauf: Strophe, Refrain“, „Ablauf aus“) – eigener Weg, ein Rückgängig-Schritt
-  const playish=a=>/(^|[\s,])(play|plei|blay|spiel\w*|abspiel\w*|anhören|vorspielen|stopp?)(?=[\s,.!?]|$)/i.test(a);
+  const playish=a=>/(^|[\s,])(play|plei|blay|spiel\w*|abspiel\w*|anhören|vorspielen|stopp?|loop\w*|schleife)(?=[\s,.!?]|$)/i.test(a);
   const ab=alts.find(a=>ABLAUF_RE.test(a)&&!playish(a)); if(ab){ const n0=UNDO.length, r=ablaufCmd(ab); VOX.snaps=Math.max(0,UNDO.length-n0); undoUI();
     if(VOXLOG.length<500) VOXLOG.push({when:new Date().toISOString(),heard:alts.slice(0,3),used:ab,norm:['ablauf'],done:r.ok?[r.txt]:[],bad:r.ok?[]:[r.txt],steps:VOX.snaps});
     voxMsg((r.ok?'Verstanden: ':'')+r.txt+(r.ok?'':' · gehört: „'+ab+'“'),VOX.snaps>0); return; }
-  const isCmd=x=>/takt|LÖSCH|KOPIER|VERSCHIEB|MARKIER|RÜCKGÄNGIG|WIEDERHOL|MARKWEG|CHKWEG|ALLES|PLAY|STOPP|TEMPOX|S\d/.test(x);
+  const isCmd=x=>/takt|LÖSCH|KOPIER|VERSCHIEB|MARKIER|RÜCKGÄNGIG|WIEDERHOL|MARKWEG|CHKWEG|ALLES|PLAY|STOPP|TEMPOX|LOOP|S\d/.test(x);
   for(const raw of alts){ const P0=voxNorm(raw).split(/ (?:und dann|danach|dann) /), parts=[]; P0.forEach(x=>{ if(parts.length&&!isCmd(x)) parts[parts.length-1]+=' , '+x; else parts.push(x); }); const sim=[];
     // Trockenlauf geht nicht ohne Seiteneffekte – nimm die erste Variante, deren erster Teil erkannt wird
     best={raw,parts}; if(parts.some(x=>/takt|LÖSCH|KOPIER|VERSCHIEB|MARKIER|RÜCKGÄNGIG|WIEDERHOL|S\d|bund|slide|hammeron|pulloff|anschlag|moll|dur|MARKWEG|ALLESIM/.test(x))) break; }

@@ -72,7 +72,8 @@ Takt 1 bis 2 kopieren nach Takt 9
 - **Liedteile** (stehen im Blatt, sobald ein Ablauf angesagt ist): `spiel Strophe 2` · `spiel die Bridge` · `spiel den Refrain` (= Refrain 1) · `zweite Strophe` · `spiel den zweiten Durchlauf von Refrain 2` · `Strophe 1, dritter Durchgang abspielen`.
 - **Stopp:** `Stopp` · `Pause` · `halt` · `anhalten`.
 - Solange zugehört wird, spielt die App leiser.
-- Kommt mit dem nächsten Schritt: `langsamer` · `schneller` · `Tempo 75 Prozent`, Loop.
+- **Loop:** `Takt 3 bis 5 loopen` · `Loop Takt 3 bis 5` · `Takt 3 bis 5 in Schleife abspielen` · `spiel Takt 2 bis 4 immer wieder` · `Refrain 1 loopen` · `Loop das Markierte` · `Loop` (= den letzten Loop wieder) · `Loop aus` / `Schleife beenden` (spielt weiter). Pause behält den Loop, Springen außerhalb beendet ihn.
+- Kommt mit dem nächsten Schritt: `langsamer` · `schneller` · `Tempo 75 Prozent`.
 
 ## Sonstiges
 - `Rückgängig` · `zurück` · `dreimal rückgängig` · `letzten Schritt zurück`.
