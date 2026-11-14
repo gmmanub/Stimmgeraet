@@ -1,6 +1,6 @@
 # Befehlssprache der Gitarren-App
 
-**Version 1** (14.11.2026) · gilt für Sprechen und für Befehlsblöcke (Knopf „abc“, kommt mit Version 2)
+**Version 1** (14.11.2026, ergänzt um Abspielen) · gilt für Sprechen und für Befehlsblöcke (Knopf „abc“, kommt mit Version 2)
 
 Diese Datei ist die einzige Quelle für die Befehle. Ein Chat, der einen Befehlsblock schreibt, liest nur diese Datei.
 Die App versteht feste Befehle, keine freie Sprache und keine KI. Ändert sich die Sprache, steigt die Versionsnummer.
@@ -65,8 +65,18 @@ Takt 1 bis 2 kopieren nach Takt 9
 - `Takt 4, 1 B-Saite: 3, Slide 5, 3, 1, Pull-off 0` – Tonfolge; die App legt sie auf die gehörten Anschläge (sonst Achtel).
 - Nach Antippen eines Tons: `Bund 5` · `G-Saite` · `Slide` · `Hammer-on` · `Pull-off` · `Anschlag`.
 
+## Abspielen
+- **Start:** `Play` · `spiel` · `spiel ab` · `abspielen` · `los` · `weiter` · `anhören`. Ohne Ort: ab markierten Takten, sonst ab der Stoppstelle, sonst von Anfang an.
+- **Mit Ort:** `Play ab Takt 4` · `ab Takt 4 abspielen` · `spiel von Takt 2` · `Takt 3 bis 5 abspielen` (hält am Ende an) · `nur Takt 3 abspielen` · `spiel das Markierte`.
+- **Von vorne:** `von vorne` · `nochmal abspielen` · `zurück zum Anfang`.
+- **Liedteile** (stehen im Blatt, sobald ein Ablauf angesagt ist): `spiel Strophe 2` · `spiel die Bridge` · `spiel den Refrain` (= Refrain 1) · `zweite Strophe` · `spiel den zweiten Durchlauf von Refrain 2` · `Strophe 1, dritter Durchgang abspielen`.
+- **Stopp:** `Stopp` · `Pause` · `halt` · `anhalten`.
+- Solange zugehört wird, spielt die App leiser.
+- Kommt mit dem nächsten Schritt: `langsamer` · `schneller` · `Tempo 75 Prozent`, Loop.
+
 ## Sonstiges
-- `Rückgängig` · `Wiederholen`.
+- `Rückgängig` · `zurück` · `dreimal rückgängig` · `letzten Schritt zurück`.
+- `Wiederholen` (= wiederherstellen; zum erneuten Abspielen: `nochmal abspielen`).
 
 ## Noch nicht in v1 (geplant)
 - Bestimmter Griff (`Griff x57765`), mehrere Töne gleichzeitig (`zusammen`), Griff halten und einzelne Saiten anschlagen.
