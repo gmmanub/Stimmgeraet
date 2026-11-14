@@ -160,7 +160,9 @@ $('#launchChords').addEventListener('click',startChords);
 $('#cclose').addEventListener('click',stopChords);
 
 // Reset: Verlauf und angezeigten Akkord leeren (gemerkte Griffe bleiben)
-$('#creset').addEventListener('click',()=>{closeEdit(); ALIGN_UNDO=null; CH.lastJob=null; plReset(); NF.offer=null; NF.put('blatt',null).catch(()=>{}); NF.put('klang',null).catch(()=>{}); NF.sig=''; NF.ksig=''; UNDO.length=0; REDO.length=0; if(!CAP.on) capClear(); else {CAP.chunks=[];CAP.n=0;CAP.segs=[CAP.seg];CAP.seg.wavStart=0;CAP.seg.ctxStart=null;LOG.length=0;}const d=CH.tNow; CH.tBase-=d; CH.tNow=0; CH.ev=[]; CH.onsets=[]; CH.beatCh=[]; CH.grids=CH.met?[newGrid(CH.tBase,CH.met.beat*CH.met.beats,CH.met.beats)]:[]; CH.stripKey=''; CH.follow=true; CH.key=''; if(CH.eng){const sr=CH.eng.sr,pref=CH.eng.pref; CH.eng=makeChordEngine(sr); CH.eng.pref=pref; CH.eng.onCommit=onChordCommit; CH.eng.NT.onNote=onNoteDetected; CH.eng.NT.onReplace=onNoteReplaced; CH.eng.learn=LEARN;}});
+// blattLeeren: gemeinsam für Zurücksetzen (leert das offene Stück auch im Speicher) und Stück wechseln/neu (Speicher bleibt)
+$('#creset').addEventListener('click',()=>{ NF.clearCur(); blattLeeren(); });
+function blattLeeren(){closeEdit(); ALIGN_UNDO=null; CH.lastJob=null; plReset(); NF.offer=null; NF.sig=''; NF.ksig=''; UNDO.length=0; REDO.length=0; if(!CAP.on) capClear(); else {CAP.chunks=[];CAP.n=0;CAP.segs=[CAP.seg];CAP.seg.wavStart=0;CAP.seg.ctxStart=null;LOG.length=0;}const d=CH.tNow; CH.tBase-=d; CH.tNow=0; CH.ev=[]; CH.onsets=[]; CH.beatCh=[]; CH.grids=CH.met?[newGrid(CH.tBase,CH.met.beat*CH.met.beats,CH.met.beats)]:[]; CH.stripKey=''; CH.follow=true; CH.key=''; if(CH.eng){const sr=CH.eng.sr,pref=CH.eng.pref; CH.eng=makeChordEngine(sr); CH.eng.pref=pref; CH.eng.onCommit=onChordCommit; CH.eng.NT.onNote=onNoteDetected; CH.eng.NT.onReplace=onNoteReplaced; CH.eng.learn=LEARN;}}
 // Griffbild antippen: nächster Griff, wird für diesen Akkord gemerkt
 $('#cdiag').addEventListener('click',()=>{
   if(!CH.eng) return; const r=CH.eng.nextVoicing(); if(!r) return;

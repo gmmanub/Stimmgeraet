@@ -88,6 +88,7 @@ Takt 1 bis 2 kopieren nach Takt 9
 - `Spielweise Zupfen` · `Spielweise Strummen` · `Spielweise Strummen mit Melodie`.
 - `Metronom an` · `Metronom aus`.
 - `speichern` · `Hilfe` / `Was kann ich sagen?` · `letzte Sitzung wiederherstellen`.
+- `Stücke` / `Stückliste` / `Stück wechseln` (Stücke-Fenster) · `neues Stück` / `neues Lied anfangen`.
 - **Löschen per Sprache fragt immer nach.**
 
 ## Sonstiges

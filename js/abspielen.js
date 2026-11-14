@@ -130,34 +130,54 @@ window.addEventListener('popstate',()=>{ BK.armed=false; if(bkStep()) return;
   if((CH.ev.length||PL.src.length)&&!confirm('App verlassen? Das Blatt ist als Notfall-Sicherung gemerkt und lässt sich beim nächsten Öffnen wiederherstellen.')) return;
   NF.save(true); history.back(); });
 
-// Notfall-Sicherung: letzte Sitzung (Blatt + Klang) im Browser (IndexedDB, nur auf diesem Gerät). Beim Öffnen der Akkord-Ansicht: „Letzte Sitzung wiederherstellen?“
-const NF={db:null,sig:'',ksig:'',offer:null,
+// Notfall-Sicherung im Browser (IndexedDB, nur auf diesem Gerät), je Stück getrennt (Manu 15.11.): blatt:<id>, klang:<id>, staende:<id>.
+// 'stuecke' = Liste {id,name,created,used,nA,nT,klang}, 'aktuell' = zuletzt benutztes Stück. Die Kennung ist CH.song.id (bleibt beim Umbenennen und beim Teilen gleich).
+const NF={db:null,sig:'',ksig:'',offer:null,busy:false,mig:null,
   open(){ if(this.db) return Promise.resolve(this.db); return new Promise((res,rej)=>{ try{ const r=indexedDB.open('gitarre-notfall',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>{ this.db=r.result; res(this.db); }; r.onerror=()=>rej(r.error); }catch(e){ rej(e); } }); },
   async get(k){ const db=await this.open(); return new Promise(res=>{ const q=db.transaction('kv').objectStore('kv').get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>res(null); }); },
   async put(k,v){ const db=await this.open(); return new Promise(res=>{ const tx=db.transaction('kv','readwrite'); tx.objectStore('kv').put(v,k); tx.oncomplete=()=>res(true); tx.onerror=()=>res(false); }); },
-  rec(){ return {when:new Date().toISOString(),ev:CH.ev.map(e=>Object.assign({},e)),grids:CH.grids,onsets:CH.onsets||[],beatCh:CH.beatCh||[],ablauf:S.ablauf||null,ablaufOn:S.ablaufOn!==false,tNow:CH.tNow,song:CH.song||null,play:S.play}; },
-  blattSig(){ const e=CH.ev[CH.ev.length-1]; return CH.ev.length+':'+UNDO.length+':'+REDO.length+':'+CH.grids.length+':'+(e?e.t.toFixed(3)+e.key:'')+':'+JSON.stringify(S.ablauf||'').length+':'+PL.src.length; },
-  async save(force){ if(!CH.ev.length&&!PL.src.length) return; // leeres Blatt überschreibt keine Sicherung
+  async del(k){ const db=await this.open(); return new Promise(res=>{ const tx=db.transaction('kv','readwrite'); tx.objectStore('kv').delete(k); tx.oncomplete=()=>res(true); tx.onerror=()=>res(false); }); },
+  newSong(name){ return {id:uid(),created:new Date().toISOString(),name:name||'',track:{id:uid(),owner:'manu',rev:0}}; },
+  ensure(){ if(!CH.song) CH.song=this.newSong(); if(CH.song.name==null) CH.song.name=''; return CH.song.id; },
+  cur(){ return CH.song?CH.song.id:null; },
+  counts(ev){ const nT=ev.filter(e=>e.type==='note').length; return {nA:ev.length-nT,nT}; },
+  // einmalig: alte Einzel-Sicherung (blatt/klang/staende) wird zum ersten Stück „Ohne Namen“
+  migrate(){ if(!this.mig) this.mig=(async()=>{ if(Array.isArray(await this.get('stuecke'))) return; const l=[], b=await this.get('blatt');
+      if(b&&b.ev&&b.ev.length){ if(!b.song) b.song=this.newSong(); const id=b.song.id, k=await this.get('klang'), st=await this.get('staende');
+        await this.put('blatt:'+id,b); if(k&&k.src) await this.put('klang:'+id,{codec:'pcm16',sig:id+'|'+(k.sig||''),src:k.src}); if(Array.isArray(st)) await this.put('staende:'+id,st);
+        l.push(Object.assign({id,name:b.song.name||'',created:b.song.created||b.when,used:b.when,klang:!!(k&&k.src&&k.src.length)},this.counts(b.ev))); await this.put('aktuell',id); }
+      await this.put('stuecke',l); await this.del('blatt'); await this.del('klang'); await this.del('staende'); })().catch(()=>{}); return this.mig; },
+  async list(){ await this.migrate(); const l=await this.get('stuecke'); return Array.isArray(l)?l:[]; },
+  async setEntry(e){ const l=await this.list(), i=l.findIndex(x=>x.id===e.id); if(i<0) l.push(e); else Object.assign(l[i],e); await this.put('stuecke',l); },
+  rec(){ return {when:new Date().toISOString(),ev:CH.ev.map(e=>Object.assign({},e)),grids:CH.grids,onsets:CH.onsets||[],beatCh:CH.beatCh||[],ablauf:S.ablauf||null,ablaufOn:S.ablaufOn!==false,tNow:CH.tNow,song:CH.song?Object.assign({},CH.song):null,play:S.play}; },
+  blattSig(){ const e=CH.ev[CH.ev.length-1]; return (CH.song?CH.song.id+(CH.song.name||''):'')+':'+CH.ev.length+':'+UNDO.length+':'+REDO.length+':'+CH.grids.length+':'+(e?e.t.toFixed(3)+e.key:'')+':'+JSON.stringify(S.ablauf||'').length+':'+PL.src.length; },
+  async save(force){ if(this.busy) return; if(!CH.ev.length&&!PL.src.length) return; // leeres Blatt überschreibt keine Sicherung
     if(this.offer){ this.offer=null; const y=$('#nfYes'); if(y) $('#cbanner').classList.remove('on'); } // neu aufgenommen statt wiederhergestellt: die neue Sitzung wird gesichert
     const sig=this.blattSig(); if(!force&&sig===this.sig) return; this.sig=sig;
-    try{ await this.put('blatt',this.rec());
-      const ks=PL.src.map(s=>s.t0.toFixed(3)+':'+s.n).join(','); if(ks!==this.ksig){ this.ksig=ks; await this.put('klang',{sig:ks,src:PL.src.map(s=>{ const x=plSamples(s), q=new Int16Array(x.length); for(let i=0;i<x.length;i++) q[i]=Math.max(-32768,Math.min(32767,Math.round(x[i]*32767))); return {t0:s.t0,sr:s.sr,pcm:q}; })}); } }catch(e){} },
-  async check(){ if(CH.ev.length||CH.mic) return; let b=null; try{ b=await this.get('blatt'); }catch(e){} if(!b||!b.ev||!b.ev.length) return;
-    this.offer=b; if(S.nfAuto!==false){ await this.restore(); const bn=$('#cbanner'); if(bn.classList.contains('on')){ const n=document.createElement('button'); n.className='mini'; n.id='nfLeer'; n.textContent='Leer starten'; n.style.marginLeft='6px'; n.onclick=()=>$('#creset').click(); bn.appendChild(n); } return; } // Manu 14.11.: automatisch zurückholen (kein Angebot mehr); „Leer starten“ = Reset
-     const nT=b.ev.filter(e=>e.type==='note').length, nA=b.ev.length-nT, d=new Date(b.when), w=d.toLocaleDateString('de-DE',{day:'numeric',month:'numeric'})+' '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-    const bn=$('#cbanner'); clearTimeout(BPB.bt); bn.textContent='Letzte Sitzung ('+w+', '+nA+' Akkorde, '+nT+' Töne) '; const y=document.createElement('button'); y.className='mini'; y.id='nfYes'; y.textContent='Wiederherstellen'; const n=document.createElement('button'); n.className='mini'; n.id='nfNo'; n.textContent='Nein'; n.style.marginLeft='6px';
+    try{ await this.migrate(); const id=this.ensure(), r=this.rec(); await this.put('blatt:'+id,r);
+      // Klang mit Format-Kennzeichen (heute pcm16; später evtl. opus) und der Stück-Kennung in der Signatur, damit nie ein fremder Klang überschrieben wird
+      const ks=id+'|'+PL.src.map(s=>s.t0.toFixed(3)+':'+s.n).join(','); if(ks!==this.ksig){ this.ksig=ks; await this.put('klang:'+id,{codec:'pcm16',sig:ks,src:PL.src.map(s=>{ const x=plSamples(s), q=new Int16Array(x.length); for(let i=0;i<x.length;i++) q[i]=Math.max(-32768,Math.min(32767,Math.round(x[i]*32767))); return {t0:s.t0,sr:s.sr,pcm:q}; })}); }
+      await this.setEntry(Object.assign({id,name:CH.song.name||'',created:CH.song.created,used:r.when,klang:PL.src.length>0},this.counts(CH.ev))); await this.put('aktuell',id); }catch(e){} },
+  // Zurücksetzen: nur das offene Stück leeren (Name und frühere Stände bleiben)
+  async clearCur(){ const id=this.cur(); if(!id) return; await this.del('blatt:'+id); await this.del('klang:'+id); await this.setEntry({id,nA:0,nT:0,klang:false}); },
+  async check(){ if(CH.ev.length||CH.mic) return; await this.migrate(); const id=await this.get('aktuell'); if(!id) return; let b=null; try{ b=await this.get('blatt:'+id); }catch(e){}
+    if(!b||!b.ev||!b.ev.length){ const e=(await this.list()).find(x=>x.id===id); if(e&&!CH.song){ CH.song=Object.assign(this.newSong(e.name),{id:e.id,created:e.created}); if(typeof KS!=='undefined') KS.ui(); } return; }
+    this.offer=b; if(S.nfAuto!==false){ await this.restore(); const bn=$('#cbanner'); if(bn.classList.contains('on')){ const n=document.createElement('button'); n.className='mini'; n.id='nfLeer'; n.textContent=t('stuecke.leerStarten'); n.style.marginLeft='6px'; n.onclick=()=>$('#creset').click(); bn.appendChild(n); } return; } // Manu 14.11.: automatisch zurückholen (kein Angebot mehr); „Leer starten“ = Reset
+     const nn=this.counts(b.ev), d=new Date(b.when), w=d.toLocaleDateString('de-DE',{day:'numeric',month:'numeric'})+' '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+    const bn=$('#cbanner'); clearTimeout(BPB.bt); bn.textContent=t('stuecke.letzte',{w,a:nn.nA,n:nn.nT})+' '; const y=document.createElement('button'); y.className='mini'; y.id='nfYes'; y.textContent=t('stuecke.wiederherstellen'); const n=document.createElement('button'); n.className='mini'; n.id='nfNo'; n.textContent=t('stuecke.nein'); n.style.marginLeft='6px';
     bn.appendChild(y); bn.appendChild(n); bn.classList.add('on'); y.onclick=()=>this.restore(); n.onclick=()=>{ this.offer=null; bn.classList.remove('on'); }; },
-  async restore(){ const b=this.offer; this.offer=null; if(!b) return; let k=null; try{ k=await this.get('klang'); }catch(e){}
-    closeEdit(); setEditMode(false); plReset(); CH.ev=b.ev.map(e=>Object.assign({},e)).sort((x,y)=>x.t-y.t); CH.grids=(b.grids||[]).map(g=>Object.assign({},g,{lines:g.lines.slice()})); CH.onsets=b.onsets||[]; CH.beatCh=b.beatCh||[]; CH.song=b.song||null;
+  // Klang nur, wenn er zu diesem Stück gehört (gleiche Kennung)
+  async restore(){ const b=this.offer; this.offer=null; if(!b) return; const sid=b.song&&b.song.id; let k=null; try{ if(sid) k=await this.get('klang:'+sid); }catch(e){}
+    closeEdit(); setEditMode(false); plReset(); CH.ev=b.ev.map(e=>Object.assign({},e)).sort((x,y)=>x.t-y.t); CH.grids=(b.grids||[]).map(g=>Object.assign({},g,{lines:g.lines.slice()})); CH.onsets=b.onsets||[]; CH.beatCh=b.beatCh||[]; CH.song=b.song?Object.assign({},b.song):null;
     if(b.ablauf){ S.ablauf=b.ablauf; S.ablaufOn=b.ablaufOn; } if(b.play) S.play=b.play; save(); try{ playUI(); }catch(e){}
     const tEnd=Math.max(0,...CH.ev.map(e=>e.t),...CH.grids.map(g=>g.end||0)); CH.tNow=Math.max(b.tNow||0,tEnd+0.5); CH.tBase=CH.tNow;
-    if(k&&k.src) k.src.forEach(s=>PL.src.push({t0:s.t0,sr:s.sr,n:s.pcm.length,pcm:s.pcm,buf:null})); PL.src.sort((x,y)=>x.t0-y.t0); this.ksig=k?k.sig:'';
-    UNDO.length=0; REDO.length=0; CH.rowPlan=null; CH.view='sheet'; metFollowGrid(); CH.stripKey=''; CH.key=''; CH.listKey=''; CH.bigK=null; undoUI(); chordsUI(); this.sig=this.blattSig(); if(typeof SV!=='undefined') SV.saved=this.sig;
-    cMsg('Letzte Sitzung wiederhergestellt'+(PL.src.length?' · mit Klang':'')); } };
+    if(k&&k.src) k.src.forEach(s=>PL.src.push({t0:s.t0,sr:s.sr,n:s.pcm.length,pcm:s.pcm,buf:null})); PL.src.sort((x,y)=>x.t0-y.t0); this.ksig=k?k.sig:(sid||'')+'|';
+    UNDO.length=0; REDO.length=0; CH.rowPlan=null; CH.view='sheet'; metFollowGrid(); CH.stripKey=''; CH.key=''; CH.listKey=''; CH.bigK=null; undoUI(); chordsUI(); this.sig=this.blattSig(); if(typeof SV!=='undefined') SV.saved=this.sig; if(typeof KS!=='undefined') KS.ui();
+    cMsg(t(PL.src.length?'stuecke.wiederhergestelltKlang':'stuecke.wiederhergestellt')); } };
 setInterval(()=>NF.save(false),4000);
-// Menü ⋯ / Sprache: letzte Sitzung holen (auch wenn der Hinweis in der Statuszeile verdrängt wurde); ersetzt das Blatt nur nach Rückfrage
-async function nfRestoreMenu(){ let b=null; try{ b=await NF.get('blatt'); }catch(e){} if(!b||!b.ev||!b.ev.length) return cMsg('Keine gesicherte Sitzung da');
-  if(CH.mic) return cMsg('Erst die Aufnahme stoppen'); const same=b.ev.length===CH.ev.length&&NF.sig===NF.blattSig(); if(same) return cMsg('Das ist schon die letzte Sitzung');
-  if(CH.ev.length&&!confirm('Aktuelles Blatt durch die letzte Sitzung ersetzen?')) return; NF.offer=b; await NF.restore(); }
+// Menü ⋯ / Sprache: gesicherten Stand des offenen Stücks holen (auch wenn der Hinweis verdrängt wurde); ersetzt das Blatt nur nach Rückfrage
+async function nfRestoreMenu(){ await NF.migrate(); const id=NF.cur()||await NF.get('aktuell'); let b=null; try{ if(id) b=await NF.get('blatt:'+id); }catch(e){} if(!b||!b.ev||!b.ev.length) return cMsg(t('stuecke.keineSicherung'));
+  if(CH.mic) return cMsg(t('speichern.erstStop')); const same=b.ev.length===CH.ev.length&&NF.sig===NF.blattSig(); if(same) return cMsg(t('stuecke.schonDa'));
+  if(CH.ev.length&&!confirm(t('stuecke.ersetzenFrage'))) return; NF.offer=b; await NF.restore(); }
 $('#cmRestore').addEventListener('click',nfRestoreMenu);
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') NF.save(true); });

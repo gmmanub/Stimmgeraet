@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=2026-11-14.2310">
+<link rel="stylesheet" href="css/app.css?v=2026-11-15.0030">
 </head>
 <body>
 
@@ -55,6 +55,7 @@
     <button role="menuitem" id="cmVoice">Sprachbefehle ansehen</button>
     <button role="menuitem" id="cmTest">Test-Mitschnitt<span id="cmTestV"></span></button>
     <button role="menuitem" id="cmChk">Markierungen weg<span id="cmChkN"></span></button>
+    <button role="menuitem" id="cmStuecke" data-t="stuecke.menue">Stücke …</button>
     <button role="menuitem" id="cmSLoad">Session laden</button><input type="file" id="sFile" accept=".json,application/json" hidden>
     <button role="menuitem" id="cmStaende">Frühere Stände<span id="cmStaendeN"></span></button>
     <button role="menuitem" id="cmCapSave">Test-Mitschnitt speichern</button>
@@ -63,8 +64,8 @@
     <button role="menuitem" id="creset" class="dng">Zurücksetzen</button>
   </div>
   <div class="cbody" id="cbody">
-    <div class="cstat"><span class="banner" id="cbanner"></span><span id="cstat"></span></div>
-    <div class="clist" id="clist"><div class="clab">Akkorde im Stück</div><div class="cchips" id="cchips"></div><div class="cbig" id="cbig"></div></div>
+    <div class="cstat"><span class="banner" id="cbanner"></span><span id="cstat"></span><button class="csong none" id="csong" data-ta="stuecke.titel" aria-label="Stücke"><span></span></button></div>
+    <div class="clist" id="clist"><div class="cchips" id="cchips"></div><div class="cbig" id="cbig"></div></div>
     <div class="cfields" id="cfields">
       <button class="fld" id="ckapo">Kapo –</button>
       <button class="fld" id="ctempo">– BPM</button>
@@ -229,6 +230,22 @@
     <ul class="hlist" id="slist" style="list-style:none;padding:0"></ul>
   </div>
 </div>
+<div id="ksheet" role="dialog" aria-modal="true" data-ta="stuecke.titel" aria-label="Stücke">
+  <div class="sheet">
+    <div class="sh-head"><h2 data-t="stuecke.titel">Stücke</h2><button class="iconbtn" id="ksClose" data-ta="stuecke.schliessen" aria-label="Schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <button class="mini acc" id="kNeu" data-t="stuecke.neu">+ Neues Stück</button>
+    <ul id="klist"></ul>
+    <p class="kinfo" id="kinfo"></p>
+  </div>
+</div>
+<div id="nsheet" role="dialog" aria-modal="true">
+  <div class="sheet">
+    <h2 id="nTitle"></h2>
+    <input id="nIn" type="text" maxlength="60" autocomplete="off" enterkeyhint="done">
+    <p class="nerr" id="nErr" role="alert"></p>
+    <div class="nbtns"><button class="mini" id="nCancel" data-t="stuecke.abbrechen">Abbrechen</button><button class="mini acc" id="nOk"></button></div>
+  </div>
+</div>
 <div id="msheet" role="dialog" aria-modal="true" aria-label="Metronom">
   <div class="sheet">
     <div class="sh-head">
@@ -299,19 +316,19 @@
     </div>
   </div>
 </div>
-<script>const APP_VERSION='2026-11-14.2310';</script>
-<script src="js/grundlagen.js?v=2026-11-14.2310"></script>
-<script src="js/stimmgeraet.js?v=2026-11-14.2310"></script>
-<script src="js/uhr.js?v=2026-11-14.2310"></script>
-<script src="js/erkennung.js?v=2026-11-14.2310"></script>
-<script src="js/sicherung.js?v=2026-11-14.2310"></script>
-<script src="js/mitschnitt.js?v=2026-11-14.2310"></script>
-<script src="js/basic-pitch.js?v=2026-11-14.2310"></script>
-<script src="js/blatt.js?v=2026-11-14.2310"></script>
-<script src="js/abspielen.js?v=2026-11-14.2310"></script>
-<script src="js/speichern.js?v=2026-11-14.2310"></script>
-<script src="js/sprache.js?v=2026-11-14.2310"></script>
-<script src="js/aehnliche.js?v=2026-11-14.2310"></script>
-<script src="js/start.js?v=2026-11-14.2310"></script>
+<script>const APP_VERSION='2026-11-15.0030';</script>
+<script src="js/grundlagen.js?v=2026-11-15.0030"></script>
+<script src="js/stimmgeraet.js?v=2026-11-15.0030"></script>
+<script src="js/uhr.js?v=2026-11-15.0030"></script>
+<script src="js/erkennung.js?v=2026-11-15.0030"></script>
+<script src="js/sicherung.js?v=2026-11-15.0030"></script>
+<script src="js/mitschnitt.js?v=2026-11-15.0030"></script>
+<script src="js/basic-pitch.js?v=2026-11-15.0030"></script>
+<script src="js/blatt.js?v=2026-11-15.0030"></script>
+<script src="js/abspielen.js?v=2026-11-15.0030"></script>
+<script src="js/speichern.js?v=2026-11-15.0030"></script>
+<script src="js/sprache.js?v=2026-11-15.0030"></script>
+<script src="js/aehnliche.js?v=2026-11-15.0030"></script>
+<script src="js/start.js?v=2026-11-15.0030"></script>
 </body>
 </html>

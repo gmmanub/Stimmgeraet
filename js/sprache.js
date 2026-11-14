@@ -57,6 +57,7 @@ function voxNorm(t){ t=' '+t.toLowerCase().replace(/[!?;:]/g,' , ').replace(/(\d
     [/ (spielweise|modus) (zupfen|gezupft|picking|notes|noten) /g,' SPWPICK '],[/ (spielweise|modus) (strummen|strum|strummen plus|strum plus|mit melodie|melodie) (plus melodie|mit melodie|melodie)? ?/g,(m,a,b,c)=>/melodie|plus/.test(b+' '+(c||''))?' SPWMEL ':' SPWSTRUM '],
     [/ metronom (an|ein|einschalten|starten) /g,' METAN '],[/ metronom (aus|ausschalten|stoppen) /g,' METAUS '],
     [/ (speichern|speicher|abspeichern|sichern) /g,' SPEICHERN '],[/ (hilfe|bedienhilfe|sprachbefehle|was kann ich sagen|was kann ich hier sagen|befehle zeigen|welche befehle gibt es) /g,' HILFE '],
+    [/ (ein )?(neues|neuen) (stück|lied|song)( anlegen| anfangen| starten| beginnen| machen)? /g,' NEUSTUECK '],[/ (die )?(stücke|stückliste|lieder|songs)( zeigen| öffnen| anzeigen)? /g,' STUECKE '],[/ (anderes )?(stück|lied|song) (öffnen|wechseln) /g,' STUECKE '],
     [/ (die )?(letzte|vorige|alte|gesicherte) sitzung (wiederherstellen|WIEDERHOL|laden|zurückholen|holen) /g,' NFRESTORE '],[/ sitzung (wiederherstellen|WIEDERHOL) /g,' NFRESTORE '],
     // mehrfach Rückgängig: „dreimal rückgängig“, „letzten Schritt zurück“
     [/ (zwei|zwo|drei|vier|fünf|sechs|sieben|acht|neun|zehn)mal /g,(m,a)=>' '+(NUMW[a]||2)+' x '],[/ (\d+) ?mal (RÜCKGÄNGIG|rückgängig) /g,' $1 x $2 '],[/ (einen |den letzten |letzten )?schritt zurück /g,' RÜCKGÄNGIG '],
@@ -229,6 +230,8 @@ function voxExtra(t,P,cur,nb){
   if(/MET(AN|AUS)/.test(t)){ const on=/METAN/.test(t); if(!!metCfg().on!==on) metSet('on',on); return {ok:1,txt:on?'Metronom an ('+metCfg().bpm+' BPM)':'Metronom aus',nosnap:1}; }
   if(/SPEICHERN/.test(t)){ $('#ccap').click(); return {ok:1,txt:'Speichern',nosnap:1}; }
   if(/HILFE/.test(t)){ openHelp(); return {ok:1,txt:'Bedienhilfe',nosnap:1}; }
+  if(/NEUSTUECK/.test(t)){ KS.neu(); return {ok:1,txt:tx('sprache.neuesStueck'),nosnap:1}; }
+  if(/STUECKE/.test(t)){ KS.list(); return {ok:1,txt:tx('sprache.stuecke'),nosnap:1}; }
   if(/NFRESTORE/.test(t)){ nfRestoreMenu(); return {ok:1,txt:'Letzte Sitzung …',nosnap:1}; }
   return null; }
 function voxDo(t){ const nb=(sheetBars()[0]||{g:{beats:4}}).g.beats, P=voxPos(t), cur=ED.ev||(CH.sel.size===1?[...CH.sel][0]:null);
@@ -295,7 +298,7 @@ function voxRun(alts){ let best=null; const edm0=CH.edm, sel0=CH.sel.size>0;
   const ab=alts.find(a=>ABLAUF_RE.test(a)&&!playish(a)); if(ab){ const n0=UNDO.length, r=ablaufCmd(ab); VOX.snaps=Math.max(0,UNDO.length-n0); undoUI();
     if(VOXLOG.length<500) VOXLOG.push({when:new Date().toISOString(),heard:alts.slice(0,3),used:ab,norm:['ablauf'],done:r.ok?[r.txt]:[],bad:r.ok?[]:[r.txt],steps:VOX.snaps});
     voxMsg((r.ok?'Verstanden: ':'')+r.txt+(r.ok?'':' · gehört: „'+ab+'“'),VOX.snaps>0); return; }
-  const isCmd=x=>/takt|LÖSCH|KOPIER|VERSCHIEB|MARKIER|RÜCKGÄNGIG|WIEDERHOL|MARKWEG|CHKWEG|ALLES|PLAY|STOPP|TEMPOX|LOOP|HINW|AUSRICHT|EINFUEG|EDITAN|EDITAUS|GEHZU|ZOOM|SPW|MET(AN|AUS)|SPEICHERN|HILFE|NFRESTORE|früher|später|S\d/.test(x);
+  const isCmd=x=>/takt|LÖSCH|KOPIER|VERSCHIEB|MARKIER|RÜCKGÄNGIG|WIEDERHOL|MARKWEG|CHKWEG|ALLES|PLAY|STOPP|TEMPOX|LOOP|HINW|AUSRICHT|EINFUEG|EDITAN|EDITAUS|GEHZU|ZOOM|SPW|MET(AN|AUS)|SPEICHERN|HILFE|NFRESTORE|STUECKE|NEUSTUECK|früher|später|S\d/.test(x);
   for(const raw of alts){ const P0=voxNorm(raw).split(/ (?:und dann|danach|dann) /), parts=[]; P0.forEach(x=>{ if(parts.length&&!isCmd(x)) parts[parts.length-1]+=' , '+x; else parts.push(x); }); const sim=[];
     // Trockenlauf geht nicht ohne Seiteneffekte – nimm die erste Variante, deren erster Teil erkannt wird
     best={raw,parts}; if(parts.some(x=>/takt|LÖSCH|KOPIER|VERSCHIEB|MARKIER|RÜCKGÄNGIG|WIEDERHOL|S\d|bund|slide|hammeron|pulloff|anschlag|moll|dur|MARKWEG|ALLESIM/.test(x))) break; }

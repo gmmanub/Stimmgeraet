@@ -97,7 +97,7 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .cmenu .dng,.cedg .dng{color:var(--danger)}
 #chords>.cbody{flex:1 1 auto}.cbody{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column}
 .cbody>*{flex-shrink:0}
-.cstat{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:2px 14px 6px;min-height:28px;font-size:13px;color:var(--soft2)}
+.cstat{display:flex;flex-wrap:nowrap;align-items:center;gap:6px 10px;padding:2px 14px 6px;min-height:28px;font-size:13px;color:var(--soft2)}
 .cstat .banner{margin:0;padding:0;border:none;font-size:13px;color:var(--soft)}
 .cstat .banner.on{display:inline}
 .cstat .banner.on+#cstat{display:none}
@@ -192,8 +192,8 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 #cmet.b1{animation:mb1 .18s ease-out}
 @keyframes mb0{from{background:color-mix(in oklab,var(--acc) 55%,var(--panel))}to{background:var(--panel)}}
 @keyframes mb1{from{background:color-mix(in oklab,var(--acc) 25%,var(--panel))}to{background:var(--panel)}}
-#msheet,#hsheet,#ssheet{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.55);display:none;align-items:flex-end}
-#msheet.on,#hsheet.on,#ssheet.on{display:flex}
+#msheet,#hsheet,#ssheet,#ksheet,#nsheet{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.55);display:none;align-items:flex-end}
+#msheet.on,#hsheet.on,#ssheet.on,#ksheet.on,#nsheet.on{display:flex}
 .hlist{display:flex;flex-direction:column;gap:10px;padding-left:18px;font-size:14px;line-height:1.45;color:var(--text)}
 .hlist b{font-weight:500}
 .mbig{display:flex;align-items:center;justify-content:center;gap:14px}
@@ -305,3 +305,28 @@ html.crec #newver,html.ced #newver{display:none!important}
 
 #ccap.dirty svg{stroke:var(--acc)}
 #slist button{width:100%;text-align:left;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:14px}
+
+/* Stücke (15.11.): Name rechts in der Statuszeile, feste Breite (4 Zeichen + …), Antippen = Stücke-Fenster */
+.cstat .banner,#cstat{flex:1 1 auto;min-width:0}
+.csong{flex:none;margin-left:auto;width:auto;min-width:44px;height:28px;padding:0 10px;border:1px solid var(--line);border-radius:9px;background:transparent;color:var(--text);font-size:13px;white-space:nowrap}
+.csong.none{color:var(--muted)}
+#nsheet{z-index:12}
+#nsheet .sheet{gap:12px}
+#nIn{width:100%;height:46px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--text);padding:0 12px;font-size:16px;font-family:inherit}
+.nerr{min-height:18px;font-size:13px;color:var(--hint)}
+.nbtns{display:flex;gap:8px;justify-content:flex-end}
+#ksheet .sheet{gap:12px}
+#kNeu{align-self:flex-start}
+#klist{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+.krow{display:flex;gap:6px;align-items:center}
+.kopen{flex:1;min-width:0;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:15px;line-height:1.35;overflow-wrap:anywhere}
+.kopen.cur{border-color:var(--acc)}
+.kopen small{display:block;color:var(--muted);font-size:12px}
+.kcur{color:var(--muted);font-size:13px}
+.kinfo{font-size:12px;color:var(--muted)}
+.mini.acc{background:var(--acc);color:var(--bg);border-color:transparent}
+#ksheet .mini,#nsheet .mini{min-height:42px;padding:0 16px;font-size:14px}
+.csong{align-self:flex-start;width:68px;min-width:0;padding:0 6px;overflow:hidden;text-overflow:ellipsis}
+/* Namensfenster oben, damit die Handy-Tastatur es nicht verdeckt */
+#nsheet{align-items:flex-start}
+#nsheet .sheet{border-radius:0 0 20px 20px;border-bottom:1px solid var(--line);border-top:0;padding-top:calc(16px + env(safe-area-inset-top))}
