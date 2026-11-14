@@ -47,6 +47,7 @@ Die Arbeitsregeln (Freigabe, Umgang mit unklaren Ansagen, Prüfsatz, Hochladen, 
 - **Bildschirm bleibt an**, solange ein Werkzeug aktiv ist (Wake Lock).
 - **Mikrofon nur bei Bedarf:** Im Menü ist es immer aus. Sobald die App nicht sichtbar ist (App-Wechsel, Bildschirm aus), wird es sofort freigegeben. Wird ein Werkzeug geschlossen, während das Mikro noch startet, wird es gleich wieder freigegeben.
 - **Mikrofon:** Rauschunterdrückung, Echo- und Pegelautomatik aus.
+- **Mikrofon nie fest verdrahten (Manu 14.11.):** Eingang nicht fest auf das Handymikro bauen (keine feste Geräte-Kennung, Mono-Kanal sauber abfangen, Abtastrate nicht annehmen), damit später ein externes Mikro/Interface am USB-C-Anschluss gewählt werden kann (Roadmap B6).
 - **Einstellungen werden lokal gespeichert** (localStorage).
 
 ## 4. Startbildschirm
@@ -359,6 +360,8 @@ Stand: 14.11.2026 (abends: Beat-Modul E neu), abgestimmt im Roadmap-Chat. Dieser
 4b. Vorstufe vorgezogen (Akkord-Chat): **„Mitschnitt laden“**, Datei schon als Lied → Spuren mit Kennung, Besitzer und Änderungsstand, dazu Sprachprotokoll. Neu im BPM-Fenster: Metronom für die nächste Aufnahme; aus = folgt dem erkannten Tempo.
 5. ✅ **Datensicherung** (Datei über „Teilen“, seit 13.11. 17:45).
    - **Als Nächstes dazu (Manu 14.11.): automatische Sicherung in ein eigenes privates Repo** `gmmanub/gitarre-daten` (nicht das Test-Repo – das ist der Prüfsatz). GitHub-Zugangsschlüssel nur für dieses Repo, mit Ablaufdatum (z. B. 1 Jahr, App erinnert vorher), nur lokal im Browser eingegeben, nie ins öffentliche App-Repo. **Hochladen automatisch beim ersten Stopp am Tag** (Web-App läuft nicht im Hintergrund), jede Sicherung als Version im Repo. **Laden nur auf Knopfdruck** oder als Angebot, wenn ein Gerät noch leer ist – nie automatisch überschreiben. Erst nur Einstellungen und Gelerntes, Aufnahmen später bewusst einzeln. Dasselbe Repo später für Handy ↔ Laptop (B1a). Repo und Schlüssel legt Manu an, wenn der Punkt drankommt (Claude erklärt Schritt für Schritt).
+
+6. **Externes Mikro wählbar (Manu 14.11.; erst nach dem Kauf):** Eingang in den Einstellungen wählen (USB-C-Mikro oder Interface, Wahl wird gemerkt); **Pegelprüfung** („einmal laut spielen“), weil die Erkennungsschwellen auf das Handymikro abgestimmt sind; **zweiter Prüfsatz** mit dem neuen Mikro, beide Mikros getrennt messen, nur hochladen, was insgesamt besser ist. Mono-Kanal und Abtastrate sauber behandeln. Watchouts: USB-C ist dann belegt → Kopfhörer per Bluetooth (150–300 ms, Kalibrierung siehe D) oder Interface mit Kopfhörerausgang; **kein Bluetooth-Mikro** (Telefonmodus). Aufwand geschätzt leicht bis mittel, am S24 ungetestet. Regel dazu in Abschnitt 3.
 
 ### C · Timeline-Bearbeitung
 - Akkorde als feste Anker; Einzeltöne dazwischen werden beim Verschieben proportional gestaucht/gedehnt und rasten ein. Absicherungen: Originalpositionen merken, Akkord stoppt am Nachbarakkord, Notenlängen mitskalieren, von Hand korrigierte Töne bleiben fix, Vorschau beim Ziehen.
