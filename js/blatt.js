@@ -479,7 +479,7 @@ function chordsUI(){
   $('#ctempoInfo').textContent=g?`${g.beats}/4 · ≈ ${bpm} BPM${g.auto?' · automatisch erkannt':''}`:'Noch kein Takt erkannt';
   $('#chalf').classList.toggle('soon',!g); $('#cdouble').classList.toggle('soon',!g);
   $('#ckapo').classList.add('soon');
-  const L=CH.mic?[]:pieceChords(), key=L.map(c=>c.k).join(';')+'|'+S.notation+'|'+(CH.bigK||'');
+  const L=CH.mic?[]:pieceChords(), key=L.map(c=>c.k+':'+c.fk).join(';')+'|'+S.notation+'|'+(CH.bigK||'');
   $('#clist').classList.toggle('on',L.length>0);
   if(key!==CH.listKey){ CH.listKey=key;
     $('#cchips').innerHTML=L.map((c,i)=>`<button class="cchip${CH.bigK===c.k?' on':''}" data-k="${c.k.replace(/"/g,'&quot;')}" aria-label="${c.name} groß anzeigen">${diagramSVG({f:c.f,b:c.b})}<span>${c.name}</span></button>`).join('');
