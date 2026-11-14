@@ -299,7 +299,8 @@ Stand: 13.11.2026, abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Que
 3a. **Ansicht „Nur Akkorde“ (Lagerfeuer-Version):** Akkordnamen (wahlweise mit Griffbildern) ohne Tab, bei vorhandenem Liedtext Akkorde über dem Text an der richtigen Silbe; Kapo-Umschalter gilt auch hier. Gleiche Grundlage wie das Akkordschema.
 4. **Akkordschema für den Bassisten als PDF:** Takte mit den klingenden Akkordnamen, kein Tab, kein Notenblatt. Teilen über das Handy.
 4b. Vorstufe vorgezogen (Akkord-Chat): **„Mitschnitt laden“**, Datei schon als Lied → Spuren mit Kennung, Besitzer und Änderungsstand, dazu Sprachprotokoll. Neu im BPM-Fenster: Metronom für die nächste Aufnahme; aus = folgt dem erkannten Tempo.
-5. ✅ **Datensicherung** (Datei über „Teilen“, seit 13.11. 17:45). Später optional: automatisch ins private Repo (GitHub-Zugangsschlüssel nur für dieses Repo).
+5. ✅ **Datensicherung** (Datei über „Teilen“, seit 13.11. 17:45).
+   - **Als Nächstes dazu (Manu 14.11.): automatische Sicherung in ein eigenes privates Repo** `gmmanub/gitarre-daten` (nicht das Test-Repo – das ist der Prüfsatz). GitHub-Zugangsschlüssel nur für dieses Repo, mit Ablaufdatum (z. B. 1 Jahr, App erinnert vorher), nur lokal im Browser eingegeben, nie ins öffentliche App-Repo. **Hochladen automatisch beim ersten Stopp am Tag** (Web-App läuft nicht im Hintergrund), jede Sicherung als Version im Repo. **Laden nur auf Knopfdruck** oder als Angebot, wenn ein Gerät noch leer ist – nie automatisch überschreiben. Erst nur Einstellungen und Gelerntes, Aufnahmen später bewusst einzeln. Dasselbe Repo später für Handy ↔ Laptop (B1a). Repo und Schlüssel legt Manu an, wenn der Punkt drankommt (Claude erklärt Schritt für Schritt).
 
 ### C · Timeline-Bearbeitung
 - Akkorde als feste Anker; Einzeltöne dazwischen werden beim Verschieben proportional gestaucht/gedehnt und rasten ein. Absicherungen: Originalpositionen merken, Akkord stoppt am Nachbarakkord, Notenlängen mitskalieren, von Hand korrigierte Töne bleiben fix, Vorschau beim Ziehen.
@@ -323,6 +324,7 @@ Stand: 13.11.2026, abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Que
 - **iPhone/Safari:** testen und anpassen (Mikro, Teilen, Basic Pitch), wenn die App rund läuft.
 - **Notation wählbar: Tab / Noten / Tab + Noten** (wie Ultimate Guitar). Vorher **alphaTab** prüfen (kostenlose Bibliothek für Tab und Notenschrift mit Cursor, Mixer, Loop) – offen, ob sie mit unseren echten Aufnahmen statt Synthesizer-Klang zusammengeht.
 - Vielleicht: Tempo-Trainer (wird mit jedem Loop etwas schneller). **Nicht:** Griffbrett-Ansicht statt Tab (Manu will Tabs lesen lernen), Song-Bibliothek, Kurse, „Simplify“, Effekte.
+- **Einstellungen aufräumen** (Manu 14.11.): Gruppen „Allgemein / Stimmgerät / Akkorde / Daten & Sicherung“, Stimmgerät-Einstellungen nur dort (heute stehen sie auf der obersten Ebene mit drin), Sicherung unter „Daten & Sicherung“.
 - Alternative Voicings für eine zweite Gitarre, optional in anderen Stimmungen.
 - Schlagzeug-Gestalter (Kick, Snare, HiHat, Muster), Export als WAV.
 - Songwriting-Assistent (regelbasiert in der App; kreative Vorschläge im Chat).
