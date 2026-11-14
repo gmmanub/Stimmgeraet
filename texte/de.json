@@ -1,0 +1,57 @@
+{
+  "_info": "Textsammlung Deutsch (Regel Pflichtenheft Abschnitt 3). Platzhalter: {name} = Wert aus der App; {akk:Em} = Akkord, {sag:Em} = Akkord gesprochen, {saite:B} = Saite gesprochen, {ton:B} = Ton – die App setzt Namen nach B/H ein. **fett** wird fett angezeigt.",
+  "_sprache": "de-DE",
+
+  "hilfe.titel": "Bedienhilfe",
+  "hilfe.schliessen": "Bedienhilfe schließen",
+  "hilfe.liste": [
+    "**Aufnahme** rechts unten starten und stoppen. Nach dem Stopp erkennt die App Takt, Akkorde und Töne.",
+    "**Spielweise** (Strum, Strum+, Notes) gilt ab der nächsten Aufnahme.",
+    "**Antippen** = bearbeiten. Über dem Tab antippen = Akkord eintragen. Leere Saite antippen = Ton eintragen.",
+    "**Lange drücken und ziehen** = verschieben.",
+    "**Zwei Finger** = zoomen. Zurücksetzen oben in der Statuszeile.",
+    "**Akkorde im Stück** antippen = Griff groß ansehen.",
+    "**BPM** antippen = Taktart, Tempo halbieren oder verdoppeln.",
+    "**Edit** = auswählen: Töne, Akkorde, Taktnummern antippen. Dann Kopieren → Einfügen, Verschieben (Ziel im Blatt antippen), ↤ ↦ schieben, Löschen, Ausrichten. Lange auf eine Taktnummer drücken = Edit an und Takt gewählt.",
+    "**Mitschnitt laden** (Menü ⋯): eine gespeicherte Test-WAV öffnen, das Blatt steht wieder da.",
+    "**Play** unten (im Edit-Modus oben neben „Alle“): abspielen ab markierten Takten, sonst ab der Stoppstelle. Der Balken läuft mit, das Blatt scrollt mit. Während Play: in einen Takt tippen = dorthin springen.",
+    "**Play gedrückt halten** = Tempo (langsamer/schneller, die Tonhöhe bleibt) und Loop für die markierten Takte.",
+    "**Taktnummer** steht fett unten am Taktstrich: im Edit-Modus antippen = Takt wählen, sonst lange drücken.",
+    "**Zurück-Taste** schließt nur das Oberste (Fenster, Feld, Edit, Play …). Das Blatt wird im Browser gesichert und lässt sich nach versehentlichem Schließen wiederherstellen.",
+    "**Bernstein gestrichelt** = bitte drüberschauen (antippen nimmt es weg, alle: Menü ⋯ „Markierungen weg“). **Blau gestrichelt** = Vorschlag „auf alle ähnlichen“."
+  ],
+  "hilfe.sprechen.titel": "Sprechen (einmal tippen, sprechen, nochmal tippen)",
+
+  "sprache.akkorde.beispiele": [
+    "„Takt 3 bis 5 markieren“ · „alles markieren“ · „Takt 3 bis zum Ende“ · „Markierung aufheben“ · „keine Markierung mehr“",
+    "„Play“ · „spiel ab Takt 4“ · „Takt 3 bis 5 abspielen“ · „von vorne“ · „spiel Strophe 2“ · „zweiter Durchlauf von Refrain 2“ · „Stopp“",
+    "„Takt 3 bis 5 loopen“ · „Loop aus“ · „langsamer“ · „schneller“ · „Tempo 75 Prozent“ · „halbes Tempo“ · „normales Tempo“",
+    "Ablauf: „Strophe: {sag:G} 6, {sag:Em} 2, mal 3“ · „Refrain: {sag:Asus2} 4, {sag:D/F#} 4 …“ · „Ablauf: Strophe, Refrain“ · „Ablauf aus“ · „Hinweise weg“",
+    "„Takt 4 löschen“ · „Takt 4 Töne löschen“ · „Takt 4, 2 bis 3 löschen“ · „löschen“ (das Markierte) – die App fragt vorher nach",
+    "„Takt 1 bis 4 kopieren nach Takt 9“ · „verschieben nach Takt 12“ · „Takt 1 bis 2 kopieren auf alle ähnlichen“ · „Takt 1 kopieren“ → „einfügen bei Takt 9“",
+    "„Takt 5, 3, {sag:Em}“ · „Takt 7, 1 {sag:D/F#}“ · „Takt 5, 3 bis 6, 1 {sag:Asus2}“",
+    "„Takt 3, 2 und, {saite:B} Bund 3“ · „Takt 4, 1, {saite:B}: 3, Slide 5, 3, 1, Pull-off 0“",
+    "Nach Antippen: „Bund 5“ · „{saite:G}“ · „Slide“ · „Hammer-on“ · „Pull-off“ · „Anschlag“ · „{sag:Em}“",
+    "„nächster Hinweis“ · „Takt 3 ausrichten“ · „Takt 2 einen Schlag später“ · „geh zu Takt 12“ · „Edit an“ · „fertig“",
+    "„Zoom rein / raus / normal“ · „Spielweise Zupfen“ · „Metronom an“ · „speichern“ · „Was kann ich sagen?“ · „letzte Sitzung wiederherstellen“",
+    "„Rückgängig“ · „dreimal rückgängig“ · „Wiederholen“ · mehrere mit „und dann“. Zählzeiten: „2 und“ = 2+, „2 e“ / „2 a“ = Sechzehntel."
+  ],
+
+  "tempo.titel": "Abspielen · Tonhöhe bleibt",
+  "tempo.prozent": "{p} %",
+  "tempo.minus": "5 Prozentpunkte langsamer",
+  "tempo.plus": "5 Prozentpunkte schneller",
+  "tempo.loop.aus": "Loop: {takte}",
+  "tempo.loop.an": "Loop an · {takte}",
+  "tempo.loop.leer": "Loop: erst Takte markieren",
+  "tempo.takte.markiert": "markierte Takte ({b})",
+  "tempo.takte.einer": "Takt {b}",
+  "tempo.hinweis.langsam": "Unter 75 % kann es etwas verwaschen klingen.",
+  "tempo.gesetzt": "Tempo {p}",
+  "tempo.gesetzt.spaeter": "Tempo {p} · gilt beim Abspielen",
+  "tempo.fehler": "Langsamer geht in diesem Browser nicht · spielt mit 100 %",
+  "play.knopf": "Abspielen · gedrückt halten für Tempo und Loop",
+  "play.pause": "Pause",
+  "sprache.loeschen.frage": "{was} löschen?",
+  "sprache.loeschen.nein": "Nichts gelöscht"
+}
