@@ -116,7 +116,8 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 #ckapo,#cedit{flex:0 0 84px}#ctempo{flex:1}
 .fld[aria-pressed="true"],.fld.open,.cpop .on,.cchip.on{border-color:color-mix(in oklab,var(--acc) 65%,var(--line));background:color-mix(in oklab,var(--acc) 15%,var(--panel));color:var(--text)}
 .soon{opacity:.42}
-.cpop{display:none;margin:6px 12px 0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;flex-direction:column;gap:6px}
+.cpop{display:none;position:fixed;left:50%;transform:translateX(-50%);z-index:9;width:min(360px,calc(100vw - 16px));background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px;flex-direction:column;gap:6px;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+#cpDim{display:none;position:fixed;inset:0;z-index:8;background:rgba(0,0,0,.32)}#cpDim.on{display:block}
 .cpop.on{display:flex}
 .cpop button{min-height:40px;border-radius:8px;border:1px solid var(--line);font-size:14px;color:var(--soft)}
 .cpg2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
@@ -125,7 +126,7 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .cpmet{display:flex;align-items:center;gap:8px}.cplab{flex:1;font-size:12px;color:var(--soft2)}
 .cpop .cpsw{min-height:32px;padding:0 14px;font-size:13px}.cpop .cpsw[aria-pressed="true"]{border-color:color-mix(in oklab,var(--acc) 65%,var(--line));color:var(--text)}
 .cpop .cpst{width:48px;height:44px;font-size:20px;flex:none}.cpbpm{flex:1;text-align:center;font-size:13px;color:var(--soft2)}.cpbpm b{font-size:26px;font-weight:500;color:var(--text)}
-.cplayPop{margin:0 12px 6px}
+
 .cpop .opt{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;text-align:left;padding:6px 12px;gap:1px}
 .cpop .opt small{font-size:11px;color:var(--soft2)}
 .clist{padding:0 12px 10px;display:none;flex-direction:column;gap:6px}
@@ -374,6 +375,7 @@ html.crec #newver,html.ced #newver{display:none!important}
       <button id="cview"></button><span id="chelp"></span>
     </div>
   </div>
+  <div id="cpDim"></div>
   <div class="cpop cplayPop" id="cplayPop">
     <button class="opt" data-v="strum">Strummen<small>nur Akkorde</small></button>
     <button class="opt" data-v="melody">Strummen + Melodie<small>Akkorde und Melodietöne</small></button>
@@ -1685,7 +1687,7 @@ function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) me
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
 // =================== Version ===================
-const APP_VERSION='2026-11-14.0130'; let NEWVER=null, NEWVER_X=false;
+const APP_VERSION='2026-11-14.0140'; let NEWVER=null, NEWVER_X=false;
 async function checkVersion(manual){
   const info=$('#verInfo'); if(info) info.textContent='Diese App: '+APP_VERSION;
   try{
@@ -2621,8 +2623,11 @@ $('#calign').addEventListener('click',()=>{ if(!(CH.grids.length&&CH.ev.length))
 
 // =================== Akkord-Ansicht: Felder, Menü, Auswahlfenster, Akkordliste, Edit-Modus ===================
 function cMsg(t){ bpBanner(t,3500); }
-function closeCPops(){ document.querySelectorAll('#chords .cpop.on').forEach(p=>p.classList.remove('on')); document.querySelectorAll('#chords .fld.open,#cplay.open').forEach(b=>b.classList.remove('open')); }
-function toggleCPop(pop,btn){ const on=!$(pop).classList.contains('on'); closeCPops(); closeCMenu(); if(on){ $(pop).classList.add('on'); $(btn).classList.add('open'); } }
+function closeCPops(){ const d=$('#cpDim'); if(d) d.classList.remove('on'); document.querySelectorAll('#chords .cpop.on').forEach(p=>p.classList.remove('on')); document.querySelectorAll('#chords .fld.open,#cplay.open').forEach(b=>b.classList.remove('open')); }
+// Pop-up wie im Bearbeiten-Feld: waagrecht mittig und über das Feld gelegt – oben liegende Felder: Oberkante auf das Feld, unten liegende: Unterkante auf Höhe des Felds
+function toggleCPop(pop,btn){ const on=!$(pop).classList.contains('on'); closeCPops(); closeCMenu(); if(!on) return; const P=$(pop), B=$(btn);
+  P.classList.add('on'); B.classList.add('open'); $('#cpDim').classList.add('on');
+  const r=B.getBoundingClientRect(), h=P.offsetHeight, top=r.top+r.height/2<innerHeight/2?r.top:r.bottom-h; P.style.top=clamp(top,8,innerHeight-h-8)+'px'; }
 function closeCMenu(){ $('#cmenu').classList.remove('on'); $('#cmenuB').setAttribute('aria-expanded','false'); }
 function setEditMode(on){ on=!!on; if(!on&&CH.edm){ resolveSel(); CH.sel.clear(); CH.selBars.clear(); ED.tgt=null; ED.prop=null; $('#cedbar').classList.remove('prop'); }
   CH.edm=on; $('#chords').classList.toggle('edm',on); $('#cedit').setAttribute('aria-pressed',on); if(on){ closeCPops(); closeEdit(); } CH.stripKey=''; alignUI(); edUI(); }
@@ -2733,6 +2738,7 @@ function statusUI(){
 $('#cchips').addEventListener('click',e=>{ const b=e.target.closest('.cchip'); if(!b) return; CH.bigK=CH.bigK===b.dataset.k?null:b.dataset.k; CH.listKey=''; chordsUI(); });
 $('#cbig').addEventListener('click',e=>{ if(e.target.id==='cbigX'){ CH.bigK=null; CH.listKey=''; chordsUI(); } });
 $('#ctempo').addEventListener('click',()=>{ metUI(); toggleCPop('#ctempoPop','#ctempo'); });
+$('#cpDim').addEventListener('click',e=>{ e.stopPropagation(); closeCPops(); });
 $('#cmOn').addEventListener('click',()=>{ metSet('on',!metCfg().on); cMsg(metCfg().on?'Metronom läuft bei der nächsten Aufnahme mit ('+metCfg().bpm+' BPM)':'Kein Metronom · Tempo wird erkannt'); });
 $('#cmMinus').addEventListener('click',()=>metBpm(metCfg().bpm-1)); $('#cmPlus').addEventListener('click',()=>metBpm(metCfg().bpm+1));
 $('#cedit').addEventListener('click',()=>setEditMode(!CH.edm));
