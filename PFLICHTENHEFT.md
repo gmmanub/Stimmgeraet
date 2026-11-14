@@ -22,6 +22,8 @@ Die Arbeitsregeln (Freigabe, Umgang mit unklaren Ansagen, Prüfsatz, Hochladen, 
 
 ## 3. Globale Regeln
 
+- **Neue Texte zentral (ab 14.11.):** neue Texte der Oberfläche nicht mehr fest in den Code schreiben, sondern über eine zentrale Textsammlung (eine Stelle, Schlüssel → Text). Alte Texte bleiben vorerst. Vorbereitung für spätere Sprachpakete (Roadmap F).
+
 - **Kammerton, Stimmung und B/H gelten für die ganze App** (Erkennung, Tab, Abspiel-Klänge, Ansage, Griffbrett-Trainer); Umstellen wirkt sofort überall. Die **Feinstimmung** (Mathematisch/Menschlich/Buzz Feiten, 0–2,3 Cent) gilt nur im Stimmgerät (Manu 14.11.).
 
 - **Notennamen:** Standard „B“ (international). Umschalter B/H in den Einstellungen gilt für die ganze App, auch für Akkorde und spätere Tabs. Bei H heißt B♭ „B“.
@@ -333,6 +335,7 @@ Stand: 13.11.2026, abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Que
 3. **Kapo-Umschalter** für eigene Blätter: Kapo-Bund einstellen, Ansicht „Griff“ (z. B. G bei Kapo 3) ↔ „klingend“ (B♭). Reine Umrechnung, die Erkennung bleibt unberührt.
 3b. **Reinschrift als eigene Ansicht:** wird automatisch aus der Aufnahme-Fassung berechnet (alles auf die nächste saubere Zählzeit, Achtel/Sechzehntel, Vorzieher wie „4 und“ bleiben erhalten – nicht stur auf die 1). Korrigiert wird nur in der normalen Ansicht, die Reinschrift zieht mit. Aufnahme wird **nicht** gelöscht (Play, Bassist, Lernen, spätere Neuauswertung). Grundlage für PDF, Akkordschema und „Nur Akkorde“. Speicher sparen später nur über eigene Option „Audio entfernen“.
 3c. **Knopf „Ansicht“** als Pop-up-Knopf in der Reihe **Kapo | BPM | Edit** (vierter Knopf, zeigt die aktuelle Ansicht): Aufnahme / Reinschrift / Nur Akkorde / (später) Noten; Sprache „Ansicht Reinschrift“. Kommt, sobald es mehr als eine Ansicht gibt. BPM-Knopf dafür schmaler, bei 360 px prüfen.
+3d. **Benennung nach Tonart (Anzeige und Ansage gleich, Manu 14.11.):** Tonart aus den „Akkorden im Stück“ ableiten; Kreuz-Tonarten → C♯/D♯/F♯/G♯/A♯ (gesprochen Cis, Dis, Fis, Gis, Ais), B-Tonarten → D♭/E♭/G♭/A♭/B♭ (Des, Es, Ges, As; B♭ in der B-statt-H-Schreibweise gesprochen **„Bes“**, weil „B“ schon vergeben ist). Mit Einstellung H normales Deutsch (B♭ = „B“, B = „H“). Heute schreibt die App fest C♯, E♭, F♯, A♭, B♭. Erkennung bleibt unberührt.
 3a. **Ansicht „Nur Akkorde“ (Lagerfeuer-Version):** Akkordnamen (wahlweise mit Griffbildern) ohne Tab, bei vorhandenem Liedtext Akkorde über dem Text an der richtigen Silbe; Kapo-Umschalter gilt auch hier. Gleiche Grundlage wie das Akkordschema.
 4. **Akkordschema für den Bassisten als PDF:** Takte mit den klingenden Akkordnamen, kein Tab, kein Notenblatt. Teilen über das Handy.
 4b. Vorstufe vorgezogen (Akkord-Chat): **„Mitschnitt laden“**, Datei schon als Lied → Spuren mit Kennung, Besitzer und Änderungsstand, dazu Sprachprotokoll. Neu im BPM-Fenster: Metronom für die nächste Aufnahme; aus = folgt dem erkannten Tempo.
