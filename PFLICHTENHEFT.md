@@ -23,6 +23,13 @@ Die Arbeitsregeln (Freigabe, Umgang mit unklaren Ansagen, Prüfsatz, Hochladen, 
 ## 3. Globale Regeln
 
 - **Neue Texte zentral (ab 14.11.):** neue Texte der Oberfläche nicht mehr fest in den Code schreiben, sondern über eine zentrale Textsammlung (eine Stelle, Schlüssel → Text). **Pfadfinder-Regel:** Wer eine Stelle der App anfasst, zieht deren Texte gleich mit in die Textsammlung. Vor den Sprachpaketen ein letzter Aufräum-Durchgang mit automatischer Prüfung auf übrig gebliebene feste Texte. Vorbereitung für spätere Sprachpakete (Roadmap F).
+- **Weitere Regeln dazu (Manu 14.11.):**
+  - Textsammlung als **eigene Datei** (z. B. `texte/de.json`), nicht in `index.html`; ein Sprachpaket ist dann eine weitere Datei.
+  - **Keine Notennamen fest in Texten:** Platzhalter wie „Finde ein {Ton} auf der {Saite}“, die App setzt die Namen nach B/H, Tonart und Sprache ein.
+  - **Zahlen nach Sprache formatieren** (122,5 / 122.5) zentral über den Browser.
+  - **Knöpfe wachsen mit** (längere Texte, v. a. Englisch), nichts abschneiden.
+  - **Automatische Prüfung** im Test-Repo zählt übrige feste Texte („noch n feste Texte“).
+  - **Farben nur über zentrale Farbwerte** (Bernstein, Blau gestrichelt …), nie fest im Code – dann passen Day Mode und Farbrad überall.
 
 - **Kammerton, Stimmung und B/H gelten für die ganze App** (Erkennung, Tab, Abspiel-Klänge, Ansage, Griffbrett-Trainer); Umstellen wirkt sofort überall. Die **Feinstimmung** (Mathematisch/Menschlich/Buzz Feiten, 0–2,3 Cent) gilt nur im Stimmgerät (Manu 14.11.).
 
@@ -377,6 +384,7 @@ Stand: 13.11.2026, abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Que
 - Sprache nicht als Akkord erkennen – nur falls es stört (Manu redet beim Spielen nicht).
 
 ### F · Veröffentlichen (ganz später, nur falls die App mit der Band richtig gut läuft – Manu 14.11.)
+- **Sprachen (Manu 14.11.):** Deutsch und Englisch als volle Sprachen. **Französisch:** Oberfläche bleibt englisch, aber **Notennamen Do Ré Mi Fa Sol La Si** (Anzeige, Ansage) und **Sprachbefehle auf Französisch** (Details, wenn es so weit ist).
 - **Sprachpakete Deutsch / Englisch / Französisch:** alle Texte der Oberfläche (heute fest im Code, geschätzt einige hundert) in je eine Sprachdatei. Der größere Teil sind die **Sprachbefehle** (eigene Befehlswörter, Zahlen, Verhörer-Liste und Spracherkennung je Sprache). **Notennamen:** Englisch C D E F G A B, Französisch **Do Ré Mi Fa Sol La Si** – betrifft Anzeige, Ansage und Befehle.
 - **KI-Anleitung zum Kopieren:** aus der App herunterladbarer Text (aus `BEFEHLE.md`) für beliebige KIs: Nutzer erklärt der KI sein Lied, die KI schreibt den Befehlsblock, Nutzer fügt ihn über „abc“ ein. Fremde KIs können Blöcke nicht testen → die ✓/✗-Vorschau ist das Sicherheitsnetz; Die Befehlssprache wird dafür **nicht vereinfacht** (Sprachsteuerung so reich wie nötig, Manu 14.11.); wichtig ist nur, dass sie eindeutig, versioniert und mit vielen Beispielen dokumentiert ist.
 - Vor dem Veröffentlichen prüfen: Lizenzen der Bibliotheken (z. B. Basic Pitch), Datenschutzhinweis (App sammelt keine Daten), Name und Adresse.
