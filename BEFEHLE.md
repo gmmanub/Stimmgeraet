@@ -75,6 +75,20 @@ Takt 1 bis 2 kopieren nach Takt 9
 - **Loop:** `Takt 3 bis 5 loopen` · `Loop Takt 3 bis 5` · `Takt 3 bis 5 in Schleife abspielen` · `spiel Takt 2 bis 4 immer wieder` · `Refrain 1 loopen` · `Loop das Markierte` · `Loop` (= den letzten Loop wieder) · `Loop aus` / `Schleife beenden` (spielt weiter). Pause behält den Loop, Springen außerhalb beendet ihn.
 - Kommt mit dem nächsten Schritt: `langsamer` · `schneller` · `Tempo 75 Prozent`.
 
+## Hinweise, Ausrichten, Schieben, Einfügen
+- `nächster Hinweis` · `vorheriger Hinweis` (springt zur Bernstein-Stelle und öffnet sie).
+- `Takt 3 ausrichten` · `alles ausrichten` · `ausrichten` (das Markierte) · `quantisieren`.
+- `Takt 2 einen Schlag später` · `ein Achtel früher` · `Takt 4 zwei Sechzehntel später` (ohne Stelle: das Markierte bzw. Angetippte).
+- `Takt 1 bis 2 kopieren` (ohne Ziel = Zwischenablage) → `einfügen bei Takt 9` · `einfügen bei Takt 9, 3`.
+
+## Ansicht und Einstellungen
+- `Edit an` · `Edit aus` · `fertig`.
+- `geh zu Takt 12` · `zeig mir Takt 3` (beim Abspielen: dorthin springen).
+- `Zoom rein` · `Zoom raus` · `Zoom normal`.
+- `Spielweise Zupfen` · `Spielweise Strummen` · `Spielweise Strummen mit Melodie`.
+- `Metronom an` · `Metronom aus`.
+- `speichern` · `Hilfe` · `letzte Sitzung wiederherstellen`.
+
 ## Sonstiges
 - `Rückgängig` · `zurück` · `dreimal rückgängig` · `letzten Schritt zurück`.
 - `Wiederholen` (= wiederherstellen; zum erneuten Abspielen: `nochmal abspielen`).

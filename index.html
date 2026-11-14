@@ -353,7 +353,7 @@ html.crec #newver,html.ced #newver{display:none!important}
     <button role="menuitem" id="cmVoice">Sprachbefehle ansehen</button>
     <button role="menuitem" id="cmTest">Test-Mitschnitt<span id="cmTestV"></span></button>
     <button role="menuitem" id="cmChk">Markierungen weg<span id="cmChkN"></span></button>
-    <button role="menuitem" id="cmLoad">Mitschnitt laden</button><input type="file" id="capFile" accept=".wav,audio/wav,audio/x-wav,audio/*" hidden>
+    <button role="menuitem" id="cmLoad">Mitschnitt laden</button><button role="menuitem" id="cmRestore">Letzte Sitzung wiederherstellen</button><input type="file" id="capFile" accept=".wav,audio/wav,audio/x-wav,audio/*" hidden>
     <button role="menuitem" id="cmVer">Neue Version laden</button>
     <button role="menuitem" id="creset" class="dng">Zurücksetzen</button>
   </div>
@@ -1701,7 +1701,7 @@ function metSet(k,v){ const c=metCfg(); c[k]=v; save(); metUI(); if(MET.prev) me
 function metBpm(v){ metSet('bpm',clamp(Math.round(v),30,240)); }
 
 // =================== Version ===================
-const APP_VERSION='2026-11-14.1310'; let NEWVER=null, NEWVER_X=false;
+const APP_VERSION='2026-11-14.1340'; let NEWVER=null, NEWVER_X=false;
 async function checkVersion(manual){
   const info=$('#verInfo'); if(info) info.textContent='Diese App: '+APP_VERSION;
   try{
@@ -2412,14 +2412,14 @@ function sheetSVG(){
   // gleiche Taktbreite innerhalb der Zeile; die letzte Zeile nimmt die Breite der vorigen, wenn sie weniger Takte hat.
   // Ein einzelner, dichter Takt darf bis ein Drittel breiter als der Bildschirm werden (seitlich schieben), darüber wird er zusammengeschoben.
   let wMax=avail;
-  rows.forEach((rw,ri)=>{ if(rw.length===1&&!(ri===rows.length-1&&ri>0&&rows[ri-1].length>1)){ const w=clamp(rw[0].need,avail,avail*(z>1.05?1.33:1)); rw[0].need=w; wMax=Math.max(wMax,w); return; }
+  rows.forEach((rw,ri)=>{ if(rw.length===1&&!(ri===rows.length-1&&ri>0&&rows[ri-1].length>1)){ const w=avail; /* ein Takt steht immer ganz auf dem Bildschirm (Manu 14.11.) */ rw[0].need=w; wMax=Math.max(wMax,w); return; }
     const per=ri===rows.length-1&&ri>0?Math.max(rw.length,rows[ri-1].length):rw.length; rw.forEach(bb=>bb.need=avail/per); });
   const SW=Math.round(vw+wMax-avail);
   const virt=!CH.grids.length, top0=Lb+G+D*.62+8, rowH=Math.round(top0+5*C+D*.7+18), head=virt?26:6, H=head+rows.length*rowH;
   let o=`<svg width="${SW}" height="${H}" viewBox="0 0 ${SW} ${H}" role="img" aria-label="Tablatur als Blatt">`;
   if(virt) o+=`<text x="${left}" y="17" font-size="12" fill="var(--muted)">Kein Takt erkannt · Standardraster 4/4</text>`;
   let barNo=0; const pos=new Map(); // Ereignis -> {x,y0}
-  SHEET.geo=[]; SHEET.w=SW; $('#cstrip').classList.toggle('wide',SW>vw);
+  SHEET.geo=[]; SHEET.geo.nb=(bars[0]&&bars[0].g.beats)||4; SHEET.w=SW; $('#cstrip').classList.toggle('wide',SW>vw);
   rows.forEach((rw,ri)=>{ const y0=head+ri*rowH, top=y0+top0;
     const tot=rw.reduce((a,bb)=>a+bb.need,0), sc=1;
     for(let i=0;i<6;i++) o+=`<line x1="${left}" y1="${top+i*C}" x2="${left+tot*sc}" y2="${top+i*C}" stroke="var(--line)" stroke-width="${strW(i,z)}"/>`;
@@ -2432,7 +2432,7 @@ function sheetSVG(){
       o+=`<rect data-clane="1" data-bar="${bars.indexOf(bb)}" data-x0="${x0+padL}" data-w="${w-padL-padR}" x="${x0}" y="${y0+12}" width="${w}" height="${top-y0-12-C/2}" fill="transparent"/>`;
       for(let s=0;s<6;s++) o+=`<rect data-str="${s}" data-bar="${bars.indexOf(bb)}" data-x0="${x0+padL}" data-w="${w-padL-padR}" x="${x0}" y="${top+(5-s)*C-C/2}" width="${w}" height="${C}" fill="transparent"/>`;
       // Anzeige-Positionen: würde sich etwas überdecken, rückt das Spätere nach rechts (Zeit bleibt gleich)
-      const XS=new Map(), endS=new Array(6).fill(-1e9); let endL=-1e9;
+      const XS=new Map(), endS=new Array(6).fill(x0+1); let endL=-1e9; // Zahlen auf der Eins halten Abstand zum Taktstrich (sonst überdeckt ihr Hintergrund den Strich)
       bb.ev.forEach(e=>{ let x=x0+padL+(e.t-bb.a)/len*(w-padL-padR);
         if(e.type==='note'){ const ww=cw*String(e.f).length; x=Math.max(x,endS[e.s]+gp+ww/2); endS[e.s]=x+ww/2; }
         else { const fr=(CF&&e.f)?e.f:[]; fr.forEach((f,s)=>{ if(f>=0) x=Math.max(x,endS[s]+gp+cw*.82*String(f).length/2); }); x=Math.max(x,endL+gp+lw(e)/2);
@@ -2460,7 +2460,7 @@ function sheetSVG(){
         const xa=x0+(a-bi*nbb)/nbb*w, xb=x0+(b-bi*nbb)/nbb*w; o+=`<rect x="${xa}" y="${y0+4}" width="${xb-xa}" height="${top+5*C-y0}" pointer-events="none" fill="#3E7CC9" fill-opacity="${pr.on?.16:.05}" stroke="#3E7CC9" stroke-opacity="${pr.on?.7:.25}" stroke-dasharray="4 3"/>`; }); }
       // Zählzeichen unter dem Tab (dezent): 1 + 2 + … ; in schmalen Takten nur die Schläge
       { const nb=bb.g.beats, yy=top+5*C+D*.95, fs=Math.max(9,9.5*fz), inner=w-padL-padR, half=inner/(nb*2)>=fs*1.1;
-        for(let k=0;k<nb*2;k++){ if(z<0.7) break; /* rausgezoomt: keine Zählzeichen, nur Taktnummern (Manu 14.11.) */ if(k%2&&!half) continue; o+=`<text x="${x0+padL+k/(nb*2)*inner}" y="${yy}" text-anchor="middle" font-size="${k%2?fs*.9:fs}" fill="var(--muted)" opacity="${k%2?.45:.7}">${k%2?'+':k/2+1}</text>`; }
+        for(let k=0;k<nb*2;k++){ if(z<0.7||inner/nb<fs*1.6) break; /* rausgezoomt bzw. zu eng: keine Zählzeichen, nur Taktnummern (Manu 14.11.) */ if(k%2&&!half) continue; o+=`<text x="${x0+padL+k/(nb*2)*inner}" y="${yy}" text-anchor="middle" font-size="${k%2?fs*.9:fs}" fill="var(--muted)" opacity="${k%2?.45:.7}">${k%2?'+':k/2+1}</text>`; }
           const selB=CH.edm&&CH.selBars.has(bb.a.toFixed(3)); o+=`<text x="${x0+4*z}" y="${yy}" text-anchor="end" font-size="${fs*1.12}" font-weight="700" fill="${selB?'var(--acc)':'var(--soft)'}" pointer-events="none">${barNo}</text>`; }
       { const yb=top+5*C+C*.5+1, hb=y0+rowH+11-yb; nums.push(`<rect data-barno="${bars.indexOf(bb)}" x="${x0-26}" y="${yb}" width="40" height="${hb}" fill="transparent" style="cursor:pointer"/>`); }
       x0+=w; });
@@ -2469,7 +2469,7 @@ function sheetSVG(){
 }
 const SHEET={geo:[],w:0};
 // Höchstzahl Takte pro Zeile aus Breite und Zoom (Layout-Regel: nichts fest auf Handybreite; ≈ 82 px je Takt bei Zoom 100 %)
-function maxPerRow(avail,z){ return clamp(Math.floor((avail||($('#cstrip').clientWidth||360)-28)/(82*(z||1))),1,16); }
+function maxPerRow(avail,z){ if((z||1)>=1.5) return 1; /* stark gezoomt: ein Takt pro Zeile (Manu 14.11.) */ return clamp(Math.floor((avail||($('#cstrip').clientWidth||360)-28)/(82*(z||1))),1,16); }
 const SZ_MIN=0.4, SZ_MAX=1.9;
 function sheetZ(){ return clamp(CH.sz||S.sz||1,SZ_MIN,SZ_MAX); }
 // Saitenstärke: hohe e (oben, i=0) dünn, tiefe E (unten) etwas kräftiger – dezent
@@ -2957,8 +2957,9 @@ function plDraw(t){ const svg=$('#cstrip svg'); let r=svg&&svg.querySelector('#p
   const g=SHEET.geo.find(q=>t>=q.a-1e-3&&t<q.b)||null; if(!g){ if(r) r.remove(); return; }
   if(!r){ r=document.createElementNS('http://www.w3.org/2000/svg','rect'); r.id='plHead'; r.setAttribute('pointer-events','none'); r.setAttribute('rx','1.5'); svg.appendChild(r); }
   const f=clamp((t-g.a)/Math.max(1e-6,g.b-g.a),0,1); let x=g.x0+f*g.w;
-  // letztes Achtel (ab „4 und“): über den Rand zur „1“ des nächsten Takts gleiten (gleiche Zeile), sonst springt der Balken um die Randbreite
-  if(f>7/8){ const nx=SHEET.geo.find(q=>Math.abs(q.a-g.b)<1e-3&&q.y0===g.y0); if(nx){ const xs=g.x0+7/8*g.w; x=xs+(f-7/8)*8*(nx.x0-xs); } } r.setAttribute('x',(x-1.5).toFixed(1)); r.setAttribute('y',g.y0+6); r.setAttribute('width',3); r.setAttribute('height',Math.max(10,g.y1-g.y0-10));
+  // letzter Schlag: sanft über den Rand zur „1“ des nächsten Takts gleiten (Manu 14.11.: „softer“) (gleiche Zeile), sonst springt der Balken um die Randbreite
+  { const nbt=(SHEET.geo.nb||4), f0=1-Math.min(2,nbt/2)/nbt; if(f>f0){ const nx=SHEET.geo.find(q=>Math.abs(q.a-g.b)<1e-3&&q.y0===g.y0); if(nx){ const gap=nx.x0-(g.x0+g.w), u=(f-f0)/(1-f0); x+=gap*u*u*(3-2*u); } } } // weich: Geschwindigkeit steigt und fällt sanft (smoothstep) r.setAttribute('x',(x-1.5).toFixed(1)); r.setAttribute('y',g.y0+6); r.setAttribute('width',3); r.setAttribute('height',Math.max(10,g.y1-g.y0-10));
+  r.setAttribute('x',(x-1.5).toFixed(1)); r.setAttribute('y',g.y0+6); r.setAttribute('width',3); r.setAttribute('height',Math.max(10,g.y1-g.y0-10));
   r.setAttribute('fill','var(--acc)'); r.setAttribute('opacity','.9');
   if(!PL.on) return; if(!PL.follow&&performance.now()-PL.userT>3000) PL.follow=true; if(!PL.follow) return;
   const sc=$('#cbody'), rr=svg.getBoundingClientRect(), k=rr.width/Math.max(1,SHEET.w), y0=rr.top+g.y0*k, y1=rr.top+g.y1*k, br=sc.getBoundingClientRect();
@@ -3027,6 +3028,11 @@ const NF={db:null,sig:'',ksig:'',offer:null,
     UNDO.length=0; REDO.length=0; CH.rowPlan=null; CH.view='sheet'; metFollowGrid(); CH.stripKey=''; CH.key=''; CH.listKey=''; CH.bigK=null; undoUI(); chordsUI(); this.sig=this.blattSig();
     cMsg('Letzte Sitzung wiederhergestellt'+(PL.src.length?' · mit Klang':'')); } };
 setInterval(()=>NF.save(false),4000);
+// Menü ⋯ / Sprache: letzte Sitzung holen (auch wenn der Hinweis in der Statuszeile verdrängt wurde); ersetzt das Blatt nur nach Rückfrage
+async function nfRestoreMenu(){ let b=null; try{ b=await NF.get('blatt'); }catch(e){} if(!b||!b.ev||!b.ev.length) return cMsg('Keine gesicherte Sitzung da');
+  if(CH.mic) return cMsg('Erst die Aufnahme stoppen'); const same=b.ev.length===CH.ev.length&&NF.sig===NF.blattSig(); if(same) return cMsg('Das ist schon die letzte Sitzung');
+  if(CH.ev.length&&!confirm('Aktuelles Blatt durch die letzte Sitzung ersetzen?')) return; NF.offer=b; await NF.restore(); }
+$('#cmRestore').addEventListener('click',nfRestoreMenu);
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') NF.save(true); });
 // =================== Sprechen: feste Befehle, keine KI (Chrome-Spracherkennung de-DE) ===================
 // Knopf gedrückt halten, sprechen, loslassen. Jeder Befehl ist ein Rückgängig-Schritt, mehrere mit „und dann“.
@@ -3077,6 +3083,17 @@ function voxNorm(t){ t=' '+t.toLowerCase().replace(/[!?;:]/g,' , ').replace(/(\d
     [/ (stopp|stop|stoppe|stoppen|stoppt|pause|pausiere|pausieren|halt|anhalten|halte an|halt an|aufhören|hör auf) /g,' STOPP '],
     [/ (in (der |einer )?(schleife|dauerschleife)|dauerschleife|schleife|endlos|immer wieder|im kreis|loopen|loope|loop|lupe|lup|luup|lub) /g,' LOOP '],
     [/ (langsamer|schneller|halbes tempo|normales tempo|volles tempo|tempo \d+( prozent)?) /g,' TEMPOX '],
+    // Weitere Befehle (14.11., „was ganz offensichtlich fehlt“): Hinweise, Ausrichten, früher/später, Einfügen, Edit, Springen, Zoom, Spielweise, Metronom, Speichern, Hilfe, Sitzung
+    [/ (zum |zur )?(nächster|nächste|nächsten|nächstes) (hinweis|hinweise|markierung|stelle|bernstein) /g,' HINWNEXT '],[/ (zum |zur )?(vorheriger|vorherige|vorherigen|voriger|vorige|vorigen) (hinweis|markierung|stelle|bernstein) /g,' HINWPREV '],
+    [/ (gerade VERSCHIEB|ausrichten|ausricht|ausgerichtet|richte aus|richt aus|richte|quantisieren|quantisiere|einrasten) /g,' AUSRICHT '],
+    [/ (einfügen|einfüg|füge ein|füg ein|paste|reinkopieren|einsetzen) /g,' EINFUEG '],
+    [/ (edit|editmodus|edit modus|bearbeitungsmodus) (an|ein|einschalten|starten|öffnen) /g,' EDITAN '],[/ (edit|editmodus|edit modus|bearbeitungsmodus) (aus|ausschalten|beenden|schließen|zu) /g,' EDITAUS '],[/ (fertig|erledigt) /g,' EDITAUS '],
+    [/ (geh|gehe|spring|springe|zeig|zeige|scroll|scrolle|zeig mir) (mir )?(zu|zum|nach|auf|an) (den )?takt /g,' GEHZU takt '],
+    [/ (zoom|zoome|zoomen) (rein|hinein|ran|größer)|vergrößern|vergrößere /g,' ZOOMIN '],[/ (zoom|zoome|zoomen) (raus|heraus|weg|kleiner)|verkleinern|verkleinere /g,' ZOOMOUT '],[/ (zoom|zoome|zoomen) (anschlag|zurück|zurücksetzen|100|standard) /g,' ZOOMNORM '],
+    [/ (spielweise|modus) (zupfen|gezupft|picking|notes|noten) /g,' SPWPICK '],[/ (spielweise|modus) (strummen|strum|strummen plus|strum plus|mit melodie|melodie) (plus melodie|mit melodie|melodie)? ?/g,(m,a,b,c)=>/melodie|plus/.test(b+' '+(c||''))?' SPWMEL ':' SPWSTRUM '],
+    [/ metronom (an|ein|einschalten|starten) /g,' METAN '],[/ metronom (aus|ausschalten|stoppen) /g,' METAUS '],
+    [/ (speichern|speicher|abspeichern|sichern) /g,' SPEICHERN '],[/ (hilfe|bedienhilfe|sprachbefehle|was kann ich sagen|befehle zeigen) /g,' HILFE '],
+    [/ (die )?(letzte|vorige|alte|gesicherte) sitzung (wiederherstellen|WIEDERHOL|laden|zurückholen|holen) /g,' NFRESTORE '],[/ sitzung (wiederherstellen|WIEDERHOL) /g,' NFRESTORE '],
     // mehrfach Rückgängig: „dreimal rückgängig“, „letzten Schritt zurück“
     [/ (zwei|zwo|drei|vier|fünf|sechs|sieben|acht|neun|zehn)mal /g,(m,a)=>' '+(NUMW[a]||2)+' x '],[/ (\d+) ?mal (RÜCKGÄNGIG|rückgängig) /g,' $1 x $2 '],[/ (einen |den letzten |letzten )?schritt zurück /g,' RÜCKGÄNGIG '],
     // Füllwörter
@@ -3222,9 +3239,36 @@ function voxPart(t){ let k=null,name=null; for(const [key,nm,re] of TEILW){ if(n
     if(pass<1||pass>ps.length) return {err:lab+' hat '+(ps.length||1)+(ps.length===1||!ps.length?' Durchlauf':' Durchläufe')};
     const p0=P.find(x=>x.abPass===ps[pass-1]), p1=P.find(x=>x.abPass===ps[pass]); a=barA(p0.t); if(p1) e=barA(p1.t); txt=lab+', '+pass+'. Durchlauf'; }
   return {a,e,txt}; }
+// Weitere Befehle, jeweils dieselbe Funktion wie der Knopf
+function voxExtra(t,P,cur,nb){
+  if(/HINW(NEXT|PREV)/.test(t)){ const L=CH.ev.filter(e=>e.chk).sort((a,b)=>a.t-b.t); if(!L.length) return {ok:1,txt:'Keine Hinweise (mehr) da',nosnap:1};
+    const ref=CH.hintT??-1, nx=/NEXT/.test(t)?(L.find(e=>e.t>ref+1e-3)||L[0]):([...L].reverse().find(e=>e.t<ref-1e-3)||L[L.length-1]); const why=nx.chkWhy||'';
+    CH.hintT=nx.t; if(CH.edm) setEditMode(false); openEdit(nx); const k=sheetBars().findIndex(b=>nx.t>=b.a-1e-3&&nx.t<b.b); return {ok:1,txt:'Hinweis in Takt '+(k+1)+(why?' · '+why:'')+' · noch '+(L.length-1),nosnap:1}; }
+  if(/AUSRICHT/.test(t)){ if(P&&P.bars) markBars(P.bars); else if(/ALLES/.test(t)){ if(CH.edm) setEditMode(false); } $('#calign').click(); return {ok:1,txt:(P&&P.bars?P.txt:CH.sel.size?'Markiertes':'Ganzes Stück')+' ausgerichtet',nosnap:1}; }
+  const fm=/(?:(\d+|einen|ein|eine) )?(schlag|schläge|viertel|achtel|sechzehntel|rasterschritt|rasterschritte|schritt|schritte)? ?(früher|später)(?: |$)/.exec(t);
+  if(fm&&(fm[2]||fm[1]||CH.sel.size||cur)){ const n=fm[1]&&/\d/.test(fm[1])?+fm[1]:1, u=fm[2]||'schritt', beats=/schlag|schläge|viertel/.test(u)?1:/achtel/.test(u)?0.5:/sechzehntel/.test(u)?0.25:1/gridDiv(), st=1/gridDiv();
+    P=voxPos(t.replace(fm[0],' ')); // „Takt 4 zwei Sechzehntel später“: die 2 ist die Menge, keine Zählzeit
+    if(P&&P.bars) markBars(P.bars); else if(P&&P.pos!=null){ const L=P.end!=null?rangeEv(P.pos,P.end):rangeEv(P.pos-0.25,P.pos+0.25); if(L.length){ setEditMode(true); CH.sel.clear(); CH.selBars.clear(); L.forEach(e=>CH.sel.add(e)); edUI(); } }
+    else if(!CH.sel.size&&cur){ const c=cur; closeEdit(); setEditMode(true); CH.sel.clear(); CH.sel.add(c); edUI(); }
+    if(!CH.sel.size) return {ok:0,txt:'Was soll ich schieben? Erst antippen oder markieren'};
+    const d=(fm[3]==='früher'?-1:1)*n*beats/st; nudgeSel(d); return {ok:1,txt:(n>1?n+' ':'')+({schlag:'Schlag',schläge:'Schläge',viertel:'Viertel',achtel:'Achtel',sechzehntel:'Sechzehntel'}[u]||'Rasterschritt')+(n>1&&/schritt/.test(u)?'e':'')+' '+fm[3],nosnap:1}; }
+  if(/EINFUEG/.test(t)){ if(!CLIP.items) return {ok:0,txt:'Erst kopieren („Takt 1 bis 2 kopieren“)'}; const tg=/takt (\d+)(?: ?,? (\d+[+ea]?))?/.exec(t); if(!tg) return {ok:0,txt:'Wohin? „einfügen bei Takt 9“'};
+    let tp=(+tg[1]-1)*nb; if(tg[2]){ const b=voxBeat(tg[2]); if(b!=null) tp+=b; } setEditMode(true); const r=placePos('paste',tp); return {ok:!!r,txt:r||'Nichts eingefügt'}; }
+  if(/EDITAN/.test(t)){ setEditMode(true); return {ok:1,txt:'Edit an',nosnap:1}; }
+  if(/EDITAUS/.test(t)){ if(CH.edm) $('#cedDone').click(); closeEdit(); return {ok:1,txt:'Edit aus',nosnap:1}; }
+  if(/GEHZU/.test(t)){ const B=sheetBars(); if(!(P&&(P.bars||P.bar!=null))) return {ok:0,txt:'Zu welchem Takt?'}; const k=P.bars?P.bars[0]:P.bar; if(!B[k]) return {ok:0,txt:'Takt '+(k+1)+' gibt es nicht'};
+    if(PL.on){ plSeek(B[k].a); return {ok:1,txt:'Ab Takt '+(k+1),nosnap:1}; } const el=document.querySelector(`#cstrip [data-barno="${k}"]`); if(el) el.scrollIntoView({block:'center',behavior:'smooth'}); return {ok:1,txt:'Takt '+(k+1),nosnap:1}; }
+  if(/ZOOM(IN|OUT|NORM)/.test(t)){ const z=/ZOOMNORM/.test(t)?1:sheetZ()*(/ZOOMIN/.test(t)?1.25:0.8); setSheetZ(z); return {ok:1,txt:'Zoom '+Math.round(sheetZ()*100)+' %',nosnap:1}; }
+  if(/SPW(PICK|MEL|STRUM)/.test(t)){ S.play=/PICK/.test(t)?'pick':/MEL/.test(t)?'melody':'strum'; save(); playUI(); return {ok:1,txt:'Spielweise '+PLAYN[playMode()]+' · gilt ab der nächsten Aufnahme',nosnap:1}; }
+  if(/MET(AN|AUS)/.test(t)){ const on=/METAN/.test(t); if(!!metCfg().on!==on) metSet('on',on); return {ok:1,txt:on?'Metronom an ('+metCfg().bpm+' BPM)':'Metronom aus',nosnap:1}; }
+  if(/SPEICHERN/.test(t)){ $('#ccap').click(); return {ok:1,txt:'Speichern',nosnap:1}; }
+  if(/HILFE/.test(t)){ $('#hsheet').classList.add('on'); return {ok:1,txt:'Bedienhilfe',nosnap:1}; }
+  if(/NFRESTORE/.test(t)){ nfRestoreMenu(); return {ok:1,txt:'Letzte Sitzung …',nosnap:1}; }
+  return null; }
 function voxDo(t){ const nb=(sheetBars()[0]||{g:{beats:4}}).g.beats, P=voxPos(t), cur=ED.ev||(CH.sel.size===1?[...CH.sel][0]:null);
   const strM=/ ?S(\d) /.exec(' '+t+' '), str=strM?+strM[1]:null;
   if(/PLAY|STOPP|TEMPOX|LOOP/.test(t)) return voxPlay(t);
+  { const xr=voxExtra(t,P,cur,nb); if(xr) return xr; }
   if(/RÜCKGÄNGIG/.test(t)||/^zurück\b/.test(t)){ const m=/(\d+) (?:x )?RÜCKGÄNGIG/.exec(t), n=Math.min(20,m?+m[1]:1); let k=0; for(;k<n&&UNDO.length;k++) $('#cundo').click(); return {ok:1,txt:k>1?k+' Schritte rückgängig':(k?'Rückgängig':'Nichts zum Zurücknehmen'),nosnap:1}; }
   if(/WIEDERHOL/.test(t)){ $('#credo').click(); return {ok:1,txt:'Wiederholt',nosnap:1}; }
   if(/CHKWEG/.test(t)){ const n=CH.ev.filter(e=>e.chk).length; if(!n) return {ok:1,txt:'Keine Hinweise da',nosnap:1}; $('#cmChk').click(); return {ok:1,txt:n+(n>1?' Hinweise':' Hinweis')+' entfernt',nosnap:1}; }
@@ -3244,6 +3288,7 @@ function voxDo(t){ const nb=(sheetBars()[0]||{g:{beats:4}}).g.beats, P=voxPos(t)
     if(Pz&&Pz.bars) markBars(Pz.bars); else if(Pz&&Pz.pos!=null){ let L=(Pz.end!=null?rangeEv(Pz.pos,Pz.end):rangeEv(Pz.pos-0.25,Pz.pos+0.25)); if(onlyCh) L=L.filter(e=>e.type!=='note'); else if(str!=null) L=L.filter(e=>e.type==='note'&&e.s===str); setEditMode(true); CH.sel.clear(); CH.selBars.clear(); L.forEach(e=>CH.sel.add(e)); edUI(); }
     if(!CH.sel.size) return {ok:0,txt:Pz&&Pz.pos!=null?'Bei '+Pz.txt+' liegt '+(onlyCh?'kein Akkord':str!=null?'nichts auf der '+SN[str]:'nichts'):'Was soll ich '+(mv?'verschieben':'kopieren')+'? Erst markieren'};
     if(sim&&!mv){ $('#cedCopy').click(); const n=simStart(); return {ok:1,txt:n?n+(n>1?' ähnliche Stellen':' ähnliche Stelle')+' gefunden · prüfen und „Übernehmen“':'Keine ähnlichen Stellen gefunden',nosnap:1}; }
+    if(!tm&&!mv){ $('#cedCopy').click(); return {ok:1,txt:'Kopiert · jetzt „einfügen bei Takt …“',nosnap:1}; }
     if(!tm) return {ok:0,txt:'Wohin? „nach Takt …“ oder „auf die 1“'};
     const bars=selIsBars(), a0=selAnchor(); const barI=tm[1]!=null?+tm[1]-1:Math.floor(a0/nb+1e-6); let tp=barI*nb;
     if(tm[2]){ const b=voxBeat(tm[2]); if(b!=null) tp+=b; } else if(!bars){ tp+=a0-Math.floor(a0/nb+1e-6)*nb; }
@@ -3283,7 +3328,7 @@ function voxRun(alts){ let best=null; const edm0=CH.edm, sel0=CH.sel.size>0;
   const ab=alts.find(a=>ABLAUF_RE.test(a)&&!playish(a)); if(ab){ const n0=UNDO.length, r=ablaufCmd(ab); VOX.snaps=Math.max(0,UNDO.length-n0); undoUI();
     if(VOXLOG.length<500) VOXLOG.push({when:new Date().toISOString(),heard:alts.slice(0,3),used:ab,norm:['ablauf'],done:r.ok?[r.txt]:[],bad:r.ok?[]:[r.txt],steps:VOX.snaps});
     voxMsg((r.ok?'Verstanden: ':'')+r.txt+(r.ok?'':' · gehört: „'+ab+'“'),VOX.snaps>0); return; }
-  const isCmd=x=>/takt|LÖSCH|KOPIER|VERSCHIEB|MARKIER|RÜCKGÄNGIG|WIEDERHOL|MARKWEG|CHKWEG|ALLES|PLAY|STOPP|TEMPOX|LOOP|S\d/.test(x);
+  const isCmd=x=>/takt|LÖSCH|KOPIER|VERSCHIEB|MARKIER|RÜCKGÄNGIG|WIEDERHOL|MARKWEG|CHKWEG|ALLES|PLAY|STOPP|TEMPOX|LOOP|HINW|AUSRICHT|EINFUEG|EDITAN|EDITAUS|GEHZU|ZOOM|SPW|MET(AN|AUS)|SPEICHERN|HILFE|NFRESTORE|früher|später|S\d/.test(x);
   for(const raw of alts){ const P0=voxNorm(raw).split(/ (?:und dann|danach|dann) /), parts=[]; P0.forEach(x=>{ if(parts.length&&!isCmd(x)) parts[parts.length-1]+=' , '+x; else parts.push(x); }); const sim=[];
     // Trockenlauf geht nicht ohne Seiteneffekte – nimm die erste Variante, deren erster Teil erkannt wird
     best={raw,parts}; if(parts.some(x=>/takt|LÖSCH|KOPIER|VERSCHIEB|MARKIER|RÜCKGÄNGIG|WIEDERHOL|S\d|bund|slide|hammeron|pulloff|anschlag|moll|dur|MARKWEG|ALLESIM/.test(x))) break; }
