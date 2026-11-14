@@ -97,7 +97,7 @@ function plOpenPop(btn){ txApply($('#cplPop')); plPopUI(); toggleCPop('#cplPop',
 $('#cplMinus').addEventListener('click',()=>plSetRate(plRatePct()-5));
 $('#cplPlus').addEventListener('click',()=>plSetRate(plRatePct()+5));
 $('#cplPop').addEventListener('click',e=>{ const b=e.target.closest('[data-r]'); if(b) plSetRate(+b.dataset.r); });
-$('#cplLoop').addEventListener('click',()=>{ if(PL.loop){ PL.loop=null; if(PL.on) plPlay(plNow(),null); } else { const r=plLoopRange(); if(!r) return; PL.loop={a:r.a,e:r.e,txt:r.txt}; if(PL.on) plPlay(plNow()>=r.a&&plNow()<r.e?plNow():r.a,r.e); } plPopUI(); });
+$('#cplLoop').addEventListener('click',()=>{ if(PL.loop){ PL.loop=null; if(PL.on) plPlay(plNow(),null); } else { const r=plLoopRange(); if(!r) return; PL.loop={a:r.a,e:r.e,txt:r.txt}; if(PL.on) plPlay(r.a,r.e); } plPopUI(); }); // Loop an: sofort vom Loop-Anfang (Manu 14.11.), nicht erst den laufenden Takt zu Ende
 // Gedrückt halten (≈ 0,45 s) öffnet das Pop-up, kurzes Tippen bleibt Play/Pause
 ['#cplayb','#cedPlay'].forEach(id=>{ const b=$(id); let tm=0; b.dataset.lp='';
   b.addEventListener('pointerdown',()=>{ clearTimeout(tm); b.dataset.lp=''; tm=setTimeout(()=>{ b.dataset.lp='1'; if(navigator.vibrate) try{ navigator.vibrate(15); }catch(e){} plOpenPop(id); },450); });
