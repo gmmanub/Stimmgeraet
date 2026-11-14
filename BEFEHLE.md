@@ -35,7 +35,7 @@ Takt 1 bis 2 kopieren nach Takt 9
 - **Teile:** Strophe, Refrain (auch Chorus), Pre-Chorus, Bridge, Intro, Outro, Solo, Zwischenteil, Teil A/B/C.
 - **Reihenfolge:** `Ablauf: Strophe, Refrain, Strophe, Refrain` (aus gemerkten Teilen; `Refrain zweimal` geht auch). Ohne eigene Reihenfolge gelten die Teile in der angesagten Folge.
 - `Ablauf aus` · `Ablauf an`.
-- Der Ablauf wird gemerkt (auch im Mitschnitt) und gleich auf die letzte Aufnahme angewendet. Die Erkennung bestimmt dann nur noch, **wann** gewechselt wird. Ein Durchgang mehr oder weniger ist erlaubt. Unsichere Stellen bekommen die Bernstein-Markierung „bitte drüberschauen“.
+- Der Ablauf wird gemerkt (auch im Mitschnitt) und gleich auf die letzte Aufnahme angewendet. Die Erkennung bestimmt dann nur noch, **wann** gewechselt wird. Der Ablauf ist verbindlich: Spielst du anders, wird die Stelle bernsteinfarben markiert („bitte drüberschauen“), der Ablauf bleibt.
 - Passt der Ablauf nicht zur Aufnahme, bleiben die Akkorde unverändert. Ein halb verstandener Befehl ändert nichts.
 
 ## Auswählen
@@ -79,4 +79,5 @@ Takt 1 bis 2 kopieren nach Takt 9
 - `Wiederholen` (= wiederherstellen; zum erneuten Abspielen: `nochmal abspielen`).
 
 ## Noch nicht in v1 (geplant)
+- **Punch-in:** `ab Takt 12 neu` · `ab Takt 12 neu aufnehmen` (Einzähler mit Klicks direkt vor der Stelle, ab dort ersetzen; kommt mit Version 2).
 - Bestimmter Griff (`Griff x57765`), mehrere Töne gleichzeitig (`zusammen`), Griff halten und einzelne Saiten anschlagen.
