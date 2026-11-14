@@ -192,8 +192,8 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 #cmet.b1{animation:mb1 .18s ease-out}
 @keyframes mb0{from{background:color-mix(in oklab,var(--acc) 55%,var(--panel))}to{background:var(--panel)}}
 @keyframes mb1{from{background:color-mix(in oklab,var(--acc) 25%,var(--panel))}to{background:var(--panel)}}
-#msheet,#hsheet{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.55);display:none;align-items:flex-end}
-#msheet.on,#hsheet.on{display:flex}
+#msheet,#hsheet,#ssheet{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.55);display:none;align-items:flex-end}
+#msheet.on,#hsheet.on,#ssheet.on{display:flex}
 .hlist{display:flex;flex-direction:column;gap:10px;padding-left:18px;font-size:14px;line-height:1.45;color:var(--text)}
 .hlist b{font-weight:500}
 .mbig{display:flex;align-items:center;justify-content:center;gap:14px}
@@ -302,3 +302,6 @@ html.crec #newver,html.ced #newver{display:none!important}
 .row[aria-pressed="true"] .toggle{background:var(--acc)}
 .row[aria-pressed="true"] .toggle::after{transform:translateX(18px);background:var(--bg)}
 @media (prefers-reduced-motion:reduce){.note.pop{animation:none}.launchbtn{transition:none}}
+
+#ccap.dirty svg{stroke:var(--acc)}
+#slist button{width:100%;text-align:left;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:14px}

@@ -109,8 +109,7 @@ function capStart(ctx,src){
 function capFrame(ctx){ if(CAP.on&&CAP.seg) CAP.seg.offset=CH.tNow-ctx.currentTime; }
 function capStop(){ try{ if(CAP.node){CAP.node.disconnect(); CAP.mute.disconnect();} }catch(e){} CAP.node=null; CAP.mute=null; CAP.on=false; CAP.seg=null; capUI(); }
 function capClear(){ CAP.chunks=[]; CAP.n=0; CAP.segs=[]; LOG.length=0; capUI(); }
-function capUI(){ const b=$('#ccap'); if(!b) return; const ok=!!S.capture&&CAP.n>0; b.classList.toggle('off',!ok);
-  b.setAttribute('aria-label',ok?`Test-Mitschnitt speichern (${Math.round(CAP.n/CAP.sr)} s Klang + Tab)`:'Speichern'); }
+function capUI(){ const b=$('#cmCapSave'); if(!b) return; const ok=!!S.capture&&CAP.n>0; b.style.display=ok?'':'none'; if(ok) b.textContent=`Test-Mitschnitt speichern (${Math.round(CAP.n/CAP.sr)} s)`; }
 function tabJSON(){
   const nm=e=>{const p=labelParts(e);return p.root+p.suf;};
   return {app:'Gitarren-App',when:new Date().toISOString(),a4:S.a4,notation:S.notation,tune:CH.eng?+CH.eng.tune.toFixed(3):0,

@@ -135,11 +135,12 @@ const NF={db:null,sig:'',ksig:'',offer:null,
   open(){ if(this.db) return Promise.resolve(this.db); return new Promise((res,rej)=>{ try{ const r=indexedDB.open('gitarre-notfall',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>{ this.db=r.result; res(this.db); }; r.onerror=()=>rej(r.error); }catch(e){ rej(e); } }); },
   async get(k){ const db=await this.open(); return new Promise(res=>{ const q=db.transaction('kv').objectStore('kv').get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>res(null); }); },
   async put(k,v){ const db=await this.open(); return new Promise(res=>{ const tx=db.transaction('kv','readwrite'); tx.objectStore('kv').put(v,k); tx.oncomplete=()=>res(true); tx.onerror=()=>res(false); }); },
+  rec(){ return {when:new Date().toISOString(),ev:CH.ev.map(e=>Object.assign({},e)),grids:CH.grids,onsets:CH.onsets||[],beatCh:CH.beatCh||[],ablauf:S.ablauf||null,ablaufOn:S.ablaufOn!==false,tNow:CH.tNow,song:CH.song||null,play:S.play}; },
   blattSig(){ const e=CH.ev[CH.ev.length-1]; return CH.ev.length+':'+UNDO.length+':'+REDO.length+':'+CH.grids.length+':'+(e?e.t.toFixed(3)+e.key:'')+':'+JSON.stringify(S.ablauf||'').length+':'+PL.src.length; },
   async save(force){ if(!CH.ev.length&&!PL.src.length) return; // leeres Blatt überschreibt keine Sicherung
     if(this.offer){ this.offer=null; const y=$('#nfYes'); if(y) $('#cbanner').classList.remove('on'); } // neu aufgenommen statt wiederhergestellt: die neue Sitzung wird gesichert
     const sig=this.blattSig(); if(!force&&sig===this.sig) return; this.sig=sig;
-    try{ await this.put('blatt',{when:new Date().toISOString(),ev:CH.ev.map(e=>Object.assign({},e)),grids:CH.grids,onsets:CH.onsets||[],beatCh:CH.beatCh||[],ablauf:S.ablauf||null,ablaufOn:S.ablaufOn!==false,tNow:CH.tNow,song:CH.song||null,play:S.play});
+    try{ await this.put('blatt',this.rec());
       const ks=PL.src.map(s=>s.t0.toFixed(3)+':'+s.n).join(','); if(ks!==this.ksig){ this.ksig=ks; await this.put('klang',{sig:ks,src:PL.src.map(s=>{ const x=plSamples(s), q=new Int16Array(x.length); for(let i=0;i<x.length;i++) q[i]=Math.max(-32768,Math.min(32767,Math.round(x[i]*32767))); return {t0:s.t0,sr:s.sr,pcm:q}; })}); } }catch(e){} },
   async check(){ if(CH.ev.length||CH.mic) return; let b=null; try{ b=await this.get('blatt'); }catch(e){} if(!b||!b.ev||!b.ev.length) return;
     this.offer=b; if(S.nfAuto!==false){ await this.restore(); const bn=$('#cbanner'); if(bn.classList.contains('on')){ const n=document.createElement('button'); n.className='mini'; n.id='nfLeer'; n.textContent='Leer starten'; n.style.marginLeft='6px'; n.onclick=()=>$('#creset').click(); bn.appendChild(n); } return; } // Manu 14.11.: automatisch zurückholen (kein Angebot mehr); „Leer starten“ = Reset
@@ -151,7 +152,7 @@ const NF={db:null,sig:'',ksig:'',offer:null,
     if(b.ablauf){ S.ablauf=b.ablauf; S.ablaufOn=b.ablaufOn; } if(b.play) S.play=b.play; save(); try{ playUI(); }catch(e){}
     const tEnd=Math.max(0,...CH.ev.map(e=>e.t),...CH.grids.map(g=>g.end||0)); CH.tNow=Math.max(b.tNow||0,tEnd+0.5); CH.tBase=CH.tNow;
     if(k&&k.src) k.src.forEach(s=>PL.src.push({t0:s.t0,sr:s.sr,n:s.pcm.length,pcm:s.pcm,buf:null})); PL.src.sort((x,y)=>x.t0-y.t0); this.ksig=k?k.sig:'';
-    UNDO.length=0; REDO.length=0; CH.rowPlan=null; CH.view='sheet'; metFollowGrid(); CH.stripKey=''; CH.key=''; CH.listKey=''; CH.bigK=null; undoUI(); chordsUI(); this.sig=this.blattSig();
+    UNDO.length=0; REDO.length=0; CH.rowPlan=null; CH.view='sheet'; metFollowGrid(); CH.stripKey=''; CH.key=''; CH.listKey=''; CH.bigK=null; undoUI(); chordsUI(); this.sig=this.blattSig(); if(typeof SV!=='undefined') SV.saved=this.sig;
     cMsg('Letzte Sitzung wiederhergestellt'+(PL.src.length?' · mit Klang':'')); } };
 setInterval(()=>NF.save(false),4000);
 // Menü ⋯ / Sprache: letzte Sitzung holen (auch wenn der Hinweis in der Statuszeile verdrängt wurde); ersetzt das Blatt nur nach Rückfrage

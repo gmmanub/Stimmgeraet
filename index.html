@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=2026-11-14.2240">
+<link rel="stylesheet" href="css/app.css?v=2026-11-14.2310">
 </head>
 <body>
 
@@ -40,6 +40,7 @@
       <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
     <span class="tspace"></span>
+    <button class="iconbtn flat" id="ccap" aria-label="Speichern"><svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg></button>
     <button class="iconbtn flat" id="cmet" aria-pressed="false" aria-label="Metronom einstellen">
       <svg viewBox="0 0 24 24"><path d="M9.2 3.5h5.6L18.5 20.5h-13z M12 16l5-9.5 M8 16.5h8"/></svg>
     </button>
@@ -54,6 +55,9 @@
     <button role="menuitem" id="cmVoice">Sprachbefehle ansehen</button>
     <button role="menuitem" id="cmTest">Test-Mitschnitt<span id="cmTestV"></span></button>
     <button role="menuitem" id="cmChk">Markierungen weg<span id="cmChkN"></span></button>
+    <button role="menuitem" id="cmSLoad">Session laden</button><input type="file" id="sFile" accept=".json,application/json" hidden>
+    <button role="menuitem" id="cmStaende">Frühere Stände<span id="cmStaendeN"></span></button>
+    <button role="menuitem" id="cmCapSave">Test-Mitschnitt speichern</button>
     <button role="menuitem" id="cmLoad">Mitschnitt laden</button><button role="menuitem" id="cmRestore">Letzte Sitzung wiederherstellen</button><input type="file" id="capFile" accept=".wav,audio/wav,audio/x-wav,audio/*" hidden>
     <button role="menuitem" id="cmVer">Neue Version laden</button>
     <button role="menuitem" id="creset" class="dng">Zurücksetzen</button>
@@ -97,7 +101,7 @@
   </div>
   <div class="cbot" id="cbot">
     <button class="rb lg say soon" id="csay" data-soon="Sprechen" aria-label="Sprechen"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/></svg></button>
-    <button class="rb sm" id="ccap" aria-label="Speichern"><svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg></button>
+    <span class="rb sm" style="visibility:hidden" aria-hidden="true"></span>
     <button class="rb sm soon" id="cplayb" data-soon="Abspielen" aria-label="Abspielen"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></svg></button>
     <button class="rb sm txt" id="cplay" aria-label="Spielweise"></button>
     <span class="ctime" id="ctime"></span>
@@ -219,6 +223,12 @@
     <ul class="hlist" data-tl="sprache.akkorde.beispiele"></ul>
   </div>
 </div>
+<div id="ssheet" role="dialog" aria-modal="true" aria-label="Frühere Stände">
+  <div class="sheet">
+    <div class="sh-head"><h2>Frühere Stände</h2><button class="iconbtn" id="ssClose" aria-label="Schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <ul class="hlist" id="slist" style="list-style:none;padding:0"></ul>
+  </div>
+</div>
 <div id="msheet" role="dialog" aria-modal="true" aria-label="Metronom">
   <div class="sheet">
     <div class="sh-head">
@@ -289,18 +299,19 @@
     </div>
   </div>
 </div>
-<script>const APP_VERSION='2026-11-14.2240';</script>
-<script src="js/grundlagen.js?v=2026-11-14.2240"></script>
-<script src="js/stimmgeraet.js?v=2026-11-14.2240"></script>
-<script src="js/uhr.js?v=2026-11-14.2240"></script>
-<script src="js/erkennung.js?v=2026-11-14.2240"></script>
-<script src="js/sicherung.js?v=2026-11-14.2240"></script>
-<script src="js/mitschnitt.js?v=2026-11-14.2240"></script>
-<script src="js/basic-pitch.js?v=2026-11-14.2240"></script>
-<script src="js/blatt.js?v=2026-11-14.2240"></script>
-<script src="js/abspielen.js?v=2026-11-14.2240"></script>
-<script src="js/sprache.js?v=2026-11-14.2240"></script>
-<script src="js/aehnliche.js?v=2026-11-14.2240"></script>
-<script src="js/start.js?v=2026-11-14.2240"></script>
+<script>const APP_VERSION='2026-11-14.2310';</script>
+<script src="js/grundlagen.js?v=2026-11-14.2310"></script>
+<script src="js/stimmgeraet.js?v=2026-11-14.2310"></script>
+<script src="js/uhr.js?v=2026-11-14.2310"></script>
+<script src="js/erkennung.js?v=2026-11-14.2310"></script>
+<script src="js/sicherung.js?v=2026-11-14.2310"></script>
+<script src="js/mitschnitt.js?v=2026-11-14.2310"></script>
+<script src="js/basic-pitch.js?v=2026-11-14.2310"></script>
+<script src="js/blatt.js?v=2026-11-14.2310"></script>
+<script src="js/abspielen.js?v=2026-11-14.2310"></script>
+<script src="js/speichern.js?v=2026-11-14.2310"></script>
+<script src="js/sprache.js?v=2026-11-14.2310"></script>
+<script src="js/aehnliche.js?v=2026-11-14.2310"></script>
+<script src="js/start.js?v=2026-11-14.2310"></script>
 </body>
 </html>

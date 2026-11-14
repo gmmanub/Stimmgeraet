@@ -365,10 +365,6 @@ function pressEnd(){
 // Ausrichten: Akkorde auf Viertel, Lauf-Töne auf Achtel (mit Rückgängig)
 let ALIGN_UNDO=null, alignT=0;
 function alignUI(){ const b=$('#calign'); if(!b) return; const can=CH.grids.length>0&&CH.ev.length>0; b.classList.toggle('soon',!can); }
-$('#ccap').addEventListener('click',()=>{ if(S.capture&&CAP.n){ capSave(); cMsg('Test-Mitschnitt gespeichert (Klang + Tab)'); NF.save(true); return; }
-  // Speichern sichert das Blatt (Akkorde, Töne, Klang) auch ohne Aufnahme: Änderungen an Akkorden zählen (Manu 14.11.)
-  if(!CH.ev.length&&!PL.src.length) return cMsg('Noch nichts zu sichern · erst aufnehmen oder Akkorde schreiben');
-  NF.save(true).then(()=>cMsg('Blatt gesichert · kommt beim nächsten Öffnen automatisch zurück')); });
 // Spielweise für die neue Ton-Erkennung: Strummen (Anschläge zusammenfassen) oder Zupfen (alle Töne behalten)
 const PLAYN={strum:'Strummen',melody:'Strummen + Melodie',pick:'Zupfen'};
 const PLAYS={strum:'Strum',melody:'Strum+',pick:'Notes'};
@@ -511,7 +507,7 @@ $('#chords').addEventListener('click',e=>{ const b=e.target.closest('[data-soon]
   if(!e.target.closest('.cpop')&&!e.target.closest('.fld')&&!e.target.closest('#cplay')) closeCPops();
   if(!e.target.closest('#cmenu')&&!e.target.closest('#cmenuB')) closeCMenu(); });
 $('#cmenuB').addEventListener('click',()=>{ const on=!$('#cmenu').classList.contains('on'); closeCPops(); $('#cmenu').classList.toggle('on',on); $('#cmenuB').setAttribute('aria-expanded',on); cmenuUI(); });
-function cmenuUI(){ $('#cmTestV').textContent=S.capture?'an':'aus'; }
+function cmenuUI(){ $('#cmTestV').textContent=S.capture?'an':'aus'; $('#cmCapSave').style.display=S.capture&&CAP.n?'':'none'; if(typeof SV!=='undefined') SV.menuUI(); }
 $('#cmenu').addEventListener('click',e=>{ if(e.target.closest('button')) setTimeout(closeCMenu,0); });
 $('#cmSet').addEventListener('click',()=>openSheet());
 function openHelp(){ txApply($('#hsheet')); $('#hsheet').classList.add('on'); }
