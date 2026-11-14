@@ -320,7 +320,7 @@ Oben 15 breite Balken (große Fläche), darunter groß der Ton, darunter Saite u
 
 ## 8. Roadmap
 
-Stand: 13.11.2026, abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Quelle für die Reihenfolge; Details zu laufenden Arbeiten stehen in Abschnitt 7.
+Stand: 14.11.2026 (abends: Beat-Modul E neu), abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Quelle für die Reihenfolge; Details zu laufenden Arbeiten stehen in Abschnitt 7.
 
 ### A · Läuft gerade (Akkord-Chat, Plan „Ordnung“)
 1. ✅ Takterkennung nach dem Stoppen, Blatt-Ansicht, erster Akkord auf der Eins, Verschieben im Blatt, Spielweise in drei Stufen.
@@ -387,12 +387,22 @@ Stand: 13.11.2026, abgestimmt im Roadmap-Chat. Dieser Abschnitt ist die eine Que
   - **Ansage beim Abspielen** (nach Play, Loop, Langsamer): Ton wird digital in exakter Höhe erzeugt (wie MIDI: Tab-Position → Ton → Frequenz nach Kammerton und Stimmung). **Stufe 1:** Ton + kurz gesprochener Name (Sprachausgabe des Handys). **Stufe 2:** „singende“ Stimme ganz digital – 12 Silben (C, Cis … B) einmal per kostenloser Sprachsynthese erzeugen, App verschiebt sie auf die exakte Frequenz (Oktave passend zur Stimmlage); erst nach Hörprobe entscheiden. **Vergleich neutrale Stimme ↔ Manus eigene Stimme** (Silben einmal eingesprochen, Tonhöhe digital) ausprobieren, wenn es so weit ist. **Tonlänge beachten:** Silbe in Anlaut, Vokal und Auslaut zerlegen; bei langen Tönen wird der **Vokal** gehalten („Ciiiis“, nicht „Cisss“), der Auslaut kommt erst am Ende; bei sehr kurzen Tönen ggf. nur Anlaut + kurzer Vokal. Bei Akkorden nur der **Grundton** („G“, „Fis“) plus Akkordklang, kein „Dur/Moll/sus2“ (optional später kurz „Moll“). Schnelle Läufe nur mit „Langsamer“ sinnvoll.
 - **Einstellungen aufräumen** (Manu 14.11.): Gruppen „Allgemein / Stimmgerät / Akkorde / Daten & Sicherung“, Stimmgerät-Einstellungen nur dort (heute stehen sie auf der obersten Ebene mit drin), Sicherung unter „Daten & Sicherung“.
 - Alternative Voicings für eine zweite Gitarre, optional in anderen Stimmungen.
-- Schlagzeug-Gestalter (Kick, Snare, HiHat, Muster), Export als WAV.
+- Schlagzeug-Gestalter: siehe **E · Beat-Modul** (Manu 14.11.).
 - Songwriting-Assistent (regelbasiert in der App; kreative Vorschläge im Chat).
 - Kamera zur Unterstützung (Saite/Bund, Spieltechnik), erst wenn das Hören ausgereizt ist.
 - Installierbare App (PWA) oder APK.
 - Metronom, das sich dem Spieltempo anpasst – nur falls die Takterkennung nach dem Stoppen nicht reicht.
 - Sprache nicht als Akkord erkennen – nur falls es stört (Manu redet beim Spielen nicht).
+
+### E · Beat-Modul (Manu 14.11.; Start frühestens nach Version 2 und Sessions speichern)
+Idee: Drum-Spur zum Gitarren-Track, am gleichen Tempo/Takt, bearbeitbar wie in einer DAW (Mini-Groove-Pad / Akai-Raster). Ohne KI, ohne Kosten.
+1. **Stufe 1 – Raster + Drums:** 16er-Raster zum Draufdrücken, Sounds in der App erzeugt (Kick, Snare, Hi-Hat, Clap; keine Sample-Dateien, keine Lizenz). Läuft im Takt des Metronoms und mit dem Abspielen; Beat ist eine **Spur** der Session (Spurtyp „Beat“).
+2. **Stufe 2 – Mehrere Spuren:** je Beat-Spur ein **Typ** (Kick, Snare, Hat, Tom, Perc; steuert Sound, Farbe, später Vorschläge) plus **frei änderbarer Name**. Stumm/Solo, Kopieren/Einfügen von Takten und Mustern, benannte Muster (Intro, Strophe, Refrain – passend zum Ablauf aus Version 2).
+3. **Stufe 3 – Vorschläge nach Regeln (kein KI-Dienst):** Muster-Vorlagen nach Genre und Taktart; Taktart und Tempo vom Metronom (Tempo aus dem Spiel allein ist wackelig → Metronom oder Antippen); Akkordwechsel aus der Akkorderkennung bestimmen Takte/Abschnitte (Kick auf der Eins, Fill vor dem Wechsel); Spieldichte steuert Dichte (ruhig = Hi-Hat in Vierteln, wild = Achtel). 2–3 Varianten zur Auswahl, danach im Raster änderbar. Vorher am Prüfsatz-Stücken anhören/prüfen.
+4. **Stufe 4 – Eigene Samples und Live-Pads:** Fingertrommeln mit Quantisierung, eigene Samples laden (Eintrag in `LIZENZEN.md`). Zuletzt, wegen Touch-Latenz und Lizenzen.
+- **Watchouts:** (a) **Eine gemeinsame Uhr** für Beat, Metronom, Abspielen und Aufnahme (vorausplanendes Audio-Scheduling, nicht `setTimeout`); Latenz-Kalibrierung wie bei den Spuren (D). (b) **Datenformat vorher festlegen** und mit Formatversion speichern: Auflösung (16tel, Triolen, Swing), Taktarten, Spurtypen; Beats getrennt vom Audio speichern (Teilen mit dem Bassisten, Spur-Updates). (c) Breites Raster, damit es am Laptop passt; Sprachbefehle später („Kick auf Schritt 3“) über die zentrale Sprachsteuerung.
+- **Jetzt billig vorbereiten:** Zeitgeber in „Abspielen“ als wiederverwendbare gemeinsame Taktquelle bauen; Spurliste in „Sessions speichern“ mit Spurtyp „Beat“ vorsehen; Ablauf (Version 2) mit Abschnittsnamen speichern, damit Beat-Muster daran hängen können. Export WAV/MIDI siehe D.
+- Verwandt: Songwriting-Assistent (D).
 
 ### F · Veröffentlichen (ganz später, nur falls die App mit der Band richtig gut läuft – Manu 14.11.)
 - **Sprachen (Manu 14.11.):** Deutsch und Englisch als volle Sprachen. **Französisch:** Oberfläche bleibt englisch, aber **Notennamen Do Ré Mi Fa Sol La Si** (Anzeige, Ansage) und **Sprachbefehle auf Französisch** (Details, wenn es so weit ist).
