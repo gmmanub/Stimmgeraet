@@ -22,7 +22,7 @@ Die Arbeitsregeln (Freigabe, Umgang mit unklaren Ansagen, Prüfsatz, Hochladen, 
 
 ## 3. Globale Regeln
 
-- **Neue Texte zentral (ab 14.11.):** neue Texte der Oberfläche nicht mehr fest in den Code schreiben, sondern über eine zentrale Textsammlung (eine Stelle, Schlüssel → Text). Alte Texte bleiben vorerst. Vorbereitung für spätere Sprachpakete (Roadmap F).
+- **Neue Texte zentral (ab 14.11.):** neue Texte der Oberfläche nicht mehr fest in den Code schreiben, sondern über eine zentrale Textsammlung (eine Stelle, Schlüssel → Text). **Pfadfinder-Regel:** Wer eine Stelle der App anfasst, zieht deren Texte gleich mit in die Textsammlung. Vor den Sprachpaketen ein letzter Aufräum-Durchgang mit automatischer Prüfung auf übrig gebliebene feste Texte. Vorbereitung für spätere Sprachpakete (Roadmap F).
 
 - **Kammerton, Stimmung und B/H gelten für die ganze App** (Erkennung, Tab, Abspiel-Klänge, Ansage, Griffbrett-Trainer); Umstellen wirkt sofort überall. Die **Feinstimmung** (Mathematisch/Menschlich/Buzz Feiten, 0–2,3 Cent) gilt nur im Stimmgerät (Manu 14.11.).
 
