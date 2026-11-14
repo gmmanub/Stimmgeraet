@@ -166,6 +166,7 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .cedbar .clab{font-size:12px}
 .cedtop{display:flex;align-items:center;gap:6px}.cedtop .clab{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cedar{width:52px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-size:18px;color:var(--soft)}
+.cedar.cedall{width:auto;min-width:52px;padding:0 10px;font-size:14px}
 .cedg button.dim{opacity:.42}
 .cedtgt{display:none;align-items:center;gap:8px}.cedtgt .clab{flex:1;font-size:14px;color:var(--soft)}
 .cedtgt button{min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-size:14px;color:var(--soft)}
@@ -393,7 +394,7 @@ html.crec #newver,html.ced #newver{display:none!important}
     <button class="rb lg rec" id="cmic" aria-pressed="false" aria-label="Aufnahme starten"><span class="dot"></span></button>
   </div>
   <div class="cedbar" id="cedbar">
-    <div class="cedtop"><span class="clab" id="cedInfo">Edit an · antippen zum Auswählen</span>
+    <div class="cedtop"><span class="clab" id="cedInfo">Edit an · antippen zum Auswählen</span><button class="cedar cedall" id="cedAll" aria-label="Alles auswählen">Alle</button>
       <button class="cedar" id="cedL" aria-label="Auswahl einen Rasterschritt früher">↤</button><button class="cedar" id="cedR" aria-label="Auswahl einen Rasterschritt später">↦</button></div>
     <div class="cedrow"><button class="rb lg say soon" id="csay2" data-soon="Sprechen" aria-label="Sprechen"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/></svg></button>
     <div class="cedg" id="cedMain"><button id="cedCopy">Kopieren</button><button id="cedPaste">Einfügen</button><button id="cedMove">Verschieben</button>
@@ -2766,6 +2767,7 @@ function resolveSel(){ if(!CH.sel.size) return 0; const S0=selList(); let n=0;
 function edUI(){ const L=selList(); let t=0,a=0; L.forEach(e=>e.type==='note'?t++:a++); const p=[]; if(t) p.push(t+(t>1?' Töne':' Ton')); if(a) p.push(a+(a>1?' Akkorde':' Akkord'));
   if(CH.selBars.size) p.push(CH.selBars.size+(CH.selBars.size>1?' Takte':' Takt'));
   $('#cedInfo').textContent=p.length?p.join(' · ')+' gewählt':'Edit an · antippen zum Auswählen';
+  { const nB=sheetBars().length; $('#cedAll').textContent=nB&&CH.selBars.size===nB?'Keine':'Alle'; $('#cedAll').setAttribute('aria-label',nB&&CH.selBars.size===nB?'Alles abwählen':'Alles auswählen'); }
   ['#cedCopy','#cedMove','#cedDel','#cedL','#cedR'].forEach(id=>$(id).classList.toggle('dim',!L.length)); $('#cedPaste').classList.toggle('dim',!CLIP.items);
   $('#cedbar').classList.toggle('tgt',!!ED.tgt); $('#cedbar').classList.toggle('tgtsim',ED.tgt==='paste'&&!!CLIP.bars); }
 function barToggle(k){ const bb=sheetBars()[k]; if(!bb) return; const key=bb.a.toFixed(3), on=!CH.selBars.has(key);
@@ -2874,6 +2876,8 @@ $('#cmSet').addEventListener('click',()=>openSheet());
 $('#cmHelp').addEventListener('click',()=>$('#hsheet').classList.add('on'));
 $('#cmVoice').addEventListener('click',()=>$('#hsheet').classList.add('on'));
 $('#cmLoad').addEventListener('click',()=>$('#capFile').click());
+// Edit-Leiste: alles auswählen bzw. (wenn schon alles gewählt) alles abwählen
+$('#cedAll').addEventListener('click',()=>{ const B=sheetBars(); if(B.length&&CH.selBars.size===B.length){ CH.sel.clear(); CH.selBars.clear(); CH.stripKey=''; edUI(); return; } markBars(B.map((_,i)=>i)); });
 // „Bitte drüberschauen“-Markierungen (Bernstein): alle auf einmal weg
 // Per Finger angetippt/ausgewählt = angeschaut (die Sprache zählt nicht: man hat die Stelle dann noch nicht gesehen)
 function chkSeen(L){ let n=0; L.forEach(e=>{ if(e.chk){ delete e.chk; delete e.chkWhy; n++; } }); if(n) chkUI(); return n; }
@@ -2925,7 +2929,15 @@ function voxNorm(t){ t=' '+t.toLowerCase().replace(/[!?;:]/g,' , ').replace(/(\d
     [/ (kopier|kopiere|kopieren|kopiert|dupliziere|duplizieren|copy) /g,' KOPIER '],
     [/ (lösch|lösche|löschen|löscht|lesch|entfern|entferne|entfernen|weg damit|raus damit) /g,' LÖSCH '],
     [/ (markier|markiere|markieren|markiert|auswählen|wähle|wählen) /g,' MARKIER '],
-    [/ (markierung|auswahl) (weg|aufheben|LÖSCH|raus) /g,' MARKWEG '],[/ (rückgängig machen|mach rückgängig|rückgängig|undo) /g,' RÜCKGÄNGIG '],[/ (wiederholen|wiederherstellen|redo) /g,' WIEDERHOL '],
+    // Auswahl aufheben (Manu: „Markierung aufheben“, „keine Markierungen mehr“ …) – Bernstein-Hinweise heißen „Hinweise“
+    [/ (die )?(markierungen|markierung|auswahl|markiertes|markierte|ausgewähltes) (weg|aufheben|LÖSCH|raus|zurücksetzen|vergessen|auflösen|beenden) /g,' MARKWEG '],
+    [/ (heb|hebe) (die )?(markierungen|markierung|auswahl) (wieder )?auf /g,' MARKWEG '],[/ (kein|keine|keinen) (markierungen|markierung|auswahl) (mehr)? ?/g,' MARKWEG '],
+    [/ (nichts|nix) (mehr )?(MARKIER|markiert|ausgewählt|gewählt) /g,' MARKWEG '],[/ (alles |alle )?(abwählen|abwähle|abgewählt|demarkieren|entmarkieren|deselektieren) /g,' MARKWEG '],[/ (wähle|wähl|MARKIER) (alles |ALLES |alle )?ab( |$)/g,' MARKWEG '],
+    [/ (alle )?(hinweise|hinweis|bernstein|bernsteinmarkierungen|prüfmarkierungen|gelben markierungen|orangen markierungen) (weg|LÖSCH|raus|aufheben|entfernen|ausblenden) /g,' CHKWEG '],
+    // Alles: ganzes Stück („alles markieren“, „das ganze Lied“, „alle Takte“); „alle Töne“ in einem Takt bleibt
+    [/ (das )?(ganze|ganzen|gesamte|gesamten|komplette|kompletten) (stück|lied|song|blatt|tab) /g,' ALLES '],[/ (alles|alle takt|komplett) /g,' ALLES '],
+    [/ alle (MARKIER|LÖSCH|KOPIER|VERSCHIEB|ausrichten) /g,' ALLES $1 '],[/ (MARKIER|LÖSCH|KOPIER) alle /g,' $1 ALLES '],
+    [/ bis (zum |ans |zu )?(ende|schluss|letzten takt|letzten|end) /g,' bis ENDE '],[/ (rückgängig machen|mach rückgängig|rückgängig|undo) /g,' RÜCKGÄNGIG '],[/ (wiederholen|wiederherstellen|redo) /g,' WIEDERHOL '],
     [/ auf (alle|allen) (ähnlichen|gleichen|anderen|ähnliche) (stellen )?/g,' ALLESIM '],
     // Füllwörter
     [/ (bitte|mal|mir|doch|jetzt|eben|bloß|noch|mach|mache|den akkord|der akkord|das|dem|im|am|beim|ton|note) /g,' ']];
@@ -3004,7 +3016,9 @@ function ablaufText(A){ if(!A||!A.folge) return ''; const nm=g=>evName({type:'ch
 // ==ABLAUF-END==
 // Position: „takt 4“, „takt 4 , 2+“, „takt 4 , 2 bis 3“, „takt 1 bis 3“, „takt 1 und 2“, „die ersten 2 takt“
 function voxBeat(w){ const m=/^(\d+)(\+|e|a)?$/.exec(w||''); if(!m) return null; return +m[1]-1+({'+':0.5,e:0.25,a:0.75}[m[2]]||0); }
-function voxPos(t,skipStr){ const nb=(sheetBars()[0]||{g:{beats:4}}).g.beats;
+function voxPos(t,skipStr){ const nb=(sheetBars()[0]||{g:{beats:4}}).g.beats, nBars=sheetBars().length;
+  t=t.replace(/ ?bis ENDE/,' bis takt '+nBars);
+  if(/(^| )ALLES( |$)/.test(t)&&!/takt \d/.test(t)) return {bars:Array.from({length:nBars},(_,i)=>i),txt:'Ganzes Stück',all:1};
   // „takt 1 g akkord von 2“, „takt 1 S4 2+“ → „takt 1 , 2“ (Wörter zwischen Takt und Zählzeit überspringen)
   const gap='(?: (?:,|von|der|die|das|akkord|akkorde|töne|ton|einzeltöne|moll|dur|7|maj7|sus2|sus4|add9|über|cis|des|dis|es|fis|ges|gis|as|ais|bflat|[a-h])'+(skipStr?'| S\\d':'')+')*';
   t=t.replace(new RegExp('takt (\\d+)'+gap+' (\\d+[+ea]?)(?= |$)'),(m,a,b)=>'takt '+a+' , '+b);
@@ -3044,6 +3058,7 @@ function voxDo(t){ const nb=(sheetBars()[0]||{g:{beats:4}}).g.beats, P=voxPos(t)
   const strM=/ ?S(\d) /.exec(' '+t+' '), str=strM?+strM[1]:null;
   if(/RÜCKGÄNGIG/.test(t)||/^zurück\b/.test(t)){ $('#cundo').click(); return {ok:1,txt:'Rückgängig',nosnap:1}; }
   if(/WIEDERHOL/.test(t)){ $('#credo').click(); return {ok:1,txt:'Wiederholt',nosnap:1}; }
+  if(/CHKWEG/.test(t)){ const n=CH.ev.filter(e=>e.chk).length; if(!n) return {ok:1,txt:'Keine Hinweise da',nosnap:1}; $('#cmChk').click(); return {ok:1,txt:n+(n>1?' Hinweise':' Hinweis')+' entfernt',nosnap:1}; }
   if(/MARKWEG/.test(t)){ CH.sel.clear(); CH.selBars.clear(); CH.stripKey=''; edUI(); return {ok:1,txt:'Markierung weg',nosnap:1}; }
   if(/MARKIER/.test(t)){ if(!P) return {ok:0,txt:'Welche Takte markieren?'}; const bars=P.bars||[P.bar]; markBars(bars); return {ok:1,txt:P.txt+' markiert',nosnap:1}; }
   // Quelle: genannte Takte/Stelle, sonst die markierten
@@ -3070,6 +3085,7 @@ function voxDo(t){ const nb=(sheetBars()[0]||{g:{beats:4}}).g.beats, P=voxPos(t)
     if(!L||!L.length) return {ok:0,txt:'Was soll ich löschen?'}; if(notesOnly||str!=null) L=L.filter(e=>e.type==='note'); if(str!=null) L=L.filter(e=>e.s===str); if(chOnly) L=L.filter(e=>e.type!=='note');
     if(!L.length) return {ok:0,txt:str!=null?'Dort ist nichts auf der '+SN[str]:chOnly?'Dort ist kein Akkord':'Dort sind keine Töne'};
     if(P&&P.bars&&/\d+[+ea]|von \d/.test(t.replace(/takt \d+/g,''))&&!confirm('Ganzen '+P.txt+' löschen ('+L.length+' Elemente)?')) return {ok:0,txt:'Nichts gelöscht'};
+    if(P&&P.all&&!confirm('Das ganze Stück löschen ('+L.length+' Elemente)?')) return {ok:0,txt:'Nichts gelöscht'};
     snap(); const set=new Set(L); CH.ev=CH.ev.filter(e=>!set.has(e)); L.forEach(e=>{ CH.sel.delete(e); }); if(ED.ev&&set.has(ED.ev)) closeEdit(); CH.stripKey=''; edUI();
     return {ok:1,txt:(P?P.txt+(str!=null?' · '+SN[str]:'')+': ':'')+L.length+(notesOnly||str!=null?(L.length>1?' Töne':' Ton'):chOnly?(L.length>1?' Akkorde':' Akkord'):(L.length>1?' Elemente':' Element'))+' gelöscht'}; }
   // Ton setzen: Stelle + Saite + Bund; Folge: Saite + „3, slide 5, 3, 1, pulloff 0“
@@ -3097,7 +3113,7 @@ function voxRun(alts){ let best=null; const edm0=CH.edm, sel0=CH.sel.size>0;
   const ab=alts.find(a=>ABLAUF_RE.test(a)); if(ab){ const n0=UNDO.length, r=ablaufCmd(ab); VOX.snaps=Math.max(0,UNDO.length-n0); undoUI();
     if(VOXLOG.length<500) VOXLOG.push({when:new Date().toISOString(),heard:alts.slice(0,3),used:ab,norm:['ablauf'],done:r.ok?[r.txt]:[],bad:r.ok?[]:[r.txt],steps:VOX.snaps});
     voxMsg((r.ok?'Verstanden: ':'')+r.txt+(r.ok?'':' · gehört: „'+ab+'“'),VOX.snaps>0); return; }
-  const isCmd=x=>/takt|LÖSCH|KOPIER|VERSCHIEB|MARKIER|RÜCKGÄNGIG|WIEDERHOL|MARKWEG|ALLESIM|S\d/.test(x);
+  const isCmd=x=>/takt|LÖSCH|KOPIER|VERSCHIEB|MARKIER|RÜCKGÄNGIG|WIEDERHOL|MARKWEG|CHKWEG|ALLES|S\d/.test(x);
   for(const raw of alts){ const P0=voxNorm(raw).split(/ (?:und dann|danach|dann) /), parts=[]; P0.forEach(x=>{ if(parts.length&&!isCmd(x)) parts[parts.length-1]+=' , '+x; else parts.push(x); }); const sim=[];
     // Trockenlauf geht nicht ohne Seiteneffekte – nimm die erste Variante, deren erster Teil erkannt wird
     best={raw,parts}; if(parts.some(x=>/takt|LÖSCH|KOPIER|VERSCHIEB|MARKIER|RÜCKGÄNGIG|WIEDERHOL|S\d|bund|slide|hammeron|pulloff|anschlag|moll|dur|MARKWEG|ALLESIM/.test(x))) break; }

@@ -40,7 +40,11 @@ Takt 1 bis 2 kopieren nach Takt 9
 
 ## Auswählen
 - `Takt 3 bis 5 markieren` → Edit-Modus an, Takte gewählt. Befehle ohne Stelle wirken danach auf die Markierung.
-- `Markierung weg`.
+- **Alles:** `alles markieren` · `alles auswählen` · `alle Takte markieren` · `das ganze Stück / Lied markieren`. „Alles“ geht auch bei Kopieren/Löschen (`alles nach Takt 9 kopieren`; `alles löschen` fragt vorher nach). `Takt 4 alle Töne löschen` bleibt in Takt 4.
+- **Bis zum Ende:** `Takt 3 bis zum Ende` · `Takt 3 bis Schluss`.
+- **Auswahl aufheben:** `Markierung weg` · `Markierung(en) aufheben` · `keine Markierung(en) mehr` · `Auswahl weg/aufheben` · `alles abwählen` · `wähle alles ab` · `nichts mehr markiert` · `hebe die Markierung auf`.
+- **Bernstein-Hinweise („bitte drüberschauen“) entfernen:** `Hinweise weg` (im Menü: „Markierungen weg“).
+- Per Finger: Knopf **„Alle“** in der Edit-Leiste (bei allem gewählt: „Keine“).
 
 ## Löschen
 - `Takt 4 löschen` · `Takt 4, 2 bis 3 löschen` · `Takt 4 Töne löschen` (nur Einzeltöne) · `Takt 4 B-Saite löschen` · `Takt 4 Akkord löschen`.
