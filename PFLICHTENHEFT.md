@@ -6,7 +6,7 @@ Stand: 12.11.2026 · Wird bei jeder Änderung an der App mitgepflegt.
 
 Eine Web-App für Akustikgitarre, gedacht für zu Hause, optimiert für das Samsung S24 (Chrome).
 
-- **Code:** `index.html` in diesem Repository (eine Datei: HTML, CSS, JavaScript)
+- **Code:** in diesem Repository, seit 14.11. (1940) aufgeteilt: `index.html` (Gerüst + `APP_VERSION`), `css/app.css`, `js/*.js` (normale Script-Dateien, die in der Reihenfolge der `<script>`-Zeilen in `index.html` laden und sich einen gemeinsamen globalen Zustand teilen – kein `import`, kein Build-Werkzeug). Reihenfolge = frühere Abschnittsfolge: grundlagen, stimmgeraet, erkennung, sicherung (Metronom, Version, Datensicherung, Lernen), mitschnitt, basic-pitch, blatt (Blatt, Rückgängig, Takte, Akkord-Ansicht, Edit), abspielen (+ Zurück-Taste/Notfall), sprache, aehnliche, start. **Neue Version:** `APP_VERSION` und alle `?v=…` in `index.html` zusammen ändern (`sed -i 's/ALT/NEU/g' index.html`), damit das Handy keine alten Teile mischt. Nächste Stufe (später): ES-Module mit gemeinsamem Zustand.
 - **Live-Adresse:** GitHub Pages dieses Repositorys
 - **Vorschau ohne Mikrofon:** Claude-Artefakt „Gitarren-Stimmgerät“. Dort ist das Mikrofon gesperrt, die App läuft mit simulierter Gitarre.
 - **Mikrofon:** nur über HTTPS (GitHub Pages). Lokal geöffnete Dateien funktionieren auf dem S24 nicht.
